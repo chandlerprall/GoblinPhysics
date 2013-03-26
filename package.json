@@ -1,0 +1,25 @@
+{
+  "name": "GoblinPhysics",
+  "version": "0.0.1",
+  "description": "Physics engine for Javascript",
+  "main": "goblin-module.js",
+  "directories": {
+    "lib": "src"
+  },
+  "repository": "",
+  "keywords": [
+    "physics"
+  ],
+  "author": {
+      "name": "Chandler Prall",
+      "email": "chandler.prall@gmail.com"
+  },
+  "license": "zlib",
+  "dependencies": {
+    "grunt": "0.4.x",
+    "grunt-contrib-concat": "0.1.x",
+    "grunt-contrib-jshint": "0.3.x",
+    "grunt-contrib-uglify": "0.2.x",
+    "grunt-contrib-yuidoc": "0.4.x"
+  }
+}
