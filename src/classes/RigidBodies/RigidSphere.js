@@ -26,7 +26,7 @@ Goblin.RigidSphere.prototype.findSupportPoint = function( direction, support_poi
 	// @TODO shouldn't need to transform the search direction first, but rather align the support point with the search direction after it has been calculated
 
 	// First transform the direction vector into the body's local frame
-	quat4.inverse( this['rotation'], world_to_local_rotation_transform );
+	quat4.inverse( this.rotation, world_to_local_rotation_transform );
 	quat4.multiplyVec3( world_to_local_rotation_transform, direction, localized_direction );
 	/*
 	 support_point = radius * (normalized)direction
@@ -34,12 +34,8 @@ Goblin.RigidSphere.prototype.findSupportPoint = function( direction, support_poi
 
 	//vec3.normalize( direction, localized_direction );
 	vec3.normalize( localized_direction );
-	vec3.scale( localized_direction, this['bounding_radius'], support_point );
+	vec3.scale( localized_direction, this.bounding_radius, support_point );
 
 	// Transform the localized support point into world coordinates
-	mat4.multiplyVec3( this['transform'], support_point );
+	mat4.multiplyVec3( this.transform, support_point );
 };
-
-// mappings for closure compiler
-Goblin['RigidSphere'] = Goblin.RigidSphere;
-Goblin.RigidSphere.prototype['findSupportPoint'] = Goblin.RigidSphere.prototype.findSupportPoint;

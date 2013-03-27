@@ -21,7 +21,7 @@ Goblin.RigidBox = function( half_width, half_height, half_depth, mass ) {
 	 * @proptery half_width
 	 * @type {Number}
 	 */
-	this['half_width'] = half_width;
+	this.half_width = half_width;
 
 	/**
 	 * Half height of the cube ( Y axis )
@@ -29,7 +29,7 @@ Goblin.RigidBox = function( half_width, half_height, half_depth, mass ) {
 	 * @proptery half_height
 	 * @type {Number}
 	 */
-	this['half_height'] = half_height;
+	this.half_height = half_height;
 
 	/**
 	 * Half width of the cube ( Z axis )
@@ -37,9 +37,9 @@ Goblin.RigidBox = function( half_width, half_height, half_depth, mass ) {
 	 * @proptery half_height
 	 * @type {Number}
 	 */
-	this['half_depth'] = half_depth;
+	this.half_depth = half_depth;
 
-	this['points'] = [
+	this.points = [
 		vec3.createFrom( -half_width, -half_height, -half_depth ),
 		vec3.createFrom( half_width, -half_height, -half_depth ),
 		vec3.createFrom( half_width, -half_height, half_depth ),
@@ -65,7 +65,7 @@ Goblin.RigidBox.prototype.findSupportPoint = function( direction, support_point 
 		world_to_local_rotation_transform = _tmp_quat4_1;
 
 	// First transform the direction vector into the body's local frame
-	quat4.inverse( this['rotation'], world_to_local_rotation_transform );
+	quat4.inverse( this.rotation, world_to_local_rotation_transform );
 	quat4.multiplyVec3( world_to_local_rotation_transform, direction, localized_direction );
 
 	/*
@@ -78,32 +78,28 @@ Goblin.RigidBox.prototype.findSupportPoint = function( direction, support_point 
 
 	// Calculate the support point in the local frame
 	if ( localized_direction[0] < 0 ) {
-		support_point[0] = -this['half_width'];
+		support_point[0] = -this.half_width;
 	} else {
-		support_point[0] = this['half_width'];
+		support_point[0] = this.half_width;
 	}
 
 	if ( localized_direction[1] < 0 ) {
-		support_point[1] = -this['half_height'];
+		support_point[1] = -this.half_height;
 	} else {
-		support_point[1] = this['half_height'];
+		support_point[1] = this.half_height;
 	}
 
 	if ( localized_direction[2] < 0 ) {
-		support_point[2] = -this['half_depth'];
+		support_point[2] = -this.half_depth;
 	} else {
-		support_point[2] = this['half_depth'];
+		support_point[2] = this.half_depth;
 	}
 
 	// Transform the localized support point into world coordinates
-	mat4.multiplyVec3( this['transform'], support_point );
+	mat4.multiplyVec3( this.transform, support_point );
 
-	/*console.debug( this['id'] );
+	/*console.debug( this.id );
 	console.debug( direction[0], direction[1], direction[2] );
 	console.debug( support_point[0], support_point[1], support_point[2] );
 	console.debug( '' );*/
 };
-
-// mappings for closure compiler
-Goblin['RigidBox'] = Goblin.RigidBox;
-Goblin.RigidBox.prototype['findSupportPoint'] = Goblin.RigidBox.prototype.findSupportPoint;

@@ -59,12 +59,6 @@ Goblin.ObjectPool = {
 	}
 };
 
-// mappings for closure compiler
-Goblin['ObjectPool'] = Goblin.ObjectPool;
-Goblin.ObjectPool['registerType'] = Goblin.ObjectPool.registerType;
-Goblin.ObjectPool['getObject'] = Goblin.ObjectPool.getObject;
-Goblin.ObjectPool['freeObject'] = Goblin.ObjectPool.freeObject;
-
 // register the objects used in Goblin
 Goblin.ObjectPool.registerType( 'vec3', vec3.create );
 Goblin.ObjectPool.registerType( 'mat3', mat3.create );

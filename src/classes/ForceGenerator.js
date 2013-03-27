@@ -5,7 +5,7 @@
  * @constructor
  * @param force {vec3} [optional] force the generator applies
 */
-Goblin['ForceGenerator'] = function( force ) {
+Goblin.ForceGenerator = function( force ) {
 	/**
 	* force which will be applied to affected objects
 	*
@@ -13,7 +13,7 @@ Goblin['ForceGenerator'] = function( force ) {
 	* @type {vec3}
 	* @default [ 0, 0, 0 ]
 	*/
-	this['force'] = force || vec3.create();
+	this.force = force || vec3.create();
 
 	/**
 	* whether or not the force generator is enabled
@@ -22,7 +22,7 @@ Goblin['ForceGenerator'] = function( force ) {
 	* @type {Boolean}
 	* @default true
 	*/
-	this['enabled'] = true;
+	this.enabled = true;
 
 	/**
 	* array of objects affected by the generator
@@ -39,14 +39,14 @@ Goblin['ForceGenerator'] = function( force ) {
 *
 * @method applyForce
 */
-Goblin['ForceGenerator'].prototype['applyForce'] = function() {
-	if ( !this['enabled'] ) {
+Goblin.ForceGenerator.prototype.applyForce = function() {
+	if ( !this.enabled ) {
 		return;
 	}
 
 	var i, affected_count;
 	for ( i = 0, affected_count = this.affected.length; i < affected_count; i++ ) {
-		this.affected[i]['applyForce']( this['force'] );
+		this.affected[i].applyForce( this.force );
 	}
 };
 /**
@@ -54,16 +54,16 @@ Goblin['ForceGenerator'].prototype['applyForce'] = function() {
 *
 * @method enable
 */
-Goblin['ForceGenerator'].prototype['enable'] = function() {
-	this['enabled'] = true;
+Goblin.ForceGenerator.prototype.enable = function() {
+	this.enabled = true;
 };
 /**
 * disables the force generator
 *
 * @method disable
 */
-Goblin['ForceGenerator'].prototype['disable'] = function() {
-	this['enabled'] = false;
+Goblin.ForceGenerator.prototype.disable = function() {
+	this.enabled = false;
 };
 /**
 * adds an object to be affected by the generator
@@ -71,7 +71,7 @@ Goblin['ForceGenerator'].prototype['disable'] = function() {
 * @method affect
 * @param object {Mixed} object to be affected, must have `applyForce` method
 */
-Goblin['ForceGenerator'].prototype['affect'] = function( object ) {
+Goblin.ForceGenerator.prototype.affect = function( object ) {
 	var i, affected_count;
 	// Make sure this object isn't already affected
 	for ( i = 0, affected_count = this.affected.length; i < affected_count; i++ ) {
@@ -88,7 +88,7 @@ Goblin['ForceGenerator'].prototype['affect'] = function( object ) {
 * @method unaffect
 * @param object {Mixed} object to be affected, must have `applyForce` method
 */
-Goblin['ForceGenerator'].prototype['unaffect'] = function( object ) {
+Goblin.ForceGenerator.prototype.unaffect = function( object ) {
 	var i, affected_count;
 	for ( i = 0, affected_count = this.affected.length; i < affected_count; i++ ) {
 		if ( this.affected[i] === object ) {

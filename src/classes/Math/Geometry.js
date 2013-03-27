@@ -125,6 +125,6 @@ Goblin.GeometryMethods = {
 };
 
 // mappings for closure compiler
-Goblin['GeometryMethods'] = Goblin.GeometryMethods;
-Goblin.GeometryMethods['findClosestPointInTriangle'] = Goblin.GeometryMethods.findClosestPointInTriangle;
-Goblin.GeometryMethods['findBarycentricCoordinates'] = Goblin.GeometryMethods.findBarycentricCoordinates;
+Goblin.GeometryMethods = Goblin.GeometryMethods;
+Goblin.GeometryMethods.findClosestPointInTriangle = Goblin.GeometryMethods.findClosestPointInTriangle;
+Goblin.GeometryMethods.findBarycentricCoordinates = Goblin.GeometryMethods.findBarycentricCoordinates;

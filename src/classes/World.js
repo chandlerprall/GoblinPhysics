@@ -13,7 +13,7 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @property broadphase
 	 * @type {Goblin.Broadphase}
 	 */
-	this['broadphase'] = broadphase;
+	this.broadphase = broadphase;
 
 	/**
 	 * The nearphase used by the world to generate valid contacts
@@ -21,7 +21,7 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @property nearphasee
 	 * @type {Goblin.NearPhase}
 	 */
-	this['nearphase'] = nearphase;
+	this.nearphase = nearphase;
 
 	/**
 	 * The contact solver used by the world to calculate and apply impulses resulting from contacts
@@ -29,7 +29,7 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @property solver
 	 * @type {Goblin.RigidContactSolver}
 	 */
-	this['solver'] = solver;
+	this.solver = solver;
 
 	/**
 	 * Array of mass_points in the world
@@ -58,7 +58,7 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	* @type {vec3}
 	* @default [ 0, -9.8, 0 ]
 	*/
-	this['gravity'] = vec3.createFrom( 0, -9.8, 0 );
+	this.gravity = vec3.createFrom( 0, -9.8, 0 );
 
 	/**
 	 * array of force generators in the world
@@ -84,7 +84,7 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @property contacts
 	 * @type {Array}
 	 */
-	this['contacts'] = [];
+	this.contacts = [];
 };
 /**
 * Steps the physics simulation according to the time delta
@@ -100,8 +100,8 @@ Goblin.World.prototype.step = function( time_delta ) {
 	}
 
 	// Prune contacts
-	/*for ( i = 0; i < this['contacts'].length; i++ ) {
-		Goblin.ObjectPool.freeObject( 'MassPointContact', this['contacts'].pop() );
+	/*for ( i = 0; i < this.contacts.length; i++ ) {
+		Goblin.ObjectPool.freeObject( 'MassPointContact', this.contacts.pop() );
 	}*/
 
 	// Apply gravity
@@ -109,47 +109,47 @@ Goblin.World.prototype.step = function( time_delta ) {
 		body = this.rigid_bodies[i];
 
 		// Objects of infinite mass don't move
-		if ( body['mass'] !== Infinity ) {
-			vec3.scale( body.gravity || this['gravity'], body['mass'] * time_delta, _tmp_vec3_1 );
-			vec3.add( body['accumulated_force'], _tmp_vec3_1 );
+		if ( body.mass !== Infinity ) {
+			vec3.scale( body.gravity || this.gravity, body.mass * time_delta, _tmp_vec3_1 );
+			vec3.add( body.accumulated_force, _tmp_vec3_1 );
 		}
 	}
 
 	// Apply force generators
 	for ( i = 0, loop_count = this.force_generators.length; i < loop_count; i++ ) {
-		this.force_generators[i]['applyForce']();
+		this.force_generators[i].applyForce();
 	}
 
 	// Apply constraints
 	/*for ( i = 0, loop_count = this.constraints.length; i < loop_count; i++ ) {
-		this.constraints[i]['apply']( time_delta );
+		this.constraints[i].apply( time_delta );
 	}*/
 
 	// Integrate mass points
 	/*for ( i = 0, loop_count = this.mass_points.length; i < loop_count; i++ ) {
 		body = this.mass_points[i];
-		body['integrate']( time_delta );
+		body.integrate( time_delta );
 	}*/
 
 	// Check for contacts, broadphase
-	this['broadphase'].predictContactPairs();
+	this.broadphase.predictContactPairs();
 
 	// Find valid contacts, nearphase
-	this['nearphase'].generateContacts( this['broadphase']['collision_pairs'] );
+	this.nearphase.generateContacts( this.broadphase.collision_pairs );
 
 	// Process contact manifolds into contact and friction constraints
-	this['solver']['processContactManifolds']( this['nearphase']['contact_manifolds'], time_delta );
+	this.solver.processContactManifolds( this.nearphase.contact_manifolds, time_delta );
 
 	// Run the constraint solver
-	this['solver']['solve']( time_delta );
+	this.solver.solve( time_delta );
 
 	// Apply the constraints
-	this['solver']['apply']( time_delta );
+	this.solver.apply( time_delta );
 
 	// Integrate rigid bodies
 	for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
 		body = this.rigid_bodies[i];
-		body['integrate']( time_delta );
+		body.integrate( time_delta );
 	}
 };
 /**
@@ -159,7 +159,7 @@ Goblin.World.prototype.step = function( time_delta ) {
  * @param mass_point {Goblin.MassPoint} mass point to add to the world
  */
 Goblin.World.prototype.addMassPoint = function( mass_point ) {
-	mass_point['world'] = this;
+	mass_point.world = this;
 	this.mass_points.push( mass_point );
 };
 
@@ -170,9 +170,9 @@ Goblin.World.prototype.addMassPoint = function( mass_point ) {
  * @param rigid_body {Goblin.RigidBody} rigid body to add to the world
  */
 Goblin.World.prototype.addRigidBody = function( rigid_body ) {
-	rigid_body['world'] = this;
+	rigid_body.world = this;
 	this.rigid_bodies.push( rigid_body );
-	this['broadphase'].addBody( rigid_body );
+	this.broadphase.addBody( rigid_body );
 };
 
 /**
@@ -188,7 +188,7 @@ Goblin.World.prototype.removeRigidBody = function( rigid_body ) {
 	for ( i = 0; i < rigid_body_count; i++ ) {
 		if ( this.rigid_bodies[i] === rigid_body ) {
 			this.rigid_bodies.splice( i, 1 );
-			this['broadphase'].removeBody( rigid_body );
+			this.broadphase.removeBody( rigid_body );
 			break;
 		}
 	}
@@ -241,7 +241,7 @@ Goblin.World.prototype.addConstraint = function( constraint ) {
 		}
 	}
 
-	constraint['world'] = this;
+	constraint.world = this;
 	this.constraints.push( constraint );
 };
 /**
@@ -259,13 +259,3 @@ Goblin.World.prototype.removeConstraint = function( constraint ) {
 		}
 	}
 };
-
-// mappings for closure compiler
-Goblin['World'] = Goblin.World;
-Goblin.World.prototype['step'] = Goblin.World.prototype.step;
-Goblin.World.prototype['addMassPoint'] = Goblin.World.prototype.addMassPoint;
-Goblin.World.prototype['addRigidBody'] = Goblin.World.prototype.addRigidBody;
-Goblin.World.prototype['addForceGenerator'] = Goblin.World.prototype.addForceGenerator;
-Goblin.World.prototype['removeForceGenerator'] = Goblin.World.prototype.removeForceGenerator;
-Goblin.World.prototype['addConstraint'] = Goblin.World.prototype.addConstraint;
-Goblin.World.prototype['removeConstraint'] = Goblin.World.prototype.removeConstraint;

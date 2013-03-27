@@ -5,7 +5,7 @@
 * @constructor
 * @param mass {Number} mass of the masspoint
 */
-Goblin['MassPoint'] = function( mass ) {
+Goblin.MassPoint = function( mass ) {
 	/**
 	* the masspoint's mass
 	*
@@ -13,7 +13,7 @@ Goblin['MassPoint'] = function( mass ) {
 	* @type {Number}
 	* @default Infinity
 	*/
-	this['mass'] = mass || Infinity;
+	this.mass = mass || Infinity;
 
 	/**
 	* the masspoint's current position
@@ -22,7 +22,7 @@ Goblin['MassPoint'] = function( mass ) {
 	* @type {vec3}
 	* @default [ 0, 0, 0 ]
 	*/
-	this['position'] = vec3.create();
+	this.position = vec3.create();
 
 	/**
 	* the mass point's current linear velocity
@@ -31,7 +31,7 @@ Goblin['MassPoint'] = function( mass ) {
 	* @type {vec3}
 	* @default [ 0, 0, 0 ]
 	*/
-	this['linear_velocity'] = vec3.create();
+	this.linear_velocity = vec3.create();
 
 	/**
 	* the mass point's current acceleration
@@ -40,7 +40,7 @@ Goblin['MassPoint'] = function( mass ) {
 	* @type {vec3}
 	* @default [ 0, 0, 0 ]
 	*/
-	this['acceleration'] = vec3.create();
+	this.acceleration = vec3.create();
 
 	/**
 	* amount of linear damping to apply to the mass point's velocity
@@ -49,7 +49,7 @@ Goblin['MassPoint'] = function( mass ) {
 	* @type {vec3}
 	* @default [ 0.999, 0.999, 0.999 ]
 	*/
-	this['linear_damping'] = vec3.createFrom( 0.999, 0.999, 0.999 );
+	this.linear_damping = vec3.createFrom( 0.999, 0.999, 0.999 );
 
 	/**
 	* the mass point's custom gravity
@@ -66,10 +66,10 @@ Goblin['MassPoint'] = function( mass ) {
 	* this is set when the mass point is added to a world
 	*
 	* @property world
-	* @type {Goblin['World']}
+	* @type {Goblin.World}
 	* @default null
 	*/
-	this['world'] = null;
+	this.world = null;
 
 	/**
 	* all resultant force accumulated by the masspoint in the previous step
@@ -88,7 +88,7 @@ Goblin['MassPoint'] = function( mass ) {
 * @method integrate
 * @param duration {Number} time, in seconds, to use in integration
 */
-Goblin['MassPoint'].prototype['integrate'] = function( duration ) {
+Goblin.MassPoint.prototype.integrate = function( duration ) {
 	var _vec3_1 = _tmp_vec3_1,
 		_vec3_2 = _tmp_vec3_2;
 
@@ -96,21 +96,21 @@ Goblin['MassPoint'].prototype['integrate'] = function( duration ) {
 	this.accumulated_force[0] = this.accumulated_force[1] = this.accumulated_force[2] = 0;
 
 	/* Work out the acceleration from all forces & gravity*/
-	vec3.set( this['acceleration'], _vec3_1 );
+	vec3.set( this.acceleration, _vec3_1 );
 
 	// Add accumulated forces
 	vec3.set( this.accumulated_force, _vec3_2 );
-	vec3.scale( _vec3_2, 1 / this['mass'] );
+	vec3.scale( _vec3_2, 1 / this.mass );
 	vec3.add( _vec3_1, _vec3_2 );
 
 	// Add gravity
-	if ( this['mass'] < Infinity ) {
-		vec3.add( _vec3_1, this.gravity || this['world']['gravity'] );
+	if ( this.mass < Infinity ) {
+		vec3.add( _vec3_1, this.gravity || this.world.gravity );
 	}
 
 
 	/* Apply damping*/
-	vec3.multiply( this['linear_velocity'], this['linear_damping'] );
+	vec3.multiply( this.linear_velocity, this.linear_damping );
 
 
 	/* Update linear position
@@ -121,18 +121,18 @@ Goblin['MassPoint'].prototype['integrate'] = function( duration ) {
 	 vec3.add( this.position, _vec3_1 );
 	 */
 	// Apply velocity
-	vec3.set( this['linear_velocity'], _vec3_1 );
+	vec3.set( this.linear_velocity, _vec3_1 );
 	vec3.scale( _vec3_1, duration );
 	// Apply acceleration
-	vec3.set( this['acceleration'], _vec3_2 );
+	vec3.set( this.acceleration, _vec3_2 );
 	vec3.scale( _vec3_2, duration * duration * 0.5 );
 	// Bring it all together
-	vec3.add( this['position'], _vec3_1 );
-	vec3.add( this['position'], _vec3_2 );
+	vec3.add( this.position, _vec3_1 );
+	vec3.add( this.position, _vec3_2 );
 
 	/* Update linear velocity from the acceleration.*/
 	vec3.scale( _vec3_1, duration );
-	vec3.add( this['linear_velocity'], _vec3_1 );
+	vec3.add( this.linear_velocity, _vec3_1 );
 };
 /**
 * Sets a custom gravity value for this masspoint
@@ -142,7 +142,7 @@ Goblin['MassPoint'].prototype['integrate'] = function( duration ) {
 * @param y {Number} gravity to apply on y axis
 * @param z {Number} gravity to apply on z axis
 */
-Goblin['MassPoint'].prototype['setGravity'] = function( x, y, z ) {
+Goblin.MassPoint.prototype.setGravity = function( x, y, z ) {
 	if ( this.gravity ) {
 		this.gravity[0] = x;
 		this.gravity[1] = y;
@@ -157,6 +157,6 @@ Goblin['MassPoint'].prototype['setGravity'] = function( x, y, z ) {
 * @method applyForce
 * @param force {vec3} force to apply to the masspoint
 */
-Goblin['MassPoint'].prototype['applyForce'] = function( force ) {
+Goblin.MassPoint.prototype.applyForce = function( force ) {
 	vec3.add( this.accumulated_force, force );
 };

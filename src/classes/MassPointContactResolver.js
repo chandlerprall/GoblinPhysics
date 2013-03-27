@@ -12,7 +12,7 @@ Goblin.MassPointContactResolver = function( iterations ) {
 	 * @property iterations
 	 * @type {Integer}
 	 */
-	this['iterations'] = iterations;
+	this.iterations = iterations;
 };
 
 /**
@@ -24,7 +24,7 @@ Goblin.MassPointContactResolver = function( iterations ) {
  */
 Goblin.MassPointContactResolver.prototype.resolveContacts = function( contacts, duration ) {
 	var iterations_used = 0,
-		max_iterations = this['iterations'] || contacts.length * 2,
+		max_iterations = this.iterations || contacts.length * 2,
 		num_contacts = contacts.length,
 		max, max_index, i,
 		separation_velocity;
@@ -47,6 +47,3 @@ Goblin.MassPointContactResolver.prototype.resolveContacts = function( contacts, 
 		}
 	}
 };
-
-// mappings for closure compiler
-Goblin['MassPointContactResolver'] = Goblin.MassPointContactResolver;

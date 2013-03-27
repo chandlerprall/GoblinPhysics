@@ -11,7 +11,7 @@ Goblin.ContactManifold = function() {
 	 * @property object_a
 	 * @type {Goblin.RigidBody}
 	 */
-	this['object_a'] = null;
+	this.object_a = null;
 
 	/**
 	 * Second body in the contact
@@ -19,7 +19,7 @@ Goblin.ContactManifold = function() {
 	 * @property object_b
 	 * @type {Goblin.RigidBody}
 	 */
-	this['object_b'] = null;
+	this.object_b = null;
 
 	/**
 	 * Holds all of the active contact points for this manifold
@@ -27,7 +27,7 @@ Goblin.ContactManifold = function() {
 	 * @property points
 	 * @type {Array}
 	 */
-	this['points'] = [];
+	this.points = [];
 
 	/**
 	 * Reference to the next ContactManifold in the list
@@ -35,7 +35,7 @@ Goblin.ContactManifold = function() {
 	 * @property next_manifold
 	 * @type Goblin.ContactManifold
 	 */
-	this['next_manifold'] = null;
+	this.next_manifold = null;
 };
 
 Goblin.ContactManifold.getTriangleArea = function( a, b, c ) {
@@ -54,8 +54,8 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		}
 	}
 	// Add contact if we don't have enough points yet
-	if ( this['points'].length < 3 ) {
-		this['points'].push( contact );
+	if ( this.points.length < 3 ) {
+		this.points.push( contact );
 	} else {
 		var is_deeper = 0,
 			deeper_than = null;
@@ -63,25 +63,25 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		// Determine if the new contact would yield a larger contact surface area
 		// @TODO cache `current_area` - no need to constantly calculate it
 		var current_area = Goblin.ContactManifold.getTriangleArea(
-				this['points'][0]['contact_point'],
-				this['points'][1]['contact_point'],
-				this['points'][2]['contact_point']
+				this.points[0].contact_point,
+				this.points[1].contact_point,
+				this.points[2].contact_point
 			),
 			replace_a = Goblin.ContactManifold.getTriangleArea(
-				contact['contact_point'],
-				this['points'][1]['contact_point'],
-				this['points'][2]['contact_point']
+				contact.contact_point,
+				this.points[1].contact_point,
+				this.points[2].contact_point
 			),
 			replace_b = Goblin.ContactManifold.getTriangleArea(
-				this['points'][0]['contact_point'],
-				contact['contact_point'],
-				this['points'][2]['contact_point']
+				this.points[0].contact_point,
+				contact.contact_point,
+				this.points[2].contact_point
 			),
 			replace_c = Goblin.ContactManifold.getTriangleArea(
-				contact['contact_point'],
-				this['points'][0]['contact_point'],
-				this['points'][1]['contact_point'],
-				contact['contact_point']
+				contact.contact_point,
+				this.points[0].contact_point,
+				this.points[1].contact_point,
+				contact.contact_point
 			);
 
 		var to_replace = -1,
@@ -122,7 +122,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		}
 
 		if ( to_replace !== -1 ) {
-			this['points'][to_replace] = contact;
+			this.points[to_replace] = contact;
 		} else if ( is_deeper > 0 ) {
 			this.points[deeper_than] = contact;
 		}
@@ -136,7 +136,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
  */
 Goblin.ContactManifold.prototype.update = function() {
 	// Update positions / depths of contacts
-	var i = this['points'].length - 1,
+	var i = this.points.length - 1,
 		j,
 		point,
 		object_a_world_coords = vec3.create(),
@@ -144,37 +144,32 @@ Goblin.ContactManifold.prototype.update = function() {
 		vector_difference = vec3.create();
 
 	while( i >= 0 ) {
-		point = this['points'][i];
+		point = this.points[i];
 
 		// Convert the local contact points into world coordinates
-		mat4.multiplyVec3( point['object_a']['transform'], point['contact_point_in_a'], object_a_world_coords );
-		mat4.multiplyVec3( point['object_b']['transform'], point['contact_point_in_b'], object_b_world_coords );
+		mat4.multiplyVec3( point.object_a.transform, point.contact_point_in_a, object_a_world_coords );
+		mat4.multiplyVec3( point.object_b.transform, point.contact_point_in_b, object_b_world_coords );
 
 		// Find new world contact point
-		vec3.add( object_a_world_coords, object_b_world_coords, point['contact_point'] );
-		vec3.scale( point['contact_point'], 0.5 );
+		vec3.add( object_a_world_coords, object_b_world_coords, point.contact_point );
+		vec3.scale( point.contact_point, 0.5 );
 
 		// Find the new penetration depth
 		vec3.subtract( object_a_world_coords, object_b_world_coords, vector_difference );
 
-		point['penetration_depth'] = vec3.dot( vector_difference, point['contact_normal'] );
-		/*if ( vec3.dot( point['contact_normal'], vector_difference ) < 0 ) {
-			point['penetration_depth'] *= -1;
+		point.penetration_depth = vec3.dot( vector_difference, point.contact_normal );
+		/*if ( vec3.dot( point.contact_normal, vector_difference ) < 0 ) {
+			point.penetration_depth *= -1;
 		}*/
 
 		// If distance is too great, remove this contact point
-		if ( true || point['penetration_depth'] < -0.04 ) {
-			for ( j = this['points'].length - 2; j >= i; j-- ) {
-				this['points'][j] = this['points'][j + 1];
+		if ( true || point.penetration_depth < -0.04 ) {
+			for ( j = this.points.length - 2; j >= i; j-- ) {
+				this.points[j] = this.points[j + 1];
 			}
-			this['points'].length = this['points'].length - 1;
+			this.points.length = this.points.length - 1;
 		}
 
 		i--;
 	}
 };
-
-// mappings for closure compiler
-Goblin['ContactManifold'] = Goblin.ContactManifold;
-Goblin.ContactManifold.prototype['addContact'] = Goblin.ContactManifold.prototype.addContact;
-Goblin.ContactManifold.prototype['update'] = Goblin.ContactManifold.prototype.update;

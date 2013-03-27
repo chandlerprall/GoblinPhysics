@@ -79,7 +79,7 @@
 *
 * @module Goblin
 */
-window['Goblin'] = (function() {
+window.Goblin = (function() {
 	'use strict';
 
 	var Goblin = {},
@@ -92,4 +92,4 @@ window['Goblin'] = (function() {
 		_tmp_mat3_1 = mat3.create(),
 		_tmp_mat3_2 = mat3.create();
 
-    Goblin.EPSILON = Goblin['EPSILON'] = 0.000001;
+    Goblin.EPSILON = 0.000001;

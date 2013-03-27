@@ -16,7 +16,7 @@ Goblin.ContactDetails = function() {
 	 * @property object_a
 	 * @type {Goblin.RigidBody}
 	 */
-	this['object_a'] = null;
+	this.object_a = null;
 
 	/**
 	 * second body in the  contact
@@ -24,7 +24,7 @@ Goblin.ContactDetails = function() {
 	 * @property object_b
 	 * @type {Goblin.RigidBody}
 	 */
-	this['object_b'] = null;
+	this.object_b = null;
 
 	/**
 	 * point of contact in world coordinates
@@ -32,7 +32,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_point
 	 * @type {vec3}
 	 */
-	this['contact_point'] = vec3.create();
+	this.contact_point = vec3.create();
 
 	/**
 	 * Point in 'object_a` local frame of `object_a`
@@ -40,7 +40,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_point_in_a
 	 * @type {vec3}
 	 */
-	this['contact_point_in_a'] = vec3.create();
+	this.contact_point_in_a = vec3.create();
 
 	/**
 	 * Point in 'object_b` local frame of `object_b`
@@ -48,7 +48,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_point_in_b
 	 * @type {vec3}
 	 */
-	this['contact_point_in_b'] = vec3.create();
+	this.contact_point_in_b = vec3.create();
 
 	/**
 	 * normal vector, in world frame, of the contact
@@ -56,7 +56,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_normal
 	 * @type {vec3}
 	 */
-	this['contact_normal'] = vec3.create();
+	this.contact_normal = vec3.create();
 
 	/**
 	 * how far the objects are penetrated at the point of contact
@@ -64,7 +64,7 @@ Goblin.ContactDetails = function() {
 	 * @property penetration_depth
 	 * @type {Number}
 	 */
-	this['penetration_depth'] = 0;
+	this.penetration_depth = 0;
 
 	/**
 	 * amount of restitution between the objects in contact
@@ -72,7 +72,7 @@ Goblin.ContactDetails = function() {
 	 * @property restitution
 	 * @type {Number}
 	 */
-	this['restitution'] = 0;
+	this.restitution = 0;
 
 	/**
 	 * amount of friction between the objects in contact
@@ -80,7 +80,7 @@ Goblin.ContactDetails = function() {
 	 * @property friction
 	 * @type {*}
 	 */
-	this['friction'] = 0;
+	this.friction = 0;
 
 	/**
 	 * Matrix to convert from contact space to world space, aligned where the X axis is along the contact normal
@@ -88,7 +88,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_basis
 	 * @type {mat3}
 	 */
-	this['contact_basis'] = mat3.create();
+	this.contact_basis = mat3.create();
 
 	/**
 	 * Matrix to convert from world space to contact space
@@ -96,7 +96,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_basis_inverse
 	 * @type {mat3}
 	 */
-	this['contact_basis_inverse'] = mat3.create();
+	this.contact_basis_inverse = mat3.create();
 
 	/**
 	 * Velocity of the two objects relative to the contact
@@ -104,7 +104,7 @@ Goblin.ContactDetails = function() {
 	 * @property relative_velocity
 	 * @type {vec3}
 	 */
-	this['relative_velocity'] = vec3.create();
+	this.relative_velocity = vec3.create();
 
 	/**
 	 * Two-element array holding the positions of each object relative to the contact point
@@ -112,7 +112,7 @@ Goblin.ContactDetails = function() {
 	 * @property relative_positions
 	 * @type {Array}
 	 */
-	this['relative_positions'] = [ vec3.create(), vec3.create() ];
+	this.relative_positions = [ vec3.create(), vec3.create() ];
 
 	/**
 	 * The total desired delta separating velocity
@@ -120,7 +120,7 @@ Goblin.ContactDetails = function() {
 	 * @property desired_delta_velocity
 	 * @type {Number}
 	 */
-	this['desired_delta_velocity'] = vec3.create();
+	this.desired_delta_velocity = vec3.create();
 };
 
 /**
@@ -138,8 +138,8 @@ Goblin.ContactDetails.prototype.calculateContactBasis = function() {
 	var _vec3_1 = _tmp_vec3_1,
 		_vec3_2 = _tmp_vec3_2,
 
-		contact_normal = this['contact_normal'],
-		resulting_basis = this['contact_basis'],
+		contact_normal = this.contact_normal,
+		resulting_basis = this.contact_basis,
 
 		scaling_factor;
 
@@ -186,7 +186,7 @@ Goblin.ContactDetails.prototype.calculateContactBasis = function() {
 	resulting_basis[8] = _vec3_2[2];
 
 	// Calculate the inverse basis matrix
-	mat3.transpose( resulting_basis, this['contact_basis_inverse'] );
+	mat3.transpose( resulting_basis, this.contact_basis_inverse );
 };
 
 /**
@@ -199,27 +199,27 @@ Goblin.ContactDetails.prototype.calculateContactBasis = function() {
 Goblin.ContactDetails.prototype.calculateRelativeVelocity = function( duration ) {
 	var object_velocity = vec3.create(),
 		object_acceleration_velocity = vec3.create(),
-		relative_velocity = this['relative_velocity'],
+		relative_velocity = this.relative_velocity,
 
-		object_a = this['object_a'],
-		object_b = this['object_b'];
+		object_a = this.object_a,
+		object_b = this.object_b;
 
 	// Zero-fill the `relative_velocity` vector
 	relative_velocity[0] = relative_velocity[1] = relative_velocity[2] = 0;
 
-	if ( object_a['mass'] !== Infinity ) {
-		vec3.cross( object_a['angular_velocity'], this['relative_positions'][0], object_velocity );
-		vec3.add( object_velocity, object_a['linear_velocity'] );
+	if ( object_a.mass !== Infinity ) {
+		vec3.cross( object_a.angular_velocity, this.relative_positions[0], object_velocity );
+		vec3.add( object_velocity, object_a.linear_velocity );
 
 		// Turn the velocity into contact-coordinates and add it to the relative velocity
-		mat3.multiplyVec3( this['contact_basis_inverse'], object_velocity );
+		mat3.multiplyVec3( this.contact_basis_inverse, object_velocity );
 		vec3.add( relative_velocity, object_velocity );
 
 		// Calculate the amount of velocity that is due to forces without reactions.
-		vec3.scale( object_a['acceleration'], duration, object_acceleration_velocity );
+		vec3.scale( object_a.acceleration, duration, object_acceleration_velocity );
 
 		// Calculate the velocity in contact-coordinates.
-		mat3.multiplyVec3( this['contact_basis_inverse'], object_acceleration_velocity );
+		mat3.multiplyVec3( this.contact_basis_inverse, object_acceleration_velocity );
 
 		// We ignore any component of acceleration in the contact normal
 		// direction, we are only interested in planar acceleration
@@ -229,19 +229,19 @@ Goblin.ContactDetails.prototype.calculateRelativeVelocity = function( duration )
 		vec3.add( relative_velocity, object_acceleration_velocity );
 	}
 
-	if ( object_b['mass'] !== Infinity ) {
-		vec3.cross( object_b['angular_velocity'], this['relative_positions'][0], object_velocity );
-		vec3.add( object_velocity, object_b['linear_velocity'] );
+	if ( object_b.mass !== Infinity ) {
+		vec3.cross( object_b.angular_velocity, this.relative_positions[0], object_velocity );
+		vec3.add( object_velocity, object_b.linear_velocity );
 
 		// Turn the velocity into contact-coordinates and add it to the relative velocity
-		mat3.multiplyVec3( this['contact_basis_inverse'], object_velocity );
+		mat3.multiplyVec3( this.contact_basis_inverse, object_velocity );
 		vec3.add( relative_velocity, object_velocity );
 
 		// Calculate the amount of velocity that is due to forces without reactions.
-		vec3.scale( object_b['acceleration'], duration, object_acceleration_velocity );
+		vec3.scale( object_b.acceleration, duration, object_acceleration_velocity );
 
 		// Calculate the velocity in contact-coordinates.
-		mat3.multiplyVec3( this['contact_basis_inverse'], object_acceleration_velocity );
+		mat3.multiplyVec3( this.contact_basis_inverse, object_acceleration_velocity );
 
 		// We ignore any component of acceleration in the contact normal
 		// direction, we are only interested in planar acceleration
@@ -263,43 +263,39 @@ Goblin.ContactDetails.prototype.calculateDesiredDeltaVelocity = function( durati
 	var velocity_limit = 0.25, // If the contact velocity is less than `velocity_limit`, don't apply any restitution
 		velocity_from_acceleration = 0,
 
-		restitution = this['restitution'],
+		restitution = this.restitution,
 
-		object_a = this['object_a'],
-		object_b = this['object_b'],
+		object_a = this.object_a,
+		object_b = this.object_b,
 
 		_vec3_1 = _tmp_vec3_1;
 
 	// Calculate the acceleration induced velocity accumulated this frame
-	if ( object_a['mass'] !== Infinity ) {
-		vec3.scale( object_a['acceleration'], duration, _vec3_1 );
-		velocity_from_acceleration += vec3.dot( _vec3_1, this['contact_normal'] );
+	if ( object_a.mass !== Infinity ) {
+		vec3.scale( object_a.acceleration, duration, _vec3_1 );
+		velocity_from_acceleration += vec3.dot( _vec3_1, this.contact_normal );
 	}
 
-	if ( object_b['mass'] !== Infinity ) {
-		vec3.scale( object_b['acceleration'], duration, _vec3_1 );
-		velocity_from_acceleration -= vec3.dot( _vec3_1, this['contact_normal'] );
+	if ( object_b.mass !== Infinity ) {
+		vec3.scale( object_b.acceleration, duration, _vec3_1 );
+		velocity_from_acceleration -= vec3.dot( _vec3_1, this.contact_normal );
 	}
 
 	// If the velocity is very slow, limit the restitution
-	if ( Math.abs( this['relative_velocity'][0] ) < velocity_limit ) {
+	if ( Math.abs( this.relative_velocity[0] ) < velocity_limit ) {
 		restitution = 0;
 	}
 
 	// Combine the bounce velocity with the removed acceleration velocity.
-	this['desired_delta_velocity'] = -this['relative_velocity'][0] - restitution * ( this['relative_velocity'][0] - velocity_from_acceleration );
+	this.desired_delta_velocity = -this.relative_velocity[0] - restitution * ( this.relative_velocity[0] - velocity_from_acceleration );
 };
 
 Goblin.ContactDetails.prototype.calculateInternals = function( duration ) {
 	// Calculate the relative contact points
-	vec3.subtract( this['contact_point'], this['object_a']['position'], this['relative_positions'][0] );
-	vec3.subtract( this['contact_point'], this['object_b']['position'], this['relative_positions'][1] );
+	vec3.subtract( this.contact_point, this.object_a.position, this.relative_positions[0] );
+	vec3.subtract( this.contact_point, this.object_b.position, this.relative_positions[1] );
 
 	this.calculateContactBasis();
 	this.calculateRelativeVelocity( duration );
 	this.calculateDesiredDeltaVelocity( duration );
 };
-
-// mappings for closure compiler
-Goblin['ContactDetails'] = Goblin.ContactDetails;
-Goblin.ContactDetails.prototype['calculateInternals'] = Goblin.ContactDetails.prototype.calculateInternals;

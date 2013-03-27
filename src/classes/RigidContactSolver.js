@@ -33,48 +33,48 @@ Goblin.RigidContactSolver.prototype.applyVelocityChange = function( contact, dur
 		// the contact's object_a or object_b, depending on which we need
 		relative_contact_position = _tmp_vec3_3;
 
-	contact_basis = contact['contact_basis'];
-	contact_basis_inverse = contact['contact_basis_inverse'];
+	contact_basis = contact.contact_basis;
+	contact_basis_inverse = contact.contact_basis_inverse;
 
-	if ( contact['friction'] === 0 ) {
+	if ( contact.friction === 0 ) {
 		// Build a vector (`contact_impulse`) that shows the change in velocity in world
 		// space for a unit impulse in the direction of the contact normal.
 
-		if ( contact['object_a']['mass'] !== Infinity ) {
+		if ( contact.object_a.mass !== Infinity ) {
 			// Set `relative_contact_point` to be relative to object_a
-			vec3.subtract( contact['contact_point'], contact['object_a']['position'], relative_contact_position );
+			vec3.subtract( contact.contact_point, contact.object_a.position, relative_contact_position );
 
 			// Calculate the delta velocity in world coordinates and store it in_vec3_1
-			vec3.cross( relative_contact_position, contact['contact_normal'], _vec3_1 );
-			mat3.multiplyVec3( contact['object_a']['inverseInertiaTensorWorldFrame'], _vec3_1 );
+			vec3.cross( relative_contact_position, contact.contact_normal, _vec3_1 );
+			mat3.multiplyVec3( contact.object_a.inverseInertiaTensorWorldFrame, _vec3_1 );
 			vec3.cross( _vec3_1, relative_contact_position );
 
 			// Work out the change in velocity in contact coordiantes.
-			delta_velocity += vec3.dot( _vec3_1, contact['contact_normal'] );
+			delta_velocity += vec3.dot( _vec3_1, contact.contact_normal );
 
 			// Add the linear component of velocity change
-			delta_velocity += 1 / contact['object_a']['mass'];
+			delta_velocity += 1 / contact.object_a.mass;
 		}
 
 		// Check if we need to the second body's data
-		if ( contact['object_b']['mass'] !== Infinity ) {
+		if ( contact.object_b.mass !== Infinity ) {
 			// Set `relative_contact_point` to be relative to object_b
-			vec3.subtract( contact['contact_point'], contact['object_b']['position'], relative_contact_position );
+			vec3.subtract( contact.contact_point, contact.object_b.position, relative_contact_position );
 
 			// Go through the same transformation sequence again
-			vec3.cross( relative_contact_position, contact['contact_normal'], _vec3_1 );
-			mat3.multiplyVec3( contact['object_b']['inverseInertiaTensorWorldFrame'], _vec3_1 );
+			vec3.cross( relative_contact_position, contact.contact_normal, _vec3_1 );
+			mat3.multiplyVec3( contact.object_b.inverseInertiaTensorWorldFrame, _vec3_1 );
 			vec3.cross( _vec3_1, relative_contact_position );
 
 			// Add the change in velocity due to rotation
-			delta_velocity += vec3.dot( _vec3_1, contact['contact_normal'] );
+			delta_velocity += vec3.dot( _vec3_1, contact.contact_normal );
 
 			// Add the change in velocity due to linear motion
-			delta_velocity += 1 / contact['object_b']['mass'];
+			delta_velocity += 1 / contact.object_b.mass;
 		}
 
 		// Calculate the required size of the impulse
-		contact_impulse[0] = contact['desired_delta_velocity'] / delta_velocity;
+		contact_impulse[0] = contact.desired_delta_velocity / delta_velocity;
 		contact_impulse[1] = contact_impulse[2] = 0;
 	} else {
 		throw 'cannot handle contacts with friction';
@@ -84,30 +84,30 @@ Goblin.RigidContactSolver.prototype.applyVelocityChange = function( contact, dur
 	mat3.multiplyVec3( contact_basis, contact_impulse );
 
 	// Set `relative_contact_point` to be relative to object_a
-	vec3.subtract( contact['contact_point'], contact['object_a']['position'], relative_contact_position );
+	vec3.subtract( contact.contact_point, contact.object_a.position, relative_contact_position );
 
 	// Split in the impulse into linear and rotational components
 
 	// Apply rotational impulse
 	vec3.cross( relative_contact_position, contact_impulse, _vec3_1 );
-	mat3.multiplyVec3( contact['object_a']['inverseInertiaTensorWorldFrame'], _vec3_1 );
-	vec3.add( contact['object_a']['angular_velocity'], _vec3_1 );
+	mat3.multiplyVec3( contact.object_a.inverseInertiaTensorWorldFrame, _vec3_1 );
+	vec3.add( contact.object_a.angular_velocity, _vec3_1 );
 
 	// Apply linear impulse
-	vec3.scale( contact_impulse, 1 / contact['object_a']['mass'], _vec3_1 );
-	vec3.add( contact['object_a']['linear_velocity'], _vec3_1 );
+	vec3.scale( contact_impulse, 1 / contact.object_a.mass, _vec3_1 );
+	vec3.add( contact.object_a.linear_velocity, _vec3_1 );
 
-	if ( contact['object_b']['mass'] !== Infinity ) {
+	if ( contact.object_b.mass !== Infinity ) {
 		// Set `relative_contact_point` to be relative to object_a
-		vec3.subtract( contact['contact_point'], contact['object_b']['position'], relative_contact_position );
+		vec3.subtract( contact.contact_point, contact.object_b.position, relative_contact_position );
 
 		// Work out object_b's linear and angular changes
 		vec3.cross( contact_impulse, relative_contact_position, _vec3_1 );
-		mat3.multiplyVec3( contact['object_b']['inverseInertiaTensorWorldFrame'], _vec3_1 );
-		vec3.add( contact['object_b']['angular_velocity'], _vec3_1 );
+		mat3.multiplyVec3( contact.object_b.inverseInertiaTensorWorldFrame, _vec3_1 );
+		vec3.add( contact.object_b.angular_velocity, _vec3_1 );
 
-		vec3.scale( contact_impulse, -1 / contact['object_b']['mass'], _vec3_1 );
-		vec3.add( contact['object_b']['linear_velocity'], _vec3_1 );
+		vec3.scale( contact_impulse, -1 / contact.object_b.mass, _vec3_1 );
+		vec3.add( contact.object_b.linear_velocity, _vec3_1 );
 	}
 };
 
@@ -153,61 +153,61 @@ Goblin.RigidContactSolver.prototype.applyPositionChange = function( contact ) {
 		i;
 
 	// We need to work out the inertia of each object in the direction of the contact normal, due to angular inertia only.
-	if ( contact['object_a']['mass'] !== Infinity ) {
+	if ( contact.object_a.mass !== Infinity ) {
 		// Set `relative_contact_point` to be relative to object_a
-		vec3.subtract( contact['contact_point'], contact['object_a']['position'], relative_contact_position );
+		vec3.subtract( contact.contact_point, contact.object_a.position, relative_contact_position );
 
 		// Use the same procedure as for calculating frictionless velocity change to work out the angular inertia.
 		// store world coordinates of angular inertia in _vec3_1
-		vec3.cross( relative_contact_position, contact['contact_normal'], _vec3_1 );
-		mat3.multiplyVec3( contact['object_a']['inverseInertiaTensorWorldFrame'], _vec3_1 );
+		vec3.cross( relative_contact_position, contact.contact_normal, _vec3_1 );
+		mat3.multiplyVec3( contact.object_a.inverseInertiaTensorWorldFrame, _vec3_1 );
 		vec3.cross( _vec3_1, relative_contact_position );
-		angular_inertia[0] = vec3.dot( _vec3_1, contact['contact_normal'] );
+		angular_inertia[0] = vec3.dot( _vec3_1, contact.contact_normal );
 
 		// The linear component is simply the inverse mass
-		linear_inertia[0] = 1 / contact['object_a']['mass'];
+		linear_inertia[0] = 1 / contact.object_a.mass;
 
 		// Keep track of the total inertia from all components
 		total_inertia += linear_inertia[0] + angular_inertia[0];
 	}
-	if ( contact['object_b']['mass'] !== Infinity ) {
+	if ( contact.object_b.mass !== Infinity ) {
 		// Set `relative_contact_point` to be relative to object_b
-		vec3.subtract( contact['contact_point'], contact['object_b']['position'], relative_contact_position );
+		vec3.subtract( contact.contact_point, contact.object_b.position, relative_contact_position );
 
 		// Use the same procedure as for calculating frictionless velocity change to work out the angular inertia.
 		// store world coordinates of angular inertia in _vec3_1
-		vec3.cross( relative_contact_position, contact['contact_normal'], _vec3_1 );
-		mat3.multiplyVec3( contact['object_b']['inverseInertiaTensorWorldFrame'], _vec3_1 );
+		vec3.cross( relative_contact_position, contact.contact_normal, _vec3_1 );
+		mat3.multiplyVec3( contact.object_b.inverseInertiaTensorWorldFrame, _vec3_1 );
 		vec3.cross( _vec3_1, relative_contact_position );
-		angular_inertia[1] = vec3.dot( _vec3_1, contact['contact_normal'] );
+		angular_inertia[1] = vec3.dot( _vec3_1, contact.contact_normal );
 
 		// The linear component is simply the inverse mass
-		linear_inertia[1] = 1 / contact['object_b']['mass'];
+		linear_inertia[1] = 1 / contact.object_b.mass;
 
 		// Keep track of the total inertia from all components
 		total_inertia += linear_inertia[1] + angular_inertia[1];
 	}
 
 	for ( i = 0; i < 2; i++ ) {
-		if ( contact[ i === 0 ? 'object_a' : 'object_b' ]['mass'] === Infinity ) {
+		if ( contact[ i === 0 ? 'object_a' : 'object_b' ].mass === Infinity ) {
 			continue;
 		}
 
 		// The linear and angular movements required are in proportion to the two inverse inertias.
 		var sign = i === 0 ? 1 : -1;
 
-		angular_move[i] = sign * contact['penetration_depth'] * ( angular_inertia[i] / total_inertia );
-		linear_move[i] = sign * contact['penetration_depth'] * ( linear_inertia[i] / total_inertia );
+		angular_move[i] = sign * contact.penetration_depth * ( angular_inertia[i] / total_inertia );
+		linear_move[i] = sign * contact.penetration_depth * ( linear_inertia[i] / total_inertia );
 
 		// Set `relative_contact_point` to be relative to the current object
-		vec3.subtract( contact['contact_point'], contact[ i === 0 ? 'object_a' : 'object_b' ]['position'], relative_contact_position );
+		vec3.subtract( contact.contact_point, contact[ i === 0 ? 'object_a' : 'object_b' ].position, relative_contact_position );
 
 		// To avoid angular projections that are too great (when mass is large but inertia tensor is small) limit the angular move.
 		vec3.set( relative_contact_position, _vec3_1 ); // set `relative_contact_position` as the initial projection
 
 		vec3.scale(
-			contact['contact_normal'],
-			- vec3.dot( relative_contact_position, contact['contact_normal'] ),
+			contact.contact_normal,
+			- vec3.dot( relative_contact_position, contact.contact_normal ),
 			_vec3_2
 		);
 		vec3.add( _vec3_1, _vec3_2 );
@@ -236,21 +236,21 @@ Goblin.RigidContactSolver.prototype.applyPositionChange = function( contact ) {
 			angular_change[i][0] = angular_change[i][1] = angular_change[i][2];
 		} else {
 			// Work out the direction we'd like to rotate in.
-			vec3.cross( relative_contact_position, contact['contact_normal'], _vec3_1 );
+			vec3.cross( relative_contact_position, contact.contact_normal, _vec3_1 );
 
-			mat3.multiplyVec3( contact[ i === 0 ? 'object_a' : 'object_b' ]['inverseInertiaTensorWorldFrame'], _vec3_1 );
+			mat3.multiplyVec3( contact[ i === 0 ? 'object_a' : 'object_b' ].inverseInertiaTensorWorldFrame, _vec3_1 );
 			vec3.scale( _vec3_1, angular_move[i] / angular_inertia[i], angular_change[i] );
 		}
 
 		// Velocity change is easier - it is just the linear movement along the contact normal.
-		vec3.scale( contact['contact_normal'], linear_move[i], linear_change[i] );
+		vec3.scale( contact.contact_normal, linear_move[i], linear_change[i] );
 
 		// Now we can start to apply the values we've calculated.
 		// Apply the linear movement
-		vec3.add( contact[ i === 0 ? 'object_a' : 'object_b' ]['position'], linear_change[i] );
+		vec3.add( contact[ i === 0 ? 'object_a' : 'object_b' ].position, linear_change[i] );
 
 		// And the change in orientation
-		quat4.addScaledVector( contact[ i === 0 ? 'object_a' : 'object_b' ]['rotation'], angular_change[i], 1 );
+		quat4.addScaledVector( contact[ i === 0 ? 'object_a' : 'object_b' ].rotation, angular_change[i], 1 );
 	}
 };
 
@@ -264,20 +264,20 @@ Goblin.RigidContactSolver.prototype.applyPositionChange = function( contact ) {
 Goblin.RigidContactSolver.prototype.solveContacts = function( contact_manifolds, duration ) {
 	var i,
 		//contacts_length = contacts.length,
-		current_manifold = contact_manifolds['first'],
+		current_manifold = contact_manifolds.first,
 		contacts_length, contact;
 
 	while ( current_manifold !== null ) {
-		contacts_length = current_manifold['points'].length;
+		contacts_length = current_manifold.points.length;
 		for ( i = 0; i < contacts_length; i++ ) {
-			contact = current_manifold['points'][i];
-			if ( contact['penetration_depth'] >= 0 ) {
+			contact = current_manifold.points[i];
+			if ( contact.penetration_depth >= 0 ) {
 				contact.calculateInternals( duration );
 				this.applyVelocityChange( contact, duration );
 				this.applyPositionChange( contact );
 			}
 		}
-		current_manifold = current_manifold['next_manifold'];
+		current_manifold = current_manifold.next_manifold;
 	}
 
 	/*for ( i = 0; i < contacts_length; i++ ) {
@@ -287,7 +287,3 @@ Goblin.RigidContactSolver.prototype.solveContacts = function( contact_manifolds,
 		this.applyPositionChange( contact );
 	}*/
 };
-
-// mappings for closure compiler
-Goblin['RigidContactSolver'] = Goblin.RigidContactSolver;
-Goblin.RigidContactSolver.prototype['solveContacts'] = Goblin.RigidContactSolver.prototype.solveContacts;

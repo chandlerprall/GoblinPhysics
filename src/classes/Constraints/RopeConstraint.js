@@ -17,31 +17,31 @@ Goblin.RopeConstraint = function( object_a, object_b, max_length, restitution ) 
 	 * @property object_a
 	 * @type {Mixed}
 	 */
-	this['object_a'] = object_a;
+	this.object_a = object_a;
 
 	/**
 	 * @property object_b
 	 * @type {Mixed}
 	 */
-	this['object_b'] = object_b;
+	this.object_b = object_b;
 
 	/**
 	 * @property max_length
 	 * @type {Number}
 	 */
-	this['max_length'] = max_length;
+	this.max_length = max_length;
 
 	/**
 	 * @property restitution
 	 * @type {Number}
 	 */
-	this['restitution'] = restitution;
+	this.restitution = restitution;
 
 	/**
 	 * @property world
 	 * @type {Goblin.World}
 	 */
-	this['world'] = null;
+	this.world = null;
 };
 
 /**
@@ -55,25 +55,25 @@ Goblin.RopeConstraint.prototype.createContact = function() {
 		length,
 		contact;
 
-	vec3.subtract( this['object_a']['position'], this['object_b']['position'], _vec3 );
+	vec3.subtract( this.object_a.position, this.object_b.position, _vec3 );
 	length = vec3.length( _vec3 );
 
 	// Check whether we’re overextended.
-	if (length < this['max_length']) {
+	if (length < this.max_length) {
 		return null;
 	}
 
 	// Otherwise return the contact.
 	contact = Goblin.ObjectPool.getObject( 'MassPointContact' );
-	contact['object_a'] = this['object_a'];
-	contact['object_b'] = this['object_b'];
+	contact.object_a = this.object_a;
+	contact.object_b = this.object_b;
 
 	// Calculate the normal.
-	vec3.subtract( this['object_b']['position'], this['object_a']['position'], contact['contact_normal'] );
-	vec3.normalize( contact['contact_normal'] );
+	vec3.subtract( this.object_b.position, this.object_a.position, contact.contact_normal );
+	vec3.normalize( contact.contact_normal );
 
-	contact['penetration'] = length - this['max_length'];
-	contact['restitution'] = this['restitution'];
+	contact.penetration = length - this.max_length;
+	contact.restitution = this.restitution;
 
 	return contact;
 };
@@ -84,11 +84,6 @@ Goblin.RopeConstraint.prototype.createContact = function() {
 Goblin.RopeConstraint.prototype.apply = function() {
 	var contact = this.createContact();
 	if ( contact !== null ) {
-		this['world']['contacts'].push( contact );
+		this.world.contacts.push( contact );
 	}
 };
-
-// mappings for closure compiler
-Goblin['RopeConstraint'] = Goblin.RopeConstraint;
-Goblin.RopeConstraint['createContact'] = Goblin.RopeConstraint.prototype.createContact;
-Goblin.RopeConstraint['apply'] = Goblin.RopeConstraint.prototype.apply;

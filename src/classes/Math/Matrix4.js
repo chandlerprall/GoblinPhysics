@@ -268,14 +268,14 @@ Goblin.Matrix4.prototype.fromQuaternion = function( quat ) {
     this.components[15] = 1;
 };
 
-Goblin['Matrix4'] = Goblin.Matrix4;
-Goblin['Matrix4'].prototype['set'] = Goblin['Matrix4'].prototype.set;
-Goblin['Matrix4'].prototype['identity'] = Goblin['Matrix4'].prototype.identity;
-Goblin['Matrix4'].prototype['transpose'] = Goblin['Matrix4'].prototype.transpose;
-Goblin['Matrix4'].prototype['determinant'] = Goblin['Matrix4'].prototype.determinant;
-Goblin['Matrix4'].prototype['inverse'] = Goblin['Matrix4'].prototype.inverse;
-Goblin['Matrix4'].prototype['multiply'] = Goblin['Matrix4'].prototype.multiply;
-Goblin['Matrix4'].prototype['multiplyResult'] = Goblin['Matrix4'].prototype.multiplyResult;
-Goblin['Matrix4'].prototype['translate'] = Goblin['Matrix4'].prototype.translate;
-Goblin['Matrix4'].prototype['fromRotationTranslate'] = Goblin['Matrix4'].prototype.fromRotationTranslate;
-Goblin['Matrix4'].prototype['fromQuaternion'] = Goblin['Matrix4'].prototype.fromQuaternio;
+Goblin.Matrix4 = Goblin.Matrix4;
+Goblin.Matrix4.prototype.set = Goblin.Matrix4.prototype.set;
+Goblin.Matrix4.prototype.identity = Goblin.Matrix4.prototype.identity;
+Goblin.Matrix4.prototype.transpose = Goblin.Matrix4.prototype.transpose;
+Goblin.Matrix4.prototype.determinant = Goblin.Matrix4.prototype.determinant;
+Goblin.Matrix4.prototype.inverse = Goblin.Matrix4.prototype.inverse;
+Goblin.Matrix4.prototype.multiply = Goblin.Matrix4.prototype.multiply;
+Goblin.Matrix4.prototype.multiplyResult = Goblin.Matrix4.prototype.multiplyResult;
+Goblin.Matrix4.prototype.translate = Goblin.Matrix4.prototype.translate;
+Goblin.Matrix4.prototype.fromRotationTranslate = Goblin.Matrix4.prototype.fromRotationTranslate;
+Goblin.Matrix4.prototype.fromQuaternion = Goblin.Matrix4.prototype.fromQuaternio;

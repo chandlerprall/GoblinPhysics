@@ -15,7 +15,7 @@ Goblin.MassPointContact = function( object_a, object_b, restition, contact_norma
 	 * @property object_a
 	 * @type {Goblin.PointMass}
 	 */
-	this['object_a'] = object_a;
+	this.object_a = object_a;
 
 	/**
 	 * Second object in the contact
@@ -23,7 +23,7 @@ Goblin.MassPointContact = function( object_a, object_b, restition, contact_norma
 	 * @property object_b
 	 * @type {Goblin.PointMass}
 	 */
-	this['object_b'] = object_b;
+	this.object_b = object_b;
 
 	/**
 	 * Total restitution coefficient of the concact
@@ -31,7 +31,7 @@ Goblin.MassPointContact = function( object_a, object_b, restition, contact_norma
 	 * @property restitution
 	 * @type {Number}
 	 */
-	this['restitution'] = restition || 0.9;
+	this.restitution = restition || 0.9;
 
 	/**
 	 * Direction, in world coordinates, of the contact
@@ -39,7 +39,7 @@ Goblin.MassPointContact = function( object_a, object_b, restition, contact_norma
 	 * @property contact_normal
 	 * @type {vec3}
 	 */
-	this['contact_normal'] = contact_normal || vec3.create();
+	this.contact_normal = contact_normal || vec3.create();
 
 	/**
 	 * Holds the depth of penetration at the contact.
@@ -47,7 +47,7 @@ Goblin.MassPointContact = function( object_a, object_b, restition, contact_norma
 	 * @property penetration
 	 * @type {Number}
 	 */
-	this['penetration'] = penetration;
+	this.penetration = penetration;
 };
 
 /**
@@ -69,13 +69,13 @@ Goblin.MassPointContact.prototype.resolve = function( duration ) {
  */
 Goblin.MassPointContact.prototype.calculateSeparatingVelocity = function() {
 	var relative_velocity = _tmp_vec3_1;
-	vec3.set( this['object_a']['linear_velocity'], relative_velocity );
+	vec3.set( this.object_a.linear_velocity, relative_velocity );
 
-	if ( this['object_b'] !== undefined ) {
-		vec3.subtract( relative_velocity, this['object_b']['linear_velocity'] );
+	if ( this.object_b !== undefined ) {
+		vec3.subtract( relative_velocity, this.object_b.linear_velocity );
 	}
 
-	return vec3.dot( relative_velocity, this['contact_normal'] );
+	return vec3.dot( relative_velocity, this.contact_normal );
 };
 
 /**
@@ -107,19 +107,19 @@ Goblin.MassPointContact.prototype.resolveVelocity = function( duration ) {
 	}
 
 	// Calculate the new separating velocity.
-	new_separating_velocity = -separating_velocity * this['restitution'];
+	new_separating_velocity = -separating_velocity * this.restitution;
 
 	// Check the velocity build-up due to acceleration only.
-	vec3.set( this['object_a']['acceleration'], _vec3_1 );
-	if ( this['object_b'] !== undefined ) {
-		vec3.subtract( _vec3_1, this['object_b']['acceleration'] );
+	vec3.set( this.object_a.acceleration, _vec3_1 );
+	if ( this.object_b !== undefined ) {
+		vec3.subtract( _vec3_1, this.object_b.acceleration );
 	}
-	acceleration_caused_separation_velocity = vec3.dot( _vec3_1, this['contact_normal'] ) * duration;
+	acceleration_caused_separation_velocity = vec3.dot( _vec3_1, this.contact_normal ) * duration;
 
 	// If we’ve got a closing velocity due to acceleration build-up,
 	// remove it from the new separating velocity.
 	if ( acceleration_caused_separation_velocity < 0 ) {
-		new_separating_velocity += this['restitution'] * acceleration_caused_separation_velocity;
+		new_separating_velocity += this.restitution * acceleration_caused_separation_velocity;
 
 		// Make sure we haven’t removed more than was
 		// there to remove.
@@ -133,9 +133,9 @@ Goblin.MassPointContact.prototype.resolveVelocity = function( duration ) {
 	// We apply the change in velocity to each object in proportion to
 	// its inverse mass (i.e., those with lower inverse mass [higher
 	// actual mass] get less change in velocity).
-	total_inverse_mass = 1 / this['object_a']['mass'];
-	if ( this['object_b'] !== undefined ) {
-		total_inverse_mass += 1 / this['object_b']['mass'];
+	total_inverse_mass = 1 / this.object_a.mass;
+	if ( this.object_b !== undefined ) {
+		total_inverse_mass += 1 / this.object_b.mass;
 	}
 
 	// If all particles have infinite mass, then impulses have no effect.
@@ -147,17 +147,17 @@ Goblin.MassPointContact.prototype.resolveVelocity = function( duration ) {
 	impulse = delta_velocity / total_inverse_mass;
 
 	// Find the amount of impulse per unit of inverse mass.
-	vec3.scale( this['contact_normal'], impulse, _vec3_1 );
+	vec3.scale( this.contact_normal, impulse, _vec3_1 );
 	
 	// Apply impulses: they are applied in the direction of the contact,
 	// and are proportional to the inverse mass.
-	vec3.scale( _vec3_1, 1 / this['object_a']['mass'], _vec3_2 );
-	vec3.add( this['object_a']['linear_velocity'], _vec3_2 );
+	vec3.scale( _vec3_1, 1 / this.object_a.mass, _vec3_2 );
+	vec3.add( this.object_a.linear_velocity, _vec3_2 );
 
-	if ( this['object_b'] !== undefined ) {
+	if ( this.object_b !== undefined ) {
 		// Object B goes in the opposite direction.
-		vec3.scale( _vec3_1, -1 / this['object_b']['mass'], _vec3_2 );
-		vec3.add( this['object_b']['linear_velocity'], _vec3_2 );
+		vec3.scale( _vec3_1, -1 / this.object_b.mass, _vec3_2 );
+		vec3.add( this.object_b.linear_velocity, _vec3_2 );
 	}
 };
 
@@ -173,14 +173,14 @@ Goblin.MassPointContact.prototype.resolveInterpenetration = function() {
 		_vec3_2 = _tmp_vec3_2;
 
 	// If we don’t have any penetration, skip this step.
-	if ( this['penetration'] <= 0 ) {
+	if ( this.penetration <= 0 ) {
 		return;
 	}
 
 	// The movement of each object is based on its inverse mass, so total that.
-	total_inverse_mass = 1 / this['object_a']['mass'];
-	if ( this['object_b'] !== undefined ) {
-		total_inverse_mass += 1 / this['object_b']['mass'];
+	total_inverse_mass = 1 / this.object_a.mass;
+	if ( this.object_b !== undefined ) {
+		total_inverse_mass += 1 / this.object_b.mass;
 	}
 
 	// If all particles have infinite mass, then we do nothing.
@@ -189,17 +189,14 @@ Goblin.MassPointContact.prototype.resolveInterpenetration = function() {
 	}
 
 	// Find the amount of penetration resolution per unit of inverse mass.
-	vec3.scale( this['contact_normal'], -this['penetration'] / total_inverse_mass, _vec3_1 );
+	vec3.scale( this.contact_normal, -this.penetration / total_inverse_mass, _vec3_1 );
 
 	// Apply the penetration resolution.
-	vec3.scale( _vec3_1, 1 / this['object_a']['mass'], _vec3_2 );
-	vec3.add( this['object_a']['position'], _vec3_2 );
+	vec3.scale( _vec3_1, 1 / this.object_a.mass, _vec3_2 );
+	vec3.add( this.object_a.position, _vec3_2 );
 
-	if ( this['object_b'] !== undefined ) {
-		vec3.scale( _vec3_1, 1 / this['object_b']['mass'] );
-		vec3.add( this['object_b']['position'], _vec3_2 );
+	if ( this.object_b !== undefined ) {
+		vec3.scale( _vec3_1, 1 / this.object_b.mass );
+		vec3.add( this.object_b.position, _vec3_2 );
 	}
 };
-
-// mappings for closure compiler
-Goblin['MassPointContact'] = Goblin.MassPointContact;

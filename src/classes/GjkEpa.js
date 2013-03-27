@@ -358,7 +358,7 @@ Goblin.GjkEpa = {
 			total_checks = 0;
 
 			// @TODO there is a big debate about what the best initial search direction is - do any answers have much weight?
-			vec3.subtract( object_b['position'], object_a['position'], direction );
+			vec3.subtract( object_b.position, object_a.position, direction );
 			support_point = Goblin.ObjectPool.getObject( 'GJKSupportPoint' );
 			Goblin.GjkEpa.findSupportPoint( object_a, object_b, direction, support_point );
 			simplex.push( support_point );
@@ -630,11 +630,11 @@ Goblin.GjkEpa = {
 
 				// Get a ContactDetails object and fill out its details
 				var contact = Goblin.ObjectPool.getObject( 'ContactDetails' );
-				contact['object_a'] = object_a;
-				contact['object_b'] = object_b;
+				contact.object_a = object_a;
+				contact.object_b = object_b;
 
 				// Contact normal is that of the closest face, pointing away from origin
-				vec3.set( faces[closest_face].normal, contact['contact_normal'] );
+				vec3.set( faces[closest_face].normal, contact.contact_normal );
 
 				// Calculate contact position
 				// @TODO this... just... ugh. Refactor.
@@ -655,29 +655,29 @@ Goblin.GjkEpa = {
 				vec3.scale( faces[closest_face].a.witness_a, barycentric[0], confirm.a );
 				vec3.scale( faces[closest_face].b.witness_a, barycentric[1], confirm.b );
 				vec3.scale( faces[closest_face].c.witness_a, barycentric[2], confirm.c );
-				vec3.add( confirm.a, confirm.b, contact['contact_point_in_a'] );
-				vec3.add( contact['contact_point_in_a'], confirm.c );
+				vec3.add( confirm.a, confirm.b, contact.contact_point_in_a );
+				vec3.add( contact.contact_point_in_a, confirm.c );
 
 				// Contact coordinates of object b
 				vec3.scale( faces[closest_face].a.witness_b, barycentric[0], confirm.a );
 				vec3.scale( faces[closest_face].b.witness_b, barycentric[1], confirm.b );
 				vec3.scale( faces[closest_face].c.witness_b, barycentric[2], confirm.c );
-				vec3.add( confirm.a, confirm.b, contact['contact_point_in_b'] );
-				vec3.add( contact['contact_point_in_b'], confirm.c );
+				vec3.add( confirm.a, confirm.b, contact.contact_point_in_b );
+				vec3.add( contact.contact_point_in_b, confirm.c );
 
 				// Find actual contact point
-				vec3.add( contact['contact_point_in_a'], contact['contact_point_in_b'], contact['contact_point'] );
-				vec3.scale( contact['contact_point'], 0.5 );
+				vec3.add( contact.contact_point_in_a, contact.contact_point_in_b, contact.contact_point );
+				vec3.scale( contact.contact_point, 0.5 );
 
 				// Convert contact_point_in_a and contact_point_in_b to those objects' local frames
-				mat4.multiplyVec3( contact['object_a']['transform_inverse'], contact['contact_point_in_a'] );
-				mat4.multiplyVec3( contact['object_b']['transform_inverse'], contact['contact_point_in_b'] );
+				mat4.multiplyVec3( contact.object_a.transform_inverse, contact.contact_point_in_a );
+				mat4.multiplyVec3( contact.object_b.transform_inverse, contact.contact_point_in_b );
 
 				// Calculate penetration depth
-				contact['penetration_depth'] = Math.sqrt( closest_distance );
+				contact.penetration_depth = Math.sqrt( closest_distance );
 
-				contact['restitution'] = ( object_a['restitution'] + object_b['restitution'] ) / 2;
-				contact['friction'] = ( contact['object_a']['friction'] + contact['object_b']['friction'] ) / 2;
+				contact.restitution = ( object_a.restitution + object_b.restitution ) / 2;
+				contact.friction = ( contact.object_a.friction + contact.object_b.friction ) / 2;
 
 				return contact;
 			}
@@ -791,11 +791,3 @@ Goblin.GjkEpa.GjkFace.prototype.classifyVertex = function( vertex ) {
 		x = vec3.dot( this.normal, vertex ) - w;
 	return x;
 };
-
-// mappings for closure compiler
-Goblin['GjkEpa'] = Goblin.GjkEpa;
-Goblin.GjkEpa['SupportPoint'] = Goblin.GjkEpa.SupportPoint;
-Goblin.GjkEpa['GjkFace'] = Goblin.GjkEpa.GjkFace;
-Goblin.GjkEpa['findSupportPoint'] = Goblin.GjkEpa.findSupportPoint;
-Goblin.GjkEpa['GJK'] = Goblin.GjkEpa.GJK;
-Goblin.GjkEpa['EPA'] = Goblin.GjkEpa.EPA;

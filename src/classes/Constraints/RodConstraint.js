@@ -12,25 +12,25 @@ Goblin.RodConstraint = function( object_a, object_b, length ) {
 	 * @property object_a
 	 * @type {Mixed}
 	 */
-	this['object_a'] = object_a;
+	this.object_a = object_a;
 
 	/**
 	 * @property object_b
 	 * @type {Mixed}
 	 */
-	this['object_b'] = object_b;
+	this.object_b = object_b;
 
 	/**
 	 * @property max_length
 	 * @type {Number}
 	 */
-	this['length'] = length;
+	this.length = length;
 
 	/**
 	 * @property world
 	 * @type {Goblin.World}
 	 */
-	this['world'] = null;
+	this.world = null;
 };
 
 /**
@@ -44,28 +44,28 @@ Goblin.RodConstraint.prototype.createContact = function() {
 		current_length,
 		contact;
 
-	vec3.subtract( this['object_a']['position'], this['object_b']['position'], _vec3 );
+	vec3.subtract( this.object_a.position, this.object_b.position, _vec3 );
 	current_length = vec3.length( _vec3 );
 
 	// Otherwise return the contact.
 	contact = Goblin.ObjectPool.getObject( 'MassPointContact' );
-	contact['object_a'] = this['object_a'];
-	contact['object_b'] = this['object_b'];
+	contact.object_a = this.object_a;
+	contact.object_b = this.object_b;
 
 	// Calculate the normal.
-	vec3.subtract( this['object_b']['position'], this['object_a']['position'], contact['contact_normal'] );
-	vec3.normalize( contact['contact_normal'] );
+	vec3.subtract( this.object_b.position, this.object_a.position, contact.contact_normal );
+	vec3.normalize( contact.contact_normal );
 
 	// The contact normal depends on whether we’re extending or compressing.
-	if ( current_length > this['length'] ) {
-		contact['penetration'] = current_length - this['length'];
+	if ( current_length > this.length ) {
+		contact.penetration = current_length - this.length;
 	} else {
-		vec3.scale( contact['contact_normal'], -1 );
-		contact['penetration'] = this['length'] - current_length;
+		vec3.scale( contact.contact_normal, -1 );
+		contact.penetration = this.length - current_length;
 	}
 
 	// Always use zero restitution (no bounciness).
-	contact['restitution'] = 0;
+	contact.restitution = 0;
 
 	return contact;
 };
@@ -76,11 +76,6 @@ Goblin.RodConstraint.prototype.createContact = function() {
 Goblin.RodConstraint.prototype.apply = function() {
 	var contact = this.createContact();
 	if ( contact !== null ) {
-		this['world']['contacts'].push( contact );
+		this.world.contacts.push( contact );
 	}
 };
-
-// mappings for closure compiler
-Goblin['RodConstraint'] = Goblin.RodConstraint;
-Goblin.RodConstraint['createContact'] = Goblin.RodConstraint.prototype.createContact;
-Goblin.RodConstraint['apply'] = Goblin.RodConstraint.prototype.apply;

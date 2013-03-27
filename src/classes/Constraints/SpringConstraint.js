@@ -16,7 +16,7 @@ Goblin.SpringConstraint = function( object_a, object_b, resting_length, stiffnes
 	 * @property object_a
 	 * @type {Mixed}
 	 */
-	this['object_a'] = object_a;
+	this.object_a = object_a;
 
 	/**
 	 * second object attached to the spring, or optionally a {vec3} specifying a fixed world position
@@ -24,7 +24,7 @@ Goblin.SpringConstraint = function( object_a, object_b, resting_length, stiffnes
 	 * @property object_b
 	 * @type {Mixed}
 	 */
-	this['object_b'] = object_b;
+	this.object_b = object_b;
 
 	/**
 	 * the length of the spring when at rest
@@ -32,7 +32,7 @@ Goblin.SpringConstraint = function( object_a, object_b, resting_length, stiffnes
 	 * @property resting_length
 	 * @type {Number}
 	 */
-	this['resting_length'] = resting_length;
+	this.resting_length = resting_length;
 
 	/**
 	 * stiffness of the spring
@@ -41,7 +41,7 @@ Goblin.SpringConstraint = function( object_a, object_b, resting_length, stiffnes
 	 * @type {Number}
 	 * @default 10
 	 */
-	this['stiffness'] = stiffness || 10;
+	this.stiffness = stiffness || 10;
 
 	/**
 	 * how much damping to apply to the spring force
@@ -50,13 +50,13 @@ Goblin.SpringConstraint = function( object_a, object_b, resting_length, stiffnes
 	 * @type {Number}
 	 * @default 0.9
 	 */
-	this['linear_damping'] = damping || 0.9;
+	this.linear_damping = damping || 0.9;
 
 	/**
 	 * @property world
 	 * @type {Goblin.World}
 	 */
-	this['world'] = null;
+	this.world = null;
 };
 /**
  * apply the spring's forces acting on object_a and object_b
@@ -68,27 +68,23 @@ Goblin.SpringConstraint.prototype.apply = function() {
 		magnitude;
 
 	vec3.subtract(
-		this['object_a']['position'],
-		this['object_b']['position'] !== undefined ? this['object_b']['position'] : this['object_b'],
+		this.object_a.position,
+		this.object_b.position !== undefined ? this.object_b.position : this.object_b,
 		force
 	);
 
 	// Calculate the magnitude of the force.
 	magnitude = vec3.length( force );
-	magnitude = Math.abs( magnitude - this['resting_length'] ) * this['stiffness'] * this['linear_damping'];
+	magnitude = Math.abs( magnitude - this.resting_length ) * this.stiffness * this.linear_damping;
 
 	// Calculate the final force and apply it.
 	vec3.normalize( force );
 	vec3.scale( force, magnitude );
 
-	if ( this['object_b']['position'] !== undefined ) {
-		this['object_b']['applyForce']( force );
+	if ( this.object_b.position !== undefined ) {
+		this.object_b.applyForce( force );
 	}
 
 	vec3.negate( force );
-	this['object_a']['applyForce']( force );
+	this.object_a.applyForce( force );
 };
-
-// mappings for closure compiler
-Goblin['SpringConstraint'] = Goblin.SpringConstraint;
-Goblin.SpringConstraint.prototype['apply'] = Goblin.SpringConstraint.prototype.apply;
