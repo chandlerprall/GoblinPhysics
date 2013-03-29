@@ -84,4 +84,6 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 
 	this.rows[0] = row0;
 	this.rows[1] = row1;
+
+	this.rows.length = 0;
 };

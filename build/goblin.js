@@ -360,6 +360,8 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 
 	this.rows[0] = row0;
 	this.rows[1] = row1;
+
+	this.rows.length = 0;
 };
 /**
  * Rods link a pair of particles, generating a contact if they stray too far apart or too close.
@@ -1007,94 +1009,89 @@ Goblin.ContactManifold = function() {
 	this.next_manifold = null;
 };
 
-Goblin.ContactManifold.getTriangleArea = function( a, b, c ) {
-	vec3.subtract( b, a, _tmp_vec3_1 );
-	vec3.subtract( c, b, _tmp_vec3_2 );
-	vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
-	return _tmp_vec3_1[0] * _tmp_vec3_1[0] + _tmp_vec3_1[1] * _tmp_vec3_1[1] + _tmp_vec3_1[2] * _tmp_vec3_1[2];
+/**
+ * Determines which cached contact should be replaced with the new contact
+ *
+ * @method findWeakestContact
+ * @param {ContactDetails} new_contact
+ */
+Goblin.ContactManifold.prototype.findWeakestContact = function( new_contact ) {
+	// Find which of the current contacts has the deepest penetration
+	var max_penetration_index = -1,
+		max_penetration = new_contact.penetration_depth,
+		i,
+		contact;
+	for ( i = 0; i < 4; i++ ) {
+		contact = this.points[i];
+		if ( contact.penetration_depth > max_penetration ) {
+			max_penetration = contact.penetration_depth;
+			max_penetration_index = i;
+		}
+	}
+
+	// Estimate contact areas
+	var res0 = 0,
+		res1 = 0,
+		res2 = 0,
+		res3 = 0;
+	if ( max_penetration_index !== 0 ) {
+		vec3.subtract( new_contact.contact_point_in_a, this.points[1].contact_point_in_a, _tmp_vec3_1 );
+		vec3.subtract( this.points[3].contact_point_in_a, this.points[2].contact_point_in_a, _tmp_vec3_2 );
+		vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
+		res0 = vec3.squaredLength( _tmp_vec3_1 );
+	}
+	if ( max_penetration_index !== 1 ) {
+		vec3.subtract( new_contact.contact_point_in_a, this.points[0].contact_point_in_a, _tmp_vec3_1 );
+		vec3.subtract( this.points[3].contact_point_in_a, this.points[2].contact_point_in_a, _tmp_vec3_2 );
+		vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
+		res1 = vec3.squaredLength( _tmp_vec3_1 );
+	}
+	if ( max_penetration_index !== 2 ) {
+		vec3.subtract( new_contact.contact_point_in_a, this.points[0].contact_point_in_a, _tmp_vec3_1 );
+		vec3.subtract( this.points[3].contact_point_in_a, this.points[1].contact_point_in_a, _tmp_vec3_2 );
+		vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
+		res2 = vec3.squaredLength( _tmp_vec3_1 );
+	}
+	if ( max_penetration_index !== 3 ) {
+		vec3.subtract( new_contact.contact_point_in_a, this.points[0].contact_point_in_a, _tmp_vec3_1 );
+		vec3.subtract( this.points[2].contact_point_in_a, this.points[1].contact_point_in_a, _tmp_vec3_2 );
+		vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
+		res3 = vec3.squaredLength( _tmp_vec3_1 );
+	}
+
+	var max_index = 0,
+		max_val = res0;
+	if ( res1 > max_val ) {
+		max_index = 1;
+		max_val = res1;
+	}
+	if ( res2 > max_val ) {
+		max_index = 2;
+		max_val = res2;
+	}
+	if ( res3 > max_val ) {
+		max_index = 3;
+	}
+
+	return max_index;
 };
 
 Goblin.ContactManifold.prototype.addContact = function( contact ) {
-	// Make sure this isn't a duplicate
+	//@TODO add feature-ids to detect duplicate contacts
 	var i;
 	for ( i = 0; i < this.points.length; i++ ) {
-		if ( vec3.dist( this.points[i].contact_point, contact.contact_point ) <= 0.01 ) {
+		if ( vec3.dist( this.points[i].contact_point, contact.contact_point ) <= 0.02 ) {
 			return;
 		}
 	}
+
 	// Add contact if we don't have enough points yet
-	if ( this.points.length < 3 ) {
+	if ( this.points.length < 4 ) {
 		this.points.push( contact );
 	} else {
-		var is_deeper = 0,
-			deeper_than = null;
-
-		// Determine if the new contact would yield a larger contact surface area
-		// @TODO cache `current_area` - no need to constantly calculate it
-		var current_area = Goblin.ContactManifold.getTriangleArea(
-				this.points[0].contact_point,
-				this.points[1].contact_point,
-				this.points[2].contact_point
-			),
-			replace_a = Goblin.ContactManifold.getTriangleArea(
-				contact.contact_point,
-				this.points[1].contact_point,
-				this.points[2].contact_point
-			),
-			replace_b = Goblin.ContactManifold.getTriangleArea(
-				this.points[0].contact_point,
-				contact.contact_point,
-				this.points[2].contact_point
-			),
-			replace_c = Goblin.ContactManifold.getTriangleArea(
-				contact.contact_point,
-				this.points[0].contact_point,
-				this.points[1].contact_point,
-				contact.contact_point
-			);
-
-		var to_replace = -1,
-			max_area = current_area,
-			depth_delta = 0;
-
-		if ( replace_a > max_area ) {
-			to_replace = 0;
-			max_area = replace_a;
-		} else {
-			depth_delta = contact.penetration_depth - this.points[0].penetration_depth;
-			if ( depth_delta > 0 && depth_delta > is_deeper ) {
-				is_deeper =  depth_delta;
-				deeper_than = 0;
-			}
-		}
-
-		if ( replace_b > max_area ) {
-			to_replace = 1;
-			max_area = replace_b;
-		} else {
-			depth_delta = contact.penetration_depth - this.points[1].penetration_depth;
-			if ( depth_delta > 0 && depth_delta > is_deeper ) {
-				is_deeper =  depth_delta;
-				deeper_than = 1;
-			}
-		}
-
-		if ( replace_c > max_area ) {
-			to_replace = 2;
-			max_area = replace_c;
-		} else {
-			depth_delta = contact.penetration_depth - this.points[2].penetration_depth;
-			if ( depth_delta > 0 && depth_delta > is_deeper ) {
-				is_deeper =  depth_delta;
-				deeper_than = 2;
-			}
-		}
-
-		if ( to_replace !== -1 ) {
-			this.points[to_replace] = contact;
-		} else if ( is_deeper > 0 ) {
-			this.points[deeper_than] = contact;
-		}
+		var replace_index = this.findWeakestContact( contact );
+		//@TODO give the contact back to the object pool
+		this.points[replace_index] = contact;
 	}
 };
 
@@ -1125,18 +1122,29 @@ Goblin.ContactManifold.prototype.update = function() {
 
 		// Find the new penetration depth
 		vec3.subtract( object_a_world_coords, object_b_world_coords, vector_difference );
-
 		point.penetration_depth = vec3.dot( vector_difference, point.contact_normal );
-		/*if ( vec3.dot( point.contact_normal, vector_difference ) < 0 ) {
-			point.penetration_depth *= -1;
-		}*/
 
-		// If distance is too great, remove this contact point
-		if ( true || point.penetration_depth < -0.04 ) {
+		// If distance from contact is too great remove this contact point
+		if ( point.penetration_depth < -0.02 ) {
+			// Points are too far away along the contact normal
 			for ( j = this.points.length - 2; j >= i; j-- ) {
 				this.points[j] = this.points[j + 1];
 			}
 			this.points.length = this.points.length - 1;
+		} else {
+			// Check if points are too far away orthogonally
+			vec3.scale( point.contact_normal, -point.penetration_depth, _tmp_vec3_1 );
+			vec3.subtract( object_a_world_coords, _tmp_vec3_1, _tmp_vec3_1 );
+
+			vec3.subtract( object_b_world_coords, _tmp_vec3_1, _tmp_vec3_1 );
+			var distance = vec3.squaredLength( _tmp_vec3_1 );
+			if ( distance > 0.02 * 0.02 ) {
+				// Points are indeed too far away
+				for ( j = this.points.length - 2; j >= i; j-- ) {
+					this.points[j] = this.points[j + 1];
+				}
+				this.points.length = this.points.length - 1;
+			}
 		}
 
 		i--;

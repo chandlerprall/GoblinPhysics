@@ -40,11 +40,11 @@
 			for ( i = 0; i < 3; i++ ) {
 				if ( i === 0 ) {
 					particle = new THREE.Mesh(
-						new THREE.CubeGeometry( 10, 0.5, 10 ),
+						new THREE.CubeGeometry( 4, 0.5, 4 ),
 						//new THREE.SphereGeometry( 5 ),
 						new THREE.MeshNormalMaterial({ opacity:.7, transparent: true, side: THREE.DoubleSide })
 					);
-					particle.goblin = new Goblin.RigidBox( 5, 0.25, 5, Infinity );
+					particle.goblin = new Goblin.RigidBox( 2, 0.25, 2, Infinity );
 					particle.goblin.friction = 1;
 					/*particle.goblin.inertiaTensor[0] *= 50;
 					 particle.goblin.inertiaTensor[4] *= 50;
