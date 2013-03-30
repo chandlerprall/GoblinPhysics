@@ -253,7 +253,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	// Pre-calc error
-	row.bias = contact.penetration_depth;
+	row.bias = 0;//contact.penetration_depth;
 
 	// Apply restitution
 	var dot, velocity;
@@ -279,89 +279,65 @@ Goblin.FrictionConstraint = function() {
 };
 
 Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
-	var row0 = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' ),
-		row1 = this.rows[1] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	var row = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
 
 	this.object_a = contact.object_a;
 	this.object_b = contact.object_b;
 
-	// Find the two constraint vectors
-	// _tmp_vec3_1 becomes linear vector 1
-	// _tmp_vec3_2 becomes linear vector 2
-	vec3.subtract( contact.contact_point, contact.object_a.position, _tmp_vec3_1 );
-	vec3.cross( _tmp_vec3_1, contact.contact_normal );
+    // Find the contact point relative to object_a and object_b
+    var rel_a = vec3.create(),
+        rel_b = vec3.create();
+    vec3.subtract( contact.contact_point, contact.object_a.position, rel_a );
+    vec3.subtract( contact.contact_point, contact.object_b.position, rel_b );
 
-	vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_2 );
-	vec3.cross( _tmp_vec3_2, contact.contact_normal );
-	vec3.negate( _tmp_vec3_2 );
+    // Find the relative velocity at the contact point
+    var velocity_a = vec3.create(),
+        velocity_b = vec3.create();
 
-	// @TODO Make it so this never happens
-	// (happens now when two spheres collide directly on top of each other)
-	if ( _tmp_vec3_1[0] === 0 && _tmp_vec3_1[1] === 0 && _tmp_vec3_1[2] === 0 ) {
-		this.rows = [];
-		return;
-	}
+    vec3.cross( contact.object_a.angular_velocity, rel_a, velocity_a );
+    vec3.add( velocity_a, contact.object_a.linear_velocity );
 
-	// @TODO gravity shouldn't just come from object_a
-	var limit = contact.friction * ( (contact.object_a.mass !== Infinity ? contact.object_a.mass : 0) + (contact.object_b.mass !== Infinity ? contact.object_b.mass : 0) ) * vec3.length( contact.object_a.world.gravity );
-	row0.lower_limit = row1.lower_limit = -limit;
-	row0.upper_limit = row1.upper_limit = limit;
+    vec3.cross( contact.object_b.angular_velocity, rel_b, velocity_b );
+    vec3.add( velocity_b, contact.object_b.linear_velocity );
 
+    var relative_velocity = vec3.create();
+    vec3.subtract( velocity_a, velocity_b, relative_velocity );
 
-	// Compute jacobian
-	if ( this.object_a == null || this.object_a.mass === Infinity ) {
-		row0.jacobian[0] = row0.jacobian[1] = row0.jacobian[2] = row0.jacobian[3] = row0.jacobian[4] = row0.jacobian[5] = 0;
-		row1.jacobian[0] = row1.jacobian[1] = row1.jacobian[2] = row1.jacobian[3] = row1.jacobian[4] = row1.jacobian[5] = 0;
-	} else {
-		row0.jacobian[0] = -_tmp_vec3_1[0];
-		row0.jacobian[1] = -_tmp_vec3_1[1];
-		row0.jacobian[2] = -_tmp_vec3_1[2];
-		row1.jacobian[0] = -_tmp_vec3_2[0];
-		row1.jacobian[1] = -_tmp_vec3_2[1];
-		row1.jacobian[2] = -_tmp_vec3_2[2];
+    // Remove velocity along contact normal
+    var normal_velocity = vec3.dot( contact.contact_normal, relative_velocity );
+    relative_velocity[0] -= normal_velocity * contact.contact_normal[0];
+    relative_velocity[1] -= normal_velocity * contact.contact_normal[1];
+    relative_velocity[2] -= normal_velocity * contact.contact_normal[2];
 
-		// @TODO This calculation for angular velocity is wrong
-		vec3.subtract( contact.contact_point, contact.object_a.position, _tmp_vec3_3 );
-		vec3.cross( _tmp_vec3_3, _tmp_vec3_1 );
-		row0.jacobian[3] = -_tmp_vec3_3[0];
-		row0.jacobian[4] = -_tmp_vec3_3[1];
-		row0.jacobian[5] = -_tmp_vec3_3[2];
-		vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_3 );
-		vec3.cross( _tmp_vec3_3, _tmp_vec3_2 );
-		row1.jacobian[3] = -_tmp_vec3_3[0];
-		row1.jacobian[4] = -_tmp_vec3_3[1];
-		row1.jacobian[5] = -_tmp_vec3_3[2];
-	}
+    var length = vec3.squaredLength( relative_velocity );
+    if ( length >= Goblin.EPSILON ) {
+        length = Math.sqrt( length );
+        row.jacobian[0] = relative_velocity[0] / length;
+        row.jacobian[1] = relative_velocity[1] / length;
+        row.jacobian[2] = relative_velocity[2] / length;
+        row.jacobian[6] = relative_velocity[0] / -length;
+        row.jacobian[7] = relative_velocity[1] / -length;
+        row.jacobian[8] = relative_velocity[2] / -length;
+    } else {
+        this.rows.length = 0;
+        return;
+    }
 
-	if ( this.object_b == null || this.object_b.mass === Infinity ) {
-		row0.jacobian[6] = row0.jacobian[7] = row0.jacobian[8] = row0.jacobian[9] = row0.jacobian[10] = row0.jacobian[11] = 0;
-		row1.jacobian[6] = row1.jacobian[7] = row1.jacobian[8] = row1.jacobian[9] = row1.jacobian[10] = row1.jacobian[11] = 0;
-	} else {
-		row0.jacobian[6] = _tmp_vec3_1[0];
-		row0.jacobian[7] = _tmp_vec3_1[1];
-		row0.jacobian[8] = _tmp_vec3_1[2];
-		row1.jacobian[6] = _tmp_vec3_2[0];
-		row1.jacobian[7] = _tmp_vec3_2[1];
-		row1.jacobian[8] = _tmp_vec3_2[2];
+    // rel_a X N
+    row.jacobian[3] = rel_a[1] * row.jacobian[2] - rel_a[2] * row.jacobian[1];
+    row.jacobian[4] = rel_a[2] * row.jacobian[0] - rel_a[0] * row.jacobian[2];
+    row.jacobian[5] = rel_a[0] * row.jacobian[1] - rel_a[1] * row.jacobian[0];
 
-		vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_3 );
-		vec3.cross( _tmp_vec3_3, _tmp_vec3_1 );
-		row0.jacobian[9] = _tmp_vec3_3[0];
-		row0.jacobian[10] = _tmp_vec3_3[1];
-		row0.jacobian[11] = _tmp_vec3_3[2];
-		vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_3 );
-		vec3.cross( _tmp_vec3_3, _tmp_vec3_2 );
-		row1.jacobian[9] = _tmp_vec3_3[0];
-		row1.jacobian[10] = _tmp_vec3_3[1];
-		row1.jacobian[11] = _tmp_vec3_3[2];
-	}
+    // N X rel_b
+    row.jacobian[9] = row.jacobian[1] * rel_b[2] - row.jacobian[2] * rel_b[1];
+    row.jacobian[10] = row.jacobian[2] * rel_b[0] - row.jacobian[0] * rel_b[2];
+    row.jacobian[11] = row.jacobian[0] * rel_b[1] - row.jacobian[1] * rel_b[0];
 
-	row0.bias = row1.bias = 0;
+    row.lower_limit = -contact.friction * 0.1;
+    row.upper_limit = contact.friction * 0.1;
+    row.bias = 0;
 
-	this.rows[0] = row0;
-	this.rows[1] = row1;
-
-	this.rows.length = 0;
+    this.rows.push( row );
 };
 /**
  * Rods link a pair of particles, generating a contact if they stray too far apart or too close.
@@ -3790,7 +3766,7 @@ Goblin.RigidBody = (function() {
 		 * @type {Number}
 		 * @default 0.5
 		 */
-		this.friction = 0.5;
+		this.friction = 1;
 
 		/**
 		 * Percentage of friction ( 0.0 - 1.0 ) to apply in each direction, in local (body) frame

@@ -16,6 +16,7 @@
 	<script type="text/javascript" src="build/goblin.js"></script>
 
 	<script type="text/javascript">
+		setMatrixArrayType( Array );
 		window.onload = function() {
 			var renderer = new THREE.WebGLRenderer({ antialias: true });
 			//var renderer = new THREE.CanvasRenderer({ antialias: true });
@@ -33,6 +34,7 @@
             
             var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.SequentialImpulseSolver );
 			window.world = world;
+			world.gravity[1] = -3;
 
 			var i, particles, particles = [];
 
@@ -55,7 +57,7 @@
 			var i, j, k;
 			for ( i = 0; i < 5; i++ ) {
 				for ( j = 0; j < 5; j++ ) {
-					for ( k = 0; k < 5; k++ ) {
+					for ( k = 0; k < 3; k++ ) {
 						particle = new THREE.Mesh(
 							new THREE.CubeGeometry( 1, 0.3, 1 ),
 							new THREE.MeshNormalMaterial({ opacity: 1 })

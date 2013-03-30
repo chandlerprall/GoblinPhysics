@@ -143,7 +143,7 @@ Goblin.RigidBody = (function() {
 		 * @type {Number}
 		 * @default 0.5
 		 */
-		this.friction = 0.5;
+		this.friction = 1;
 
 		/**
 		 * Percentage of friction ( 0.0 - 1.0 ) to apply in each direction, in local (body) frame

@@ -45,7 +45,6 @@
 						new THREE.MeshNormalMaterial({ opacity:.7, transparent: true, side: THREE.DoubleSide })
 					);
 					particle.goblin = new Goblin.RigidBox( 2, 0.25, 2, Infinity );
-					particle.goblin.friction = 1;
 					/*particle.goblin.inertiaTensor[0] *= 50;
 					 particle.goblin.inertiaTensor[4] *= 50;
 					 particle.goblin.inertiaTensor[8] *= 50;
@@ -60,7 +59,6 @@
 					);
 					particle.goblin = new Goblin.RigidBox( 0.5, 0.5, 0.5, 1 );
 					//particle.goblin = new Goblin.RigidSphere( 0.5, 1 );
-					particle.goblin.friction = 1;
 					//particle.goblin = new Goblin.RigidBox( 2.5, 2.5, 2.5, i );
 					//particle.goblin = new Goblin.RigidSphere( 5, i );
 				}
@@ -86,9 +84,10 @@
 
 
 			particles[1].goblin.position[1] = 0.75;
-			particles[1].goblin.position[2] = 0.5;
+			particles[1].goblin.position[0] = 0.5;
 			//particles[1].goblin.position[2] = -1.8;
 			//particles[1].goblin.rotation[2] = .05;
+			//particles[1].goblin.linear_velocity[0] = 1;
 			//particles[1].goblin.angular_velocity[2] = -1;
 			//particles[1].goblin.angular_velocity[0] = -0.8;
 			//particles[1].goblin.angular_velocity = [-1.4931961297988892, 7.289428793910702e-8, 0.05236731097102165];
@@ -103,14 +102,12 @@
 
 			//particles[1].goblin.position[2] = 100;
 
-			particles[2].goblin.position[0] = -0.7;
+			//particles[2].goblin.position[0] = -0.7;
 			particles[2].goblin.position[1] = 2.75;
 			//particles[2].goblin.position[2] = 200;
 			//particles[2].goblin.linear_velocity[1] = -1;
 			//particles[2].goblin.position = vec3.createFrom( -0.8844295740127563, 0.7548224925994873, 0.7541964650154114 );
 			//particles[2].goblin.rotation = quat4.createFrom( -0.6801335215568542, 0.38245445489883423, -0.41430994868278503, 0.4685021638870239 );
-
-
 
 			/*particles[1].goblin.linear_velocity[1] = -5;
 			particles[1].goblin.position[0] = 0.00009999999747378752;
