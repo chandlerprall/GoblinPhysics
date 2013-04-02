@@ -162,7 +162,7 @@ Goblin.ContactManifold.prototype.update = function() {
 			this.points.length = this.points.length - 1;
 		} else {
 			// Check if points are too far away orthogonally
-			vec3.scale( point.contact_normal, -point.penetration_depth, _tmp_vec3_1 );
+			vec3.scale( point.contact_normal, point.penetration_depth, _tmp_vec3_1 );
 			vec3.subtract( object_a_world_coords, _tmp_vec3_1, _tmp_vec3_1 );
 
 			vec3.subtract( object_b_world_coords, _tmp_vec3_1, _tmp_vec3_1 );
