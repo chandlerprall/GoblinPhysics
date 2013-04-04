@@ -11,6 +11,15 @@ Goblin.SphereShape.prototype.getBoundingRadius = function() {
 	return this.radius;
 };
 
+Goblin.SphereShape.prototype.getInertiaTensor = function( mass ) {
+	var element = 0.4 * mass * this.radius * this.radius;
+	return mat3.createFrom(
+		element, 0, 0,
+		0, element, 0,
+		0, 0, element
+	);
+};
+
 /**
  * Given `direction`, find the point in this body which is the most extreme in that direction.
  * This support point is calculated in world coordinates and stored in the second parameter `support_point`

@@ -94,12 +94,7 @@ Goblin.RigidBody = (function() {
 		 */
 		this.transform_inverse = mat4.identity();
 
-		// @TODO - custom inertia tensor, right now it is set for spheres
-		this.inertiaTensor = mat3.createFrom(
-			0.167, 0, 0,
-			0, 0.167, 0,
-			0, 0, 0.167
-		);
+		this.inertiaTensor = shape.getInertiaTensor( mass );
 
 		this.inverseInertiaTensor = mat3.inverse( this.inertiaTensor );
 
@@ -361,7 +356,9 @@ Goblin.RigidBody.prototype.updateDerived = function() {
 	mat4.inverse( this.transform, this.transform_inverse );
 
 	// update this.inverseInertiaTensorWorldFrame
-	this.updateInverseInertiaTensorWorldFrame();
+	if ( this.mass !== Infinity ) {
+		this.updateInverseInertiaTensorWorldFrame();
+	}
 };
 
 Goblin.RigidBody.prototype.updateInverseInertiaTensorWorldFrame = function() {

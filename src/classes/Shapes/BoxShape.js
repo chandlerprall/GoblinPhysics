@@ -35,6 +35,18 @@ Goblin.BoxShape.prototype.getBoundingRadius = function() {
 	return Math.max( this.half_width, this.half_height, this.half_depth ) * 1.7320508075688772; // largest half-axis * sqrt(3);
 };
 
+Goblin.BoxShape.prototype.getInertiaTensor = function( mass ) {
+	var height_squared = this.half_height * this.half_height * 4,
+		width_squared = this.half_width * this.half_width * 4,
+		depth_squared = this.half_depth * this.half_depth * 4,
+		element = 0.0833 * mass;
+	return mat3.createFrom(
+		element * ( height_squared + depth_squared ), 0, 0,
+		0, element * ( width_squared + depth_squared ), 0,
+		0, 0, element * ( height_squared + width_squared )
+	);
+};
+
 /**
  * Given `direction`, find the point in this body which is the most extreme in that direction.
  * This support point is calculated in world coordinates and stored in the second parameter `support_point`
