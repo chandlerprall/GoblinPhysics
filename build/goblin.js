@@ -3397,7 +3397,7 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 		object_a = possible_contacts[i][0];
 		object_b = possible_contacts[i][1];
 
-		if ( object_a instanceof Goblin.RigidSphere && object_b instanceof Goblin.RigidSphere ) {
+		if ( object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.SphereShape ) {
 			// Sphere - Sphere contact check
 
 			// Cache positions of the sphere
@@ -3450,22 +3450,22 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 			this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
 
 		} else if (
-			object_a instanceof Goblin.RigidSphere && object_b instanceof Goblin.RigidBox ||
-				object_a instanceof Goblin.RigidBox && object_b instanceof Goblin.RigidSphere
+				object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.BoxShape ||
+				object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.SphereShape
 			) {
 
 			// Sphere - Box contact check
 
-			var sphere = object_a instanceof Goblin.RigidSphere ? object_a : object_b,
-				box = object_a instanceof Goblin.RigidSphere ? object_b : object_a;
+			var sphere = object_a.shape instanceof Goblin.SphereShape ? object_a : object_b,
+				box = object_a.shape instanceof Goblin.SphereShape ? object_b : object_a;
 
 			// Transform the center of the sphere into box coordinates
 			mat4.multiplyVec3( object_b.transform_inverse, sphere.position, _vec3_1 );
 
 			// Early out check to see if we can exclude the contact
-			if ( Math.abs( _vec3_1[0] ) - sphere.bounding_radius > box.half_width ||
-				Math.abs( _vec3_1[1] ) - sphere.bounding_radius > box.half_height ||
-				Math.abs( _vec3_1[2] ) - sphere.bounding_radius > box.half_depth )
+			if ( Math.abs( _vec3_1[0] ) - sphere.bounding_radius > box.shape.half_width ||
+				Math.abs( _vec3_1[1] ) - sphere.bounding_radius > box.shape.half_height ||
+				Math.abs( _vec3_1[2] ) - sphere.bounding_radius > box.shape.half_depth )
 			{
 				continue;
 			}
@@ -3475,26 +3475,26 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 
 			// Clamp each coordinate to the box.
 			distance = _vec3_1[0];
-			if (distance > box.half_width) {
-				distance = box.half_width;
-			} else if (distance < -box.half_width) {
-				distance = -box.half_width;
+			if (distance > box.shape.half_width) {
+				distance = box.shape.half_width;
+			} else if (distance < -box.shape.half_width) {
+				distance = -box.shape.half_width;
 			}
 			_vec3_2[0] = distance;
 
 			distance = _vec3_1[1];
-			if (distance > box.half_height) {
-				distance = box.half_height;
-			} else if (distance < -box.half_height) {
-				distance = -box.half_height;
+			if (distance > box.shape.half_height) {
+				distance = box.shape.half_height;
+			} else if (distance < -box.shape.half_height) {
+				distance = -box.shape.half_height;
 			}
 			_vec3_2[1] = distance;
 
 			distance = _vec3_1[2];
-			if (distance > box.half_depth) {
-				distance = box.half_depth;
-			} else if (distance < -box.half_depth) {
-				distance = -box.half_depth;
+			if (distance > box.shape.half_depth) {
+				distance = box.shape.half_depth;
+			} else if (distance < -box.shape.half_depth) {
+				distance = -box.shape.half_depth;
 			}
 			_vec3_2[2] = distance;
 
@@ -3537,7 +3537,7 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 
 			this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
 
-		//} else if ( object_a instanceof Goblin.RigidBox && object_b instanceof Goblin.RigidBox ) {
+		//} else if ( object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.BoxShape ) {
 		} else {
 
 			// contact check based on GJK
@@ -3633,7 +3633,7 @@ Goblin.ObjectPool.registerType( 'FrictionConstraint', function() { return new Go
 Goblin.RigidBody = (function() {
 	var body_count = 0;
 
-	return function( bounding_radius, mass ) {
+	return function( shape, mass ) {
 		/**
 		 * Goblin ID of the body
 		 *
@@ -3649,7 +3649,14 @@ Goblin.RigidBody = (function() {
 		 * @property bounding_radius
 		 * @type {Number}
 		 */
-		this.bounding_radius = bounding_radius;
+		this.bounding_radius = shape.getBoundingRadius();
+
+		/**
+		 * Shape definition for this rigid body
+		 *
+		 * @property shape
+		 */
+		this.shape = shape;
 
 		/**
 		 * The rigid body's mass
@@ -3828,6 +3835,18 @@ Goblin.RigidBody = (function() {
 })();
 
 /**
+ * Given `direction`, find the point in this body which is the most extreme in that direction.
+ * This support point is calculated in world coordinates and stored in the second parameter `support_point`
+ *
+ * @method findSupportPoint
+ * @param direction {vec3} direction to use in finding the support point
+ * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
+ */
+Goblin.RigidBody.prototype.findSupportPoint = function( direction, support_point ) {
+	this.shape.findSupportPoint( this.rotation, this.transform, direction, support_point );
+};
+
+/**
  * Updates the rigid body's position, velocity, and acceleration
  *
  * @method integrate
@@ -3952,18 +3971,6 @@ Goblin.RigidBody.prototype.applyForceAtLocalPoint = function( force, point ) {
 };
 
 /**
- * Given `direction`, find the point in this body which is the most extreme in that direction.
- * This support point is calculated in world coordinates and stored in the second parameter `support_point`
- *
- * @method findSupportPoint
- * @param direction {vec3} direction to use in finding the support point
- * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
- */
-Goblin.RigidBody.prototype.findSupportPoint = function( direction, support_point ) {
-	throw new Error( 'method `findSupportPoint` not implemented for RigidBody base class' );
-};
-
-/**
  * Sets the rigid body's transformation matrix to the current position and rotation
  *
  * @method updateDerived
@@ -4042,152 +4049,6 @@ Goblin.RigidBody.prototype.updateInverseInertiaTensorWorldFrame = function() {
 		t62*rotmat[10];
 
 	mat3.inverse( this.inverseInertiaTensorWorldFrame, this.inertiaTensorWorldFrame );
-};
-/**
- * A rigid cube implementation
- *
- * @class RigidBox
- * @param half_width {Number} half width of the cube ( X axis )
- * @param half_height {Number} half height of the cube ( Y axis )
- * @param half_depth {Number} half depth of the cube ( Z axis )
- * @param mass {Number} mass of the sphere
- * @constructor
- */
-Goblin.RigidBox = function( half_width, half_height, half_depth, mass ) {
-	Goblin.RigidBody.call(
-		this,
-		Math.max( half_width, half_height, half_depth ) * 1.7320508075688772, // largest half-axis * sqrt(3);
-		mass
-	);
-
-	/**
-	 * Half width of the cube ( X axis )
-	 *
-	 * @proptery half_width
-	 * @type {Number}
-	 */
-	this.half_width = half_width;
-
-	/**
-	 * Half height of the cube ( Y axis )
-	 *
-	 * @proptery half_height
-	 * @type {Number}
-	 */
-	this.half_height = half_height;
-
-	/**
-	 * Half width of the cube ( Z axis )
-	 *
-	 * @proptery half_height
-	 * @type {Number}
-	 */
-	this.half_depth = half_depth;
-
-	this.points = [
-		vec3.createFrom( -half_width, -half_height, -half_depth ),
-		vec3.createFrom( half_width, -half_height, -half_depth ),
-		vec3.createFrom( half_width, -half_height, half_depth ),
-		vec3.createFrom( -half_width, -half_height, half_depth ),
-		vec3.createFrom( -half_width, half_height, -half_depth ),
-		vec3.createFrom( half_width, half_height, -half_depth ),
-		vec3.createFrom( half_width, half_height, half_depth ),
-		vec3.createFrom( -half_width, half_height, half_depth )
-	];
-};
-Goblin.RigidBox.prototype = new Goblin.RigidBody();
-
-/**
- * Given `direction`, find the point in this body which is the most extreme in that direction.
- * This support point is calculated in world coordinates and stored in the second parameter `support_point`
- *
- * @method findSupportPoint
- * @param direction {vec3} direction to use in finding the support point
- * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
- */
-Goblin.RigidBox.prototype.findSupportPoint = function( direction, support_point ) {
-	var localized_direction = _tmp_vec3_1,
-		world_to_local_rotation_transform = _tmp_quat4_1;
-
-	// First transform the direction vector into the body's local frame
-	quat4.inverse( this.rotation, world_to_local_rotation_transform );
-	quat4.multiplyVec3( world_to_local_rotation_transform, direction, localized_direction );
-
-	/*
-	support_point = [
-		 sign( direction.x ) * half_width,
-		 sign( direction.y ) * half_height,
-		 sign( direction.z ) * half_depth
-	]
-	*/
-
-	// Calculate the support point in the local frame
-	if ( localized_direction[0] < 0 ) {
-		support_point[0] = -this.half_width;
-	} else {
-		support_point[0] = this.half_width;
-	}
-
-	if ( localized_direction[1] < 0 ) {
-		support_point[1] = -this.half_height;
-	} else {
-		support_point[1] = this.half_height;
-	}
-
-	if ( localized_direction[2] < 0 ) {
-		support_point[2] = -this.half_depth;
-	} else {
-		support_point[2] = this.half_depth;
-	}
-
-	// Transform the localized support point into world coordinates
-	mat4.multiplyVec3( this.transform, support_point );
-
-	/*console.debug( this.id );
-	console.debug( direction[0], direction[1], direction[2] );
-	console.debug( support_point[0], support_point[1], support_point[2] );
-	console.debug( '' );*/
-};
-/**
- * A rigid sphere implementation
- *
- * @class RigidSphere
- * @param radius {Number} sphere radius
- * @param mass {Number} mass of the sphere
- * @constructor
- */
-Goblin.RigidSphere = function( radius, mass ) {
-	Goblin.RigidBody.call( this, radius, mass );
-};
-Goblin.RigidSphere.prototype = new Goblin.RigidBody();
-
-/**
- * Given `direction`, find the point in this body which is the most extreme in that direction.
- * This support point is calculated in world coordinates and stored in the second parameter `support_point`
- *
- * @method findSupportPoint
- * @param direction {vec3} direction to use in finding the support point
- * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
- */
-Goblin.RigidSphere.prototype.findSupportPoint = function( direction, support_point ) {
-	var localized_direction = _tmp_vec3_1,
-		world_to_local_rotation_transform = _tmp_quat4_1;
-
-	// @TODO shouldn't need to transform the search direction first, but rather align the support point with the search direction after it has been calculated
-
-	// First transform the direction vector into the body's local frame
-	quat4.inverse( this.rotation, world_to_local_rotation_transform );
-	quat4.multiplyVec3( world_to_local_rotation_transform, direction, localized_direction );
-	/*
-	 support_point = radius * (normalized)direction
-	*/
-
-	//vec3.normalize( direction, localized_direction );
-	vec3.normalize( localized_direction );
-	vec3.scale( localized_direction, this.bounding_radius, support_point );
-
-	// Transform the localized support point into world coordinates
-	mat4.multiplyVec3( this.transform, support_point );
 };
 /**
  * Iterates over an array of contacts, solving the resulting impulses of each collision
@@ -4960,6 +4821,130 @@ Goblin.SequentialImpulseSolver.applyAnisotropicFriction = function( object, fric
 		// ... and transform it back to global coordinates
 		mat4.multiplyVec( object.transform, _tmp_vec3_1, friction_direction );
 	}
+};
+/**
+ * @class BoxShape
+ * @param half_width {Number} half width of the cube ( X axis )
+ * @param half_height {Number} half height of the cube ( Y axis )
+ * @param half_depth {Number} half depth of the cube ( Z axis )
+ * @constructor
+ */
+Goblin.BoxShape = function( half_width, half_height, half_depth ) {
+	/**
+	 * Half width of the cube ( X axis )
+	 *
+	 * @proptery half_width
+	 * @type {Number}
+	 */
+	this.half_width = half_width;
+
+	/**
+	 * Half height of the cube ( Y axis )
+	 *
+	 * @proptery half_height
+	 * @type {Number}
+	 */
+	this.half_height = half_height;
+
+	/**
+	 * Half width of the cube ( Z axis )
+	 *
+	 * @proptery half_height
+	 * @type {Number}
+	 */
+	this.half_depth = half_depth;
+};
+
+Goblin.BoxShape.prototype.getBoundingRadius = function() {
+	return Math.max( this.half_width, this.half_height, this.half_depth ) * 1.7320508075688772; // largest half-axis * sqrt(3);
+};
+
+/**
+ * Given `direction`, find the point in this body which is the most extreme in that direction.
+ * This support point is calculated in world coordinates and stored in the second parameter `support_point`
+ *
+ * @method findSupportPoint
+ * @param direction {vec3} direction to use in finding the support point
+ * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
+ */
+Goblin.BoxShape.prototype.findSupportPoint = function( rotation, transform, direction, support_point ) {
+	var localized_direction = _tmp_vec3_1,
+		world_to_local_rotation_transform = _tmp_quat4_1;
+
+	// First transform the direction vector into the body's local frame
+	quat4.inverse( rotation, world_to_local_rotation_transform );
+	quat4.multiplyVec3( world_to_local_rotation_transform, direction, localized_direction );
+
+	/*
+	support_point = [
+		 sign( direction.x ) * half_width,
+		 sign( direction.y ) * half_height,
+		 sign( direction.z ) * half_depth
+	]
+	*/
+
+	// Calculate the support point in the local frame
+	if ( localized_direction[0] < 0 ) {
+		support_point[0] = -this.half_width;
+	} else {
+		support_point[0] = this.half_width;
+	}
+
+	if ( localized_direction[1] < 0 ) {
+		support_point[1] = -this.half_height;
+	} else {
+		support_point[1] = this.half_height;
+	}
+
+	if ( localized_direction[2] < 0 ) {
+		support_point[2] = -this.half_depth;
+	} else {
+		support_point[2] = this.half_depth;
+	}
+
+	// Transform the localized support point into world coordinates
+	mat4.multiplyVec3( transform, support_point );
+};
+/**
+ * @class SphereShape
+ * @param radius {Number} sphere radius
+ * @constructor
+ */
+Goblin.SphereShape = function( radius ) {
+	this.radius = radius;
+};
+
+Goblin.SphereShape.prototype.getBoundingRadius = function() {
+	return this.radius;
+};
+
+/**
+ * Given `direction`, find the point in this body which is the most extreme in that direction.
+ * This support point is calculated in world coordinates and stored in the second parameter `support_point`
+ *
+ * @method findSupportPoint
+ * @param direction {vec3} direction to use in finding the support point
+ * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
+ */
+Goblin.SphereShape.prototype.findSupportPoint = function( rotation, transform, direction, support_point ) {
+	var localized_direction = _tmp_vec3_1,
+		world_to_local_rotation_transform = _tmp_quat4_1;
+
+	// @TODO shouldn't need to transform the search direction first, but rather align the support point with the search direction after it has been calculated
+
+	// First transform the direction vector into the body's local frame
+	quat4.inverse( rotation, world_to_local_rotation_transform );
+	quat4.multiplyVec3( world_to_local_rotation_transform, direction, localized_direction );
+	/*
+	 support_point = radius * (normalized)direction
+	*/
+
+	//vec3.normalize( direction, localized_direction );
+	vec3.normalize( localized_direction );
+	vec3.scale( localized_direction, this.radius, support_point );
+
+	// Transform the localized support point into world coordinates
+	mat4.multiplyVec3( transform, support_point );
 };
 /**
  * Interface for a rigid body which is used during solving

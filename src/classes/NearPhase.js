@@ -65,7 +65,7 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 		object_a = possible_contacts[i][0];
 		object_b = possible_contacts[i][1];
 
-		if ( object_a instanceof Goblin.RigidSphere && object_b instanceof Goblin.RigidSphere ) {
+		if ( object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.SphereShape ) {
 			// Sphere - Sphere contact check
 
 			// Cache positions of the sphere
@@ -118,22 +118,22 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 			this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
 
 		} else if (
-			object_a instanceof Goblin.RigidSphere && object_b instanceof Goblin.RigidBox ||
-				object_a instanceof Goblin.RigidBox && object_b instanceof Goblin.RigidSphere
+				object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.BoxShape ||
+				object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.SphereShape
 			) {
 
 			// Sphere - Box contact check
 
-			var sphere = object_a instanceof Goblin.RigidSphere ? object_a : object_b,
-				box = object_a instanceof Goblin.RigidSphere ? object_b : object_a;
+			var sphere = object_a.shape instanceof Goblin.SphereShape ? object_a : object_b,
+				box = object_a.shape instanceof Goblin.SphereShape ? object_b : object_a;
 
 			// Transform the center of the sphere into box coordinates
 			mat4.multiplyVec3( object_b.transform_inverse, sphere.position, _vec3_1 );
 
 			// Early out check to see if we can exclude the contact
-			if ( Math.abs( _vec3_1[0] ) - sphere.bounding_radius > box.half_width ||
-				Math.abs( _vec3_1[1] ) - sphere.bounding_radius > box.half_height ||
-				Math.abs( _vec3_1[2] ) - sphere.bounding_radius > box.half_depth )
+			if ( Math.abs( _vec3_1[0] ) - sphere.bounding_radius > box.shape.half_width ||
+				Math.abs( _vec3_1[1] ) - sphere.bounding_radius > box.shape.half_height ||
+				Math.abs( _vec3_1[2] ) - sphere.bounding_radius > box.shape.half_depth )
 			{
 				continue;
 			}
@@ -143,26 +143,26 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 
 			// Clamp each coordinate to the box.
 			distance = _vec3_1[0];
-			if (distance > box.half_width) {
-				distance = box.half_width;
-			} else if (distance < -box.half_width) {
-				distance = -box.half_width;
+			if (distance > box.shape.half_width) {
+				distance = box.shape.half_width;
+			} else if (distance < -box.shape.half_width) {
+				distance = -box.shape.half_width;
 			}
 			_vec3_2[0] = distance;
 
 			distance = _vec3_1[1];
-			if (distance > box.half_height) {
-				distance = box.half_height;
-			} else if (distance < -box.half_height) {
-				distance = -box.half_height;
+			if (distance > box.shape.half_height) {
+				distance = box.shape.half_height;
+			} else if (distance < -box.shape.half_height) {
+				distance = -box.shape.half_height;
 			}
 			_vec3_2[1] = distance;
 
 			distance = _vec3_1[2];
-			if (distance > box.half_depth) {
-				distance = box.half_depth;
-			} else if (distance < -box.half_depth) {
-				distance = -box.half_depth;
+			if (distance > box.shape.half_depth) {
+				distance = box.shape.half_depth;
+			} else if (distance < -box.shape.half_depth) {
+				distance = -box.shape.half_depth;
 			}
 			_vec3_2[2] = distance;
 
@@ -205,7 +205,7 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 
 			this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
 
-		//} else if ( object_a instanceof Goblin.RigidBox && object_b instanceof Goblin.RigidBox ) {
+		//} else if ( object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.BoxShape ) {
 		} else {
 
 			// contact check based on GJK

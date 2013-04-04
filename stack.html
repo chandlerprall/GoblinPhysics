@@ -43,7 +43,10 @@
 				new THREE.CubeGeometry( 10, 0.4, 10 ),
 				new THREE.MeshNormalMaterial({ opacity: 1 })
 			);
-			particle.goblin = new Goblin.RigidBox( 5, 0.2, 5, Infinity );
+			particle.goblin = new Goblin.RigidBody(
+				new Goblin.BoxShape( 5, 0.2, 5 ),
+				Infinity
+			);
 			particle.position.set( 0, -0.35, 0 );
 			particle.useQuaternion = true;
 
@@ -65,7 +68,10 @@
 						particle.useQuaternion = true;
 						scene.add( particle );
 
-						particle.goblin = new Goblin.RigidBox( 0.5, 0.15, 0.5, 1 );
+						particle.goblin = new Goblin.RigidBody(
+							new Goblin.BoxShape( 0.5, 0.15, 0.5 ),
+							1
+						);
 						particle.goblin.position[0] = i - 3;
 						particle.goblin.position[1] = (k+1) * 1;
 						particle.goblin.position[2] = j - 3;

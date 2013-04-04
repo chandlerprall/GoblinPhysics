@@ -10,7 +10,7 @@
 Goblin.RigidBody = (function() {
 	var body_count = 0;
 
-	return function( bounding_radius, mass ) {
+	return function( shape, mass ) {
 		/**
 		 * Goblin ID of the body
 		 *
@@ -26,7 +26,14 @@ Goblin.RigidBody = (function() {
 		 * @property bounding_radius
 		 * @type {Number}
 		 */
-		this.bounding_radius = bounding_radius;
+		this.bounding_radius = shape.getBoundingRadius();
+
+		/**
+		 * Shape definition for this rigid body
+		 *
+		 * @property shape
+		 */
+		this.shape = shape;
 
 		/**
 		 * The rigid body's mass
@@ -205,6 +212,18 @@ Goblin.RigidBody = (function() {
 })();
 
 /**
+ * Given `direction`, find the point in this body which is the most extreme in that direction.
+ * This support point is calculated in world coordinates and stored in the second parameter `support_point`
+ *
+ * @method findSupportPoint
+ * @param direction {vec3} direction to use in finding the support point
+ * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
+ */
+Goblin.RigidBody.prototype.findSupportPoint = function( direction, support_point ) {
+	this.shape.findSupportPoint( this.rotation, this.transform, direction, support_point );
+};
+
+/**
  * Updates the rigid body's position, velocity, and acceleration
  *
  * @method integrate
@@ -326,18 +345,6 @@ Goblin.RigidBody.prototype.applyForceAtLocalPoint = function( force, point ) {
 	var _vec3 = _tmp_vec3_1;
 	mat4.multiplyVec3( this.transform, point, _vec3 );
 	this.applyForceAtWorldPoint( force, _vec3 );
-};
-
-/**
- * Given `direction`, find the point in this body which is the most extreme in that direction.
- * This support point is calculated in world coordinates and stored in the second parameter `support_point`
- *
- * @method findSupportPoint
- * @param direction {vec3} direction to use in finding the support point
- * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
- */
-Goblin.RigidBody.prototype.findSupportPoint = function( direction, support_point ) {
-	throw new Error( 'method `findSupportPoint` not implemented for RigidBody base class' );
 };
 
 /**

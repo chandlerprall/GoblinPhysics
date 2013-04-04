@@ -41,7 +41,10 @@
 				new THREE.CubeGeometry( 20, 0.4, 20 ),
 				new THREE.MeshNormalMaterial({ opacity: 1 })
 			);
-			particle.goblin = new Goblin.RigidBox( 10, 0.2, 10, Infinity );
+			particle.goblin = new Goblin.RigidBody(
+				new Goblin.BoxShape( 10, 0.2, 10 ),
+				Infinity
+			);
 			particle.goblin.rotation[2] = -0.03;
 
 			particle.position.set( 0, -4, 0 );
@@ -60,14 +63,20 @@
 						new THREE.CubeGeometry( 1.5, 1.5, 1.5 ),
 						new THREE.MeshNormalMaterial({ opacity: 1 })
 					);
-					particle.goblin = new Goblin.RigidBox( 0.75, 0.75, 0.75, 1 );
+					particle.goblin = new Goblin.RigidBody(
+						new Goblin.BoxShape( 0.75, 0.75, 0.75 ),
+						1
+					);
 				} else {
 					var radius = Math.random() / 2 + 0.5;
 					particle = new THREE.Mesh(
 						new THREE.SphereGeometry( radius ),
 						new THREE.MeshNormalMaterial({ opacity: 1 })
 					);
-					particle.goblin = new Goblin.RigidSphere( radius, 5 );
+					particle.goblin = new Goblin.RigidBody(
+						new Goblin.SphereShape( radius ),
+						5
+					);
 				}
 
 				particle.position.set( Math.random() * 3, 7, Math.random() * 3 );

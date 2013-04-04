@@ -44,7 +44,10 @@
 						//new THREE.SphereGeometry( 5 ),
 						new THREE.MeshNormalMaterial({ opacity:.7, transparent: true, side: THREE.DoubleSide })
 					);
-					particle.goblin = new Goblin.RigidBox( 2, 0.5, 2, Infinity );
+					particle.goblin = new Goblin.RigidBody(
+						new Goblin.BoxShape( 2, 0.5, 2 ),
+						Infinity
+					);
 					/*particle.goblin.inertiaTensor[0] *= 50;
 					 particle.goblin.inertiaTensor[4] *= 50;
 					 particle.goblin.inertiaTensor[8] *= 50;
@@ -57,10 +60,14 @@
 						//new THREE.SphereGeometry( 0.5 ),
 						new THREE.MeshNormalMaterial({ opacity:.7, transparent: true, side: THREE.DoubleSide })
 					);
-					particle.goblin = new Goblin.RigidBox( 0.5, 0.25, 0.5, 1 );
-					//particle.goblin = new Goblin.RigidSphere( 0.5, 1 );
-					//particle.goblin = new Goblin.RigidBox( 2.5, 2.5, 2.5, i );
-					//particle.goblin = new Goblin.RigidSphere( 5, i );
+					particle.goblin = new Goblin.RigidBody(
+						new Goblin.BoxShape( 0.5, 0.25, 0.5 ),
+						1
+					);
+					/*particle.goblin = new Goblin.RigidBody(
+						new Goblin.SphereShape( 0.5 ),
+						1
+					);*/
 				}
 
 					particle.position.set(
