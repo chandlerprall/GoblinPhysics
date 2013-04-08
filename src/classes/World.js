@@ -98,11 +98,6 @@ Goblin.World.prototype.step = function( time_delta ) {
 		this.rigid_bodies[i].updateDerived();
 	}
 
-	// Prune contacts
-	/*for ( i = 0; i < this.contacts.length; i++ ) {
-		Goblin.ObjectPool.freeObject( 'MassPointContact', this.contacts.pop() );
-	}*/
-
 	// Apply gravity
 	for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
 		body = this.rigid_bodies[i];
@@ -118,17 +113,6 @@ Goblin.World.prototype.step = function( time_delta ) {
 	for ( i = 0, loop_count = this.force_generators.length; i < loop_count; i++ ) {
 		this.force_generators[i].applyForce();
 	}
-
-	// Apply constraints
-	/*for ( i = 0, loop_count = this.constraints.length; i < loop_count; i++ ) {
-		this.constraints[i].apply( time_delta );
-	}*/
-
-	// Integrate mass points
-	/*for ( i = 0, loop_count = this.mass_points.length; i < loop_count; i++ ) {
-		body = this.mass_points[i];
-		body.integrate( time_delta );
-	}*/
 
 	// Check for contacts, broadphase
 	this.broadphase.predictContactPairs();
