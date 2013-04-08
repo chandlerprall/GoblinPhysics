@@ -27,7 +27,6 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * The contact solver used by the world to calculate and apply impulses resulting from contacts
 	 *
 	 * @property solver
-	 * @type {Goblin.RigidContactSolver}
 	 */
 	this.solver = solver;
 
