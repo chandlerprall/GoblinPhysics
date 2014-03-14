@@ -1,16 +1,18 @@
 GoblinPhysics
 ==============
 
-About
------
 GoblinPhysics is an open source physics engine written from the ground up in JavaScript. It aims to provide a fast and dependable physics simulation regardless of platform (desktop vs. mobile, browser vs. nodejs). The current version is in its infancy but on the way to achieving that goal. Because GoblinPhysics is still early in its development it is not production ready, although supported functionality is considered stable.
 
 Examples
 --------
 [Box Stack](http://www.goblinphysics.com/examples/stack.html)
+
 [Sphere Stack](http://www.goblinphysics.com/examples/spheres.html)
+
 [Box Columns](http://www.goblinphysics.com/examples/boxes.html)
+
 [Shapes](http://www.goblinphysics.com/examples/shapes.html)
+
 [Contact Points](http://www.goblinphysics.com/examples/contact-points.html)
 
 Features
