@@ -6,7 +6,7 @@
  */
 Goblin.NearPhase = function() {
 	/**
-	 * Holds all contacts which currently exist in the scene
+	 * holds all contacts which currently exist in the scene
 	 *
 	 * @property contact_manifolds
 	 * @type Goblin.ContactManifoldList
@@ -46,11 +46,6 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 		object_b,
 		contact;
 
-	// Free any contacts previously created
-	/*for ( i = 0; i < existing_contacts_length; i++ ) {
-		Goblin.ObjectPool.freeObject( 'ContactDetails', this.contacts.pop() );
-	}*/
-
 	// Make sure all of the manifolds are up to date
 	this.updateContactManifolds();
 
@@ -73,14 +68,17 @@ Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 			if ( contact != null ) {
 				this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
 			}
-		//} else if ( object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.BoxShape ) {
 		} else {
 			// contact check based on GJK
-			if ( (contact = Goblin.GjkEpa.GJK( object_a, object_b )) !== false ) {
-				this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
+            /*if ( (contact = Goblin.GjkEpa.GJK( object_a, object_b )) !== false ) {
+                this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
+            }*/
+			if ( (contact = Goblin.GjkEpa2.GJK( object_a, object_b )) != null ) {
+				contact = Goblin.GjkEpa2.EPA( contact );
+				if ( contact != null ) {
+					this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
+				}
 			}
 		}
-
-		//this.updateContactManifolds();
 	}
 };

@@ -9,7 +9,7 @@ Goblin.ContactManifoldList = function() {
 	 * The first ContactManifold in the list
 	 *
 	 * @property first
-	 * @type {Goblin.ContactManifold}
+	 * @type {ContactManifold}
 	 */
 	this.first = null;
 };
@@ -18,7 +18,7 @@ Goblin.ContactManifoldList = function() {
  * Inserts a ContactManifold into the list
  *
  * @method insert
- * @param contact_manifold contact manifold to insert into the list
+ * @param {ContactManifold} contact_manifold contact manifold to insert into the list
  */
 Goblin.ContactManifoldList.prototype.insert = function( contact_manifold ) {
 	// The list is completely unordered, throw the manifold at the beginning
@@ -26,6 +26,13 @@ Goblin.ContactManifoldList.prototype.insert = function( contact_manifold ) {
 	this.first = contact_manifold;
 };
 
+/**
+ * Returns (and possibly creates) a ContactManifold for the two rigid bodies
+ *
+ * @param {RigidBody} object_a
+ * @param {RigidBoxy} object_b
+ * @returns {ContactManifold}
+ */
 Goblin.ContactManifoldList.prototype.getManifoldForObjects = function( object_a, object_b ) {
 	var manifold = null;
 	if ( this.first !== null ) {

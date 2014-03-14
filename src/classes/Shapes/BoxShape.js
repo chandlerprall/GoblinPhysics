@@ -55,41 +55,31 @@ Goblin.BoxShape.prototype.getInertiaTensor = function( mass ) {
  * @param direction {vec3} direction to use in finding the support point
  * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
  */
-Goblin.BoxShape.prototype.findSupportPoint = function( rotation, transform, direction, support_point ) {
-	var localized_direction = _tmp_vec3_1,
-		world_to_local_rotation_transform = _tmp_quat4_1;
-
-	// First transform the direction vector into the body's local frame
-	quat4.inverse( rotation, world_to_local_rotation_transform );
-	quat4.multiplyVec3( world_to_local_rotation_transform, direction, localized_direction );
-
+Goblin.BoxShape.prototype.findSupportPoint = function( direction, support_point ) {
 	/*
 	support_point = [
-		 sign( direction.x ) * half_width,
-		 sign( direction.y ) * half_height,
-		 sign( direction.z ) * half_depth
+		sign( direction.x ) * half_width,
+		sign( direction.y ) * half_height,
+		sign( direction.z ) * half_depth
 	]
 	*/
 
 	// Calculate the support point in the local frame
-	if ( localized_direction[0] < 0 ) {
+	if ( direction[0] < 0 ) {
 		support_point[0] = -this.half_width;
 	} else {
 		support_point[0] = this.half_width;
 	}
 
-	if ( localized_direction[1] < 0 ) {
+	if ( direction[1] < 0 ) {
 		support_point[1] = -this.half_height;
 	} else {
 		support_point[1] = this.half_height;
 	}
 
-	if ( localized_direction[2] < 0 ) {
+	if ( direction[2] < 0 ) {
 		support_point[2] = -this.half_depth;
 	} else {
 		support_point[2] = this.half_depth;
 	}
-
-	// Transform the localized support point into world coordinates
-	mat4.multiplyVec3( transform, support_point );
 };

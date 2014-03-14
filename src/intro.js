@@ -19,7 +19,7 @@
 		_quat[2] = vec[2];
 		_quat[3] = 0;
 
-		quat4.multiply( quat, _quat, dest );
+		quat4.multiply( _quat, quat );
 
 		return dest;
 	};
@@ -34,7 +34,7 @@
 	quat4.addScaledVector = function( quat, vec, scale, dest ) {
 		if (!dest) { dest = quat; }
 
-		var c1 = Math.cos( vec[0] * scale / 2 );
+		var c1 = Math.cos( vec[0] * scale / 2 ),
 			c2 = Math.cos( vec[1] * scale / 2 ),
 			c3 = Math.cos( vec[2] * scale / 2 ),
 			s1 = Math.sin( vec[0] * scale / 2 ),

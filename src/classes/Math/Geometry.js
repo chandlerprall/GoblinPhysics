@@ -5,12 +5,20 @@
  * @static
  */
 Goblin.GeometryMethods = {
+	/**
+	 * determines the location in a triangle closest to a given point
+	 *
+	 * @method findClosestPointInTriangle
+	 * @param {vec3} p point
+	 * @param {vec3} a first triangle vertex
+	 * @param {vec3} b second triangle vertex
+	 * @param {vec3} c third triangle vertex
+	 * @param {vec3} out vector where the result will be stored
+	 */
 	findClosestPointInTriangle: function() {
 		var ab = vec3.create(),
 			ac = vec3.create(),
 			_vec = vec3.create();
-
-		// @TODO performance benefit to moving all of the float variables created below into one Float64Array?
 
 		return function( p, a, b, c, out ) {
 			var v;
@@ -94,11 +102,11 @@ Goblin.GeometryMethods = {
 	 * Finds the Barycentric coordinates of point `p` in the triangle `a`, `b`, `c`
 	 *
 	 * @method findBarycentricCoordinates
-	 * @param p {vec3} Point to calculate coordinates of
-	 * @param a {vec3} First point in the triangle
-	 * @param b {vec3} Second point in the triangle
-	 * @param c {vec3} Third point in the triangle
-	 * @param out {vec3} Resulting Barycentric coordinates of point `p`
+	 * @param p {vec3} point to calculate coordinates of
+	 * @param a {vec3} first point in the triangle
+	 * @param b {vec3} second point in the triangle
+	 * @param c {vec3} third point in the triangle
+	 * @param out {vec3} resulting Barycentric coordinates of point `p`
 	 */
 	findBarycentricCoordinates: function( p, a, b, c, out ) {
 
@@ -110,7 +118,6 @@ Goblin.GeometryMethods = {
 		vec3.subtract( c, a, v1 );
 		vec3.subtract( p, a, v2 );
 
-		// @TODO the dot product of a vector against itself is the same as that vector's length, squared. Which method is faster? V dot V or ||V||^2 ?
 		var d00 = vec3.dot( v0, v0 ),
 			d01 = vec3.dot( v0, v1 ),
 			d11 = vec3.dot( v1, v1 ),
@@ -123,8 +130,3 @@ Goblin.GeometryMethods = {
 		out[0] = 1 - out[1] - out[2];
 	}
 };
-
-// mappings for closure compiler
-Goblin.GeometryMethods = Goblin.GeometryMethods;
-Goblin.GeometryMethods.findClosestPointInTriangle = Goblin.GeometryMethods.findClosestPointInTriangle;
-Goblin.GeometryMethods.findBarycentricCoordinates = Goblin.GeometryMethods.findBarycentricCoordinates;

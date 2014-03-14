@@ -1,6 +1,5 @@
 Goblin.ContactConstraint = function() {
 	Goblin.Constraint.call( this );
-	this.contact = null;
 };
 
 Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
@@ -44,21 +43,11 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	// Pre-calc error
-	row.bias = contact.penetration_depth;
+	row.bias = contact.penetration_depth; //0;
 
 	// Apply restitution
-	var dot, velocity;
-	dot = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
-	vec3.normalize( this.object_a.linear_velocity, _tmp_vec3_2 );
-	vec3.scale( _tmp_vec3_2, dot );
-
-	dot = vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
-	vec3.normalize( this.object_b.linear_velocity, _tmp_vec3_3 );
-	vec3.scale( _tmp_vec3_3, dot );
-
-	// Total collision velocity
-	vec3.subtract( _tmp_vec3_2, _tmp_vec3_3 );
-	velocity = vec3.length( _tmp_vec3_2 );
+    var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
+    velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
 
 	// Add restitution to bias
 	row.bias += velocity * contact.restitution;

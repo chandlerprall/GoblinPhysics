@@ -6,23 +6,23 @@
  */
 Goblin.ContactManifold = function() {
 	/**
-	 * First body in the contact
+	 * first body in the contact
 	 *
 	 * @property object_a
-	 * @type {Goblin.RigidBody}
+	 * @type {RigidBody}
 	 */
 	this.object_a = null;
 
 	/**
-	 * Second body in the contact
+	 * second body in the contact
 	 *
 	 * @property object_b
-	 * @type {Goblin.RigidBody}
+	 * @type {RigidBody}
 	 */
 	this.object_b = null;
 
 	/**
-	 * Holds all of the active contact points for this manifold
+	 * array of the active contact points for this manifold
 	 *
 	 * @property points
 	 * @type {Array}
@@ -30,10 +30,10 @@ Goblin.ContactManifold = function() {
 	this.points = [];
 
 	/**
-	 * Reference to the next ContactManifold in the list
+	 * reference to the next `ContactManifold` in the list
 	 *
 	 * @property next_manifold
-	 * @type Goblin.ContactManifold
+	 * @type {ContactManifold}
 	 */
 	this.next_manifold = null;
 };
@@ -105,6 +105,11 @@ Goblin.ContactManifold.prototype.findWeakestContact = function( new_contact ) {
 	return max_index;
 };
 
+/**
+ * Adds a contact point to the manifold
+ *
+ * @param {Goblin.ContactDetails} contact
+ */
 Goblin.ContactManifold.prototype.addContact = function( contact ) {
 	//@TODO add feature-ids to detect duplicate contacts
 	var i;
@@ -114,6 +119,9 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		}
 	}
 
+	this.points.push( contact );
+	return;
+	/*@TODO: The findWeakestContact logic is broken
 	// Add contact if we don't have enough points yet
 	if ( this.points.length < 4 ) {
 		this.points.push( contact );
@@ -121,7 +129,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		var replace_index = this.findWeakestContact( contact );
 		//@TODO give the contact back to the object pool
 		this.points[replace_index] = contact;
-	}
+	}*/
 };
 
 /**
@@ -167,7 +175,7 @@ Goblin.ContactManifold.prototype.update = function() {
 
 			vec3.subtract( object_b_world_coords, _tmp_vec3_1, _tmp_vec3_1 );
 			var distance = vec3.squaredLength( _tmp_vec3_1 );
-			if ( distance > 0.02 * 0.02 ) {
+			if ( distance > 0.2 * 0.2 ) {
 				// Points are indeed too far away
 				for ( j = this.points.length - 2; j >= i; j-- ) {
 					this.points[j] = this.points[j + 1];

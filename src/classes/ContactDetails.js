@@ -2,11 +2,6 @@
  * Structure which holds information about a contact between two objects
  *
  * @Class ContactDetails
- * @param object_a {Goblin.RigidBody} first body in the contact
- * @param object_b {Goblin.RigidBody} second body in the contact
- * @param contact_point {vec3} point in world coordinates of the contact
- * @param contact_normal {wec3} normal vector, in world frame, of the contact
- * @param penetration_depth {Number} how far the objects are penetrated at the point of contact
  * @constructor
  */
 Goblin.ContactDetails = function() {
@@ -35,7 +30,7 @@ Goblin.ContactDetails = function() {
 	this.contact_point = vec3.create();
 
 	/**
-	 * Point in 'object_a` local frame of `object_a`
+	 * contact point in local frame of `object_a`
 	 *
 	 * @property contact_point_in_a
 	 * @type {vec3}
@@ -43,7 +38,7 @@ Goblin.ContactDetails = function() {
 	this.contact_point_in_a = vec3.create();
 
 	/**
-	 * Point in 'object_b` local frame of `object_b`
+	 * contact point in local frame of `object_b`
 	 *
 	 * @property contact_point_in_b
 	 * @type {vec3}
@@ -51,7 +46,7 @@ Goblin.ContactDetails = function() {
 	this.contact_point_in_b = vec3.create();
 
 	/**
-	 * normal vector, in world frame, of the contact
+	 * normal vector, in world coordinates, of the contact
 	 *
 	 * @property contact_normal
 	 * @type {vec3}

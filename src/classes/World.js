@@ -78,62 +78,72 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @private
 	 */
 	this.constraints = [];
-
-	/**
-	 * @property contacts
-	 * @type {Array}
-	 */
-	this.contacts = [];
 };
 /**
 * Steps the physics simulation according to the time delta
 *
 * @method step
 * @param time_delta {Number} amount of time to simulate, in seconds
+* @param [max_step] {Number} maximum time step size, in seconds
 */
-Goblin.World.prototype.step = function( time_delta ) {
-	var i, loop_count, body;
+Goblin.World.prototype.step = function( time_delta, max_step ) {
+    max_step = max_step || time_delta;
 
-	for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
-		this.rigid_bodies[i].updateDerived();
-	}
+	var x, delta, time_loops,
+        i, loop_count, body;
 
-	// Apply gravity
-	for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
-		body = this.rigid_bodies[i];
+    time_loops = time_delta / max_step;
+    for ( x = 0; x < time_loops; x++ ) {
+        delta = Math.min( max_step, time_delta );
+        time_delta -= max_step;
 
-		// Objects of infinite mass don't move
-		if ( body.mass !== Infinity ) {
-			vec3.scale( body.gravity || this.gravity, body.mass * time_delta, _tmp_vec3_1 );
-			vec3.add( body.accumulated_force, _tmp_vec3_1 );
-		}
-	}
+        for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
+            this.rigid_bodies[i].updateDerived();
+        }
 
-	// Apply force generators
-	for ( i = 0, loop_count = this.force_generators.length; i < loop_count; i++ ) {
-		this.force_generators[i].applyForce();
-	}
+        // Apply gravity
+        for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
+            body = this.rigid_bodies[i];
 
-	// Check for contacts, broadphase
-	this.broadphase.predictContactPairs();
+            // Objects of infinite mass don't move
+            if ( body.mass !== Infinity ) {
+                vec3.scale( body.gravity || this.gravity, body.mass * delta, _tmp_vec3_1 );
+                vec3.add( body.accumulated_force, _tmp_vec3_1 );
+            }
+        }
 
-	// Find valid contacts, nearphase
-	this.nearphase.generateContacts( this.broadphase.collision_pairs );
+        // Apply force generators
+        for ( i = 0, loop_count = this.force_generators.length; i < loop_count; i++ ) {
+            this.force_generators[i].applyForce();
+        }
 
-	// Process contact manifolds into contact and friction constraints
-	this.solver.processContactManifolds( this.nearphase.contact_manifolds, time_delta );
+        // Check for contacts, broadphase
+        this.broadphase.predictContactPairs();
 
-	// Run the constraint solver
-	this.solver.solve( time_delta );
+        // Find valid contacts, nearphase
+        this.nearphase.generateContacts( this.broadphase.collision_pairs );
 
-	// Apply the constraints
-	this.solver.apply( time_delta );
+        // Process contact manifolds into contact and friction constraints
+        this.solver.processContactManifolds( this.nearphase.contact_manifolds );
 
-	// Integrate rigid bodies
-	for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
-		body = this.rigid_bodies[i];
-		body.integrate( time_delta );
-	}
+        // Prepare the constraints by precomputing some values
+        this.solver.prepareConstraints();
+
+        // Resolve contacts
+        this.solver.resolveContacts( delta );
+
+        // Run the constraint solver
+        this.solver.solveConstraints();
+
+        // Apply the constraints
+        this.solver.applyConstraints();
+
+        // Integrate rigid bodies
+        for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
+            body = this.rigid_bodies[i];
+            body.integrate( delta );
+        }
+    }
 };
 /**
  * Adds a mass point to the world

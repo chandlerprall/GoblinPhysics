@@ -6,7 +6,7 @@
  */
 Goblin.ObjectPool = {
 	/**
-	 * Key/value map of registered types
+	 * key/value map of registered types
 	 *
 	 * @property types
 	 * @private
@@ -14,7 +14,7 @@ Goblin.ObjectPool = {
 	types: {},
 
 	/**
-	 * Key/pool map of object type - to - object pool
+	 * key/pool map of object type - to - object pool
 	 *
 	 * @property pools
 	 * @private
@@ -22,10 +22,10 @@ Goblin.ObjectPool = {
 	pools: {},
 
 	/**
-	 * Registers a type of object to be available in pools
+	 * registers a type of object to be available in pools
 	 *
-	 * @param key {String} Key associated with the object to register
-	 * @param constructing_function {Function} Function which will return a new object
+	 * @param key {String} key associated with the object to register
+	 * @param constructing_function {Function} function which will return a new object
 	 */
 	registerType: function( key, constructing_function ) {
 		this.types[ key ] = constructing_function;
@@ -33,10 +33,10 @@ Goblin.ObjectPool = {
 	},
 
 	/**
-	 * Retrieve a free object from the specified pool, or creates a new object if one is not available
+	 * retrieve a free object from the specified pool, or creates a new object if one is not available
 	 *
-	 * @param key {String} Key of the object type to retrieve
-	 * @return {Mixed} Object of the type asked for, when done release it with `ObjectPool.freeObject`
+	 * @param key {String} key of the object type to retrieve
+	 * @return {Mixed} object of the type asked for, when done release it with `ObjectPool.freeObject`
 	 */
 	getObject: function( key ) {
 		var pool = this.pools[ key ];
@@ -49,9 +49,9 @@ Goblin.ObjectPool = {
 	},
 
 	/**
-	 * Adds on object to the object pool so it can be reused
+	 * adds on object to the object pool so it can be reused
 	 *
-	 * @param key {String} Type of the object being freed, matching the key given to `registerType`
+	 * @param key {String} type of the object being freed, matching the key given to `registerType`
 	 * @param object {Mixed} object to release into the pool
 	 */
 	freeObject: function( key, object ) {
@@ -66,6 +66,7 @@ Goblin.ObjectPool.registerType( 'MassPointContact', function() { return new Gobl
 Goblin.ObjectPool.registerType( 'ContactDetails', function() { return new Goblin.ContactDetails(); } );
 Goblin.ObjectPool.registerType( 'ContactManifold', function() { return new Goblin.ContactManifold(); } );
 Goblin.ObjectPool.registerType( 'GJKSupportPoint', function() { return new Goblin.GjkEpa.SupportPoint( vec3.create(), vec3.create(), vec3.create(), vec3.create() ); } );
+Goblin.ObjectPool.registerType( 'GJK2SupportPoint', function() { return new Goblin.GjkEpa2.SupportPoint( vec3.create(), vec3.create(), vec3.create(), vec3.create() ); } );
 Goblin.ObjectPool.registerType( 'ConstraintRow', function() { return new Goblin.ConstraintRow(); } );
 Goblin.ObjectPool.registerType( 'ContactConstraint', function() { return new Goblin.ContactConstraint(); } );
 Goblin.ObjectPool.registerType( 'FrictionConstraint', function() { return new Goblin.FrictionConstraint(); } );

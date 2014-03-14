@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Balance | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="css/mocha.css"/>
+	<script type="text/javascript" src="js/chai.js"></script>
+	<script type="text/javascript" src="js/mocha.js"></script>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/testUtils.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var assert = (typeof chai !== "undefined" && chai !== null ? chai.assert : void 0) || require('chai').assert;
+		window.onload = function() {
+			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			/**
+			 * Test 1
+			 */
+			(function(){
+				var static_sphere = testUtils.createSphere( 1, 0 );
+
+				var dynamic_sphere1 = testUtils.createSphere( 1, 1 );
+				dynamic_sphere1.goblin.position[1] = 3;
+
+				var dynamic_sphere2 = testUtils.createSphere( 1, 1 );
+				dynamic_sphere2.goblin.position[1] = 7;
+
+				setTimeout(
+					function() {
+						describe('Collision Results', function(){
+
+							Goblin.EPSILON = 0.25;
+
+							it('Sphere 1 Position', function(){
+								return assert( testUtils.withinEpsilon( dynamic_sphere1.goblin.position[1], 2 ) );
+							});
+
+							it('Sphere 2 Position', function(){
+								return assert( testUtils.withinEpsilon( dynamic_sphere2.goblin.position[1], 4 ) );
+							});
+
+						});
+
+						mocha.run();
+					},
+					2000
+				);
+			})();
+
+			testUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+	<div id="mocha"></div>
+</body>
+</html>

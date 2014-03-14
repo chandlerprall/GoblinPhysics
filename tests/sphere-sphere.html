@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sphere-Sphere | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="css/mocha.css"/>
+	<script type="text/javascript" src="js/chai.js"></script>
+	<script type="text/javascript" src="js/mocha.js"></script>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/testUtils.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var assert = (typeof chai !== "undefined" && chai !== null ? chai.assert : void 0) || require('chai').assert;
+		window.onload = function() {
+			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+			testUtils.world.gravity[1] = 0;
+
+			/**
+			 * Test 1
+			 */
+			(function(){
+				var sphere1 = testUtils.createSphere( 1, 1 );
+				sphere1.goblin.linear_velocity[1] = 2;
+
+				var sphere2 = testUtils.createSphere( 1, 1 );
+				sphere2.goblin.position[1] = 3;
+				sphere2.goblin.linear_velocity[1] = -2;
+
+				setTimeout(
+					function() {
+						Goblin.EPSILON = 0.001;
+
+						describe('Collision Results', function(){
+
+							it('Sphere 1 Velocity', function(){
+								return assert( testUtils.withinEpsilon( sphere1.goblin.linear_velocity[1], -0.433 ) );
+							});
+
+							it('Sphere 2 Velocity', function(){
+								return assert( testUtils.withinEpsilon( sphere2.goblin.linear_velocity[1], 0.433 ) );
+							});
+
+						});
+
+						mocha.run();
+					},
+					2000
+				);
+			})();
+
+			testUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+	<div id="mocha"></div>
+</body>
+</html>

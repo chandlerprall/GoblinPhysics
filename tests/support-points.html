@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>GJK with spheres | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="css/mocha.css"/>
+	<script type="text/javascript" src="js/chai.js"></script>
+	<script type="text/javascript" src="js/mocha.js"></script>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/testUtils.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var assert = (typeof chai !== "undefined" && chai !== null ? chai.assert : void 0) || require('chai').assert;
+		window.onload = function() {
+			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			(function(){
+				Goblin.EPSILON = 0.01;
+
+				var sphere = testUtils.createSphere( 2, 1 ),
+					box = testUtils.createBox( 3, 4, 5, 1 );
+
+                describe('Sphere', function(){
+					it('Base Sphere 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 2, 0, 0 );
+
+						sphere.goblin.updateDerived();
+						sphere.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Base Sphere 2', function(){
+						var direction = vec3.createFrom( 1, 1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( Math.sqrt( 2 ), Math.sqrt( 2 ), 0 );
+
+						sphere.goblin.updateDerived();
+						sphere.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated Sphere 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 4, 3, 0 );
+
+						sphere.goblin.position = vec3.createFrom( 2, 3, 0 );
+						sphere.goblin.updateDerived();
+						sphere.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated Sphere 2', function(){
+						var direction = vec3.createFrom( -1, -1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( -Math.sqrt( 2 ) + 2, -Math.sqrt( 2 ) + 3, 0 );
+
+						sphere.goblin.position = vec3.createFrom( 2, 3, 0 );
+						sphere.goblin.updateDerived();
+						sphere.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Sphere 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 2, 0, 0 );
+
+						sphere.goblin.position = vec3.create();
+						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						sphere.goblin.updateDerived();
+						sphere.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Sphere 2', function(){
+						var direction = vec3.createFrom( 1, 1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( Math.sqrt( 2 ), Math.sqrt( 2 ), 0 );
+
+						sphere.goblin.position = vec3.create();
+						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						sphere.goblin.updateDerived();
+						sphere.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Sphere 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 4, 3, 0 );
+
+						sphere.goblin.position = vec3.createFrom( 2, 3, 0 );
+						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						sphere.goblin.updateDerived();
+						sphere.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Sphere 2', function(){
+						var direction = vec3.createFrom( -1, -1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( -Math.sqrt( 2 ) + 2, -Math.sqrt( 2 ) + 3, 0 );
+
+						sphere.goblin.position = vec3.createFrom( 2, 3, 0 );
+						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						sphere.goblin.updateDerived();
+						sphere.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+                });
+
+				describe('Box', function(){
+					it('Base Box 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 3, 4, 5 );
+
+						box.goblin.updateDerived();
+						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Base Box 2', function(){
+						var direction = vec3.createFrom( 0, -1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 3, -4, -5 );
+
+						box.goblin.updateDerived();
+						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated Box 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 4, 7, 10 );
+
+						box.goblin.position = vec3.createFrom( 1, 3, 5 );
+						box.goblin.updateDerived();
+						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated Box 2', function(){
+						var direction = vec3.createFrom( -1, -0.2, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( -5, -4, 85 );
+
+						box.goblin.position = vec3.createFrom( -2, 0, 80 );
+						box.goblin.updateDerived();
+						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Box 1', function(){
+						var direction = vec3.createFrom( 1, 0, 1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 5, 4, 3 );
+
+						box.goblin.position = vec3.create();
+						box.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1 ) ); // 90 degrees around Y axis
+						box.goblin.updateDerived();
+						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Box 2', function(){
+						var direction = vec3.createFrom( -1, 1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( -1.423, 4, -5.655 );
+
+						box.goblin.position = vec3.create();
+						box.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 0.415, 0, 1 ) ); // 45 degrees around Y axis
+						box.goblin.updateDerived();
+						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Box 1', function(){
+						var direction = vec3.createFrom( 1, 1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 7, 7, -3 );
+
+						box.goblin.position = vec3.createFrom( 2, 3, 0 );
+						box.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1 ) ); // 90 degrees
+						box.goblin.updateDerived();
+						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Box 2', function(){
+						var direction = vec3.createFrom( -1, -1, 1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( -3.66, -1, -1.41 );
+
+						box.goblin.position = vec3.createFrom( 2, 3, 0 );
+						box.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 0.415, 0, 1 ) ); // 45 degrees
+						box.goblin.updateDerived();
+						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+				});
+			})();
+
+            mocha.run();
+		};
+	</script>
+</head>
+
+<body>
+	<div id="mocha"></div>
+</body>
+</html>

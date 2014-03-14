@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>GJK with spheres | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="css/mocha.css"/>
+	<script type="text/javascript" src="js/chai.js"></script>
+	<script type="text/javascript" src="js/mocha.js"></script>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/testUtils.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var assert = (typeof chai !== "undefined" && chai !== null ? chai.assert : void 0) || require('chai').assert;
+		window.onload = function() {
+			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			(function(){
+				Goblin.EPSILON = 0.01;
+
+				var box1 = testUtils.createBox( 2, 1, 2, 1 ),
+                	box2 = testUtils.createBox( 0.5, 0.5, 0.5, 1 );
+
+				var tempvec = vec3.create();
+
+				describe('Collision 1', function(){
+					// Set positions
+					box1.goblin.position = vec3.createFrom( 0, 0, 0 );
+					box1.goblin.updateDerived();
+
+					box2.goblin.position = vec3.createFrom( 0, 1.5, 0 );
+					box2.goblin.updateDerived();
+
+					// Set expected values
+					var pendepth = 0;
+					var contact_normal = vec3.createFrom( 0, 1, 0 );
+					var contact_point = vec3.createFrom( 0.5, 1, 0.5 );
+
+					var simplex = Goblin.GjkEpa2.GJK( box1.goblin, box2.goblin ),
+						contact = Goblin.GjkEpa2.EPA( simplex );
+
+					it('Penetration Depth', function(){
+						return assert( testUtils.withinEpsilon( pendepth, contact.penetration_depth ) );
+					});
+
+					it('Contact Normal', function(){
+						return assert( testUtils.withinEpsilon( vec3.dot( contact.contact_normal, contact_normal ), 1 ) );
+					});
+
+					it('Contact Point', function(){
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( contact.contact_point, contact_point, tempvec ) ), 0 ) );
+					});
+				});
+
+				describe('Collision 2', function(){
+					// Set positions
+					box1.goblin.position = vec3.createFrom( 2, 0, 0 );
+					box1.goblin.updateDerived();
+
+					box2.goblin.position = vec3.createFrom( 1.5, 1.25, 0 );
+					box2.goblin.updateDerived();
+
+					// Set expected values
+					var pendepth = 0.25;
+					var contact_normal = vec3.createFrom( 0, 1, 0 );
+					var contact_point = vec3.createFrom( 1.6, 0.875, 0.48 );
+
+					var simplex = Goblin.GjkEpa2.GJK( box1.goblin, box2.goblin ),
+						contact = Goblin.GjkEpa2.EPA( simplex );
+
+					it('Penetration Depth', function(){
+						return assert( testUtils.withinEpsilon( pendepth, contact.penetration_depth ) );
+					});
+
+					it('Contact Normal', function(){
+						return assert( testUtils.withinEpsilon( vec3.dot( contact.contact_normal, contact_normal ), 1 ) );
+					});
+
+					it('Contact Point', function(){
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( contact.contact_point, contact_point, tempvec ) ), 0 ) );
+					});
+				});
+
+				describe('Collision 2', function(){
+					// Set positions
+					box1.goblin.position = vec3.createFrom( 0, 0, 0 );
+					box1.goblin.rotation = quat4.normalize( quat4.createFrom( 0, -0.415, 0, 1 ) );
+					box1.goblin.updateDerived();
+
+					box2.goblin.position = vec3.createFrom( 0, 1.49, 0 );
+					box2.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 0.415, 0, 1 ) );
+					box2.goblin.updateDerived();
+
+					// Set expected values
+					var pendepth = 0.01;
+					var contact_normal = vec3.createFrom( 0, 1, 0 );
+					var contact_point = vec3.createFrom( 0.2829, 1, 0.2829 );
+
+					var simplex = Goblin.GjkEpa2.GJK( box1.goblin, box2.goblin ),
+						contact = Goblin.GjkEpa2.EPA( simplex );
+
+					it('Penetration Depth', function(){
+						return assert( testUtils.withinEpsilon( pendepth, contact.penetration_depth ) );
+					});
+
+					it('Contact Normal', function(){
+						return assert( testUtils.withinEpsilon( vec3.dot( contact.contact_normal, contact_normal ), 1 ) );
+					});
+
+					it('Contact Point', function(){
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( contact.contact_point, contact_point, tempvec ) ), 0 ) );
+					});
+				});
+
+				describe('Collision 3', function(){
+					// Set positions
+					box1.goblin.position = vec3.createFrom( 2, -1, 0 );
+					box1.goblin.updateDerived();
+
+					box2.goblin.position = vec3.createFrom( 2, 0.7, 0 );
+					box2.goblin.rotation = quat4.normalize( quat4.createFrom( 0.415, 0, 0, 1 ) );
+					box2.goblin.updateDerived();
+
+					// Set expected values
+					var pendepth = 0.0071;
+					var contact_normal = vec3.createFrom( 0, 1, 0 );
+					var contact_point = vec3.createFrom( 2.369, 0, 0 );
+
+					var simplex = Goblin.GjkEpa2.GJK( box1.goblin, box2.goblin ),
+						contact = Goblin.GjkEpa2.EPA( simplex );
+
+					var p = new THREE.Mesh(
+						new THREE.SphereGeometry( 0.1 ),
+						new THREE.MeshBasicMaterial({ color: 0xFF0000 })
+					);
+					p.position.set( contact.contact_point[0], contact.contact_point[1], contact.contact_point[2] );
+					testUtils.scene.add( p );
+
+					it('Penetration Depth', function(){
+						return assert( testUtils.withinEpsilon( pendepth, contact.penetration_depth ) );
+					});
+
+					it('Contact Normal', function(){
+						return assert( testUtils.withinEpsilon( vec3.dot( contact.contact_normal, contact_normal ), 1 ) );
+					});
+
+					it('Contact Point', function(){
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( contact.contact_point, contact_point, tempvec ) ), 0 ) );
+					});
+				});
+			})();
+
+            mocha.run();
+		};
+	</script>
+</head>
+
+<body>
+	<div id="mocha"></div>
+</body>
+</html>

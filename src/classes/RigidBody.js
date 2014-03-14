@@ -12,7 +12,7 @@ Goblin.RigidBody = (function() {
 
 	return function( shape, mass ) {
 		/**
-		 * Goblin ID of the body
+		 * goblin ID of the body
 		 *
 		 * @property id
 		 * @type {Number}
@@ -20,7 +20,7 @@ Goblin.RigidBody = (function() {
 		this.id = body_count++;
 
 		/**
-		 * Distance from the center of the object to the furthest point in the object,
+		 * distance from the center of the object to the furthest point in the object,
 		 * creating a bounding sphere enveloping the object
 		 *
 		 * @property bounding_radius
@@ -29,14 +29,14 @@ Goblin.RigidBody = (function() {
 		this.bounding_radius = shape.getBoundingRadius();
 
 		/**
-		 * Shape definition for this rigid body
+		 * shape definition for this rigid body
 		 *
 		 * @property shape
 		 */
 		this.shape = shape;
 
 		/**
-		 * The rigid body's mass
+		 * the rigid body's mass
 		 *
 		 * @property mass
 		 * @type {Number}
@@ -45,7 +45,7 @@ Goblin.RigidBody = (function() {
 		this.mass = mass || Infinity;
 
 		/**
-		 * The rigid body's current position
+		 * the rigid body's current position
 		 *
 		 * @property position
 		 * @type {vec3}
@@ -54,14 +54,14 @@ Goblin.RigidBody = (function() {
 		this.position = vec3.create();
 
 		/**
-		 * Rotation of the rigid body
+		 * rotation of the rigid body
 		 *
-		 * @type {*}
+		 * @type {quat4}
 		 */
 		this.rotation = quat4.createFrom( 0, 0, 0, 1 );
 
 		/**
-		 * The rigid body's current linear velocity
+		 * the rigid body's current linear velocity
 		 *
 		 * @property linear_velocity
 		 * @type {vec3}
@@ -70,7 +70,7 @@ Goblin.RigidBody = (function() {
 		this.linear_velocity = vec3.create();
 
 		/**
-		 * The rigid body's current angular velocity
+		 * the rigid body's current angular velocity
 		 *
 		 * @property angular_velocity
 		 * @type {vec3}
@@ -79,7 +79,7 @@ Goblin.RigidBody = (function() {
 		this.angular_velocity = vec3.create();
 
 		/**
-		 * Transformation matrix transforming points from object space to world space
+		 * transformation matrix transforming points from object space to world space
 		 *
 		 * @property transform
 		 * @type {mat4}
@@ -87,7 +87,7 @@ Goblin.RigidBody = (function() {
 		this.transform = mat4.identity();
 
 		/**
-		 * Transformation matrix transforming points from world space to object space
+		 * transformation matrix transforming points from world space to object space
 		 *
 		 * @property transform_inverse
 		 * @type {mat4}
@@ -103,7 +103,7 @@ Goblin.RigidBody = (function() {
 		this.inverseInertiaTensorWorldFrame = mat3.create();
 
 		/**
-		 * The rigid body's current acceleration
+		 * the rigid body's current acceleration
 		 *
 		 * @property acceleration
 		 * @type {vec3}
@@ -112,34 +112,34 @@ Goblin.RigidBody = (function() {
 		this.acceleration = vec3.create();
 
 		/**
-		 * Amount of linear damping to apply to the rigid body's velocity
+		 * amount of linear damping to apply to the rigid body's velocity
 		 *
 		 * @property linear_damping
 		 * @type {vec3}
-		 * @default [ 1, 1, 1 ]
+		 * @default [ 0, 0, 0 ]
 		 */
-		this.linear_damping = vec3.createFrom( 1, 1, 1 );
+		this.linear_damping = vec3.createFrom( 0, 0, 0 );
 
 		/**
-		 * Amount of angular damping to apply to the rigid body's rotation
+		 * amount of angular damping to apply to the rigid body's rotation
 		 *
 		 * @property angular_damping
 		 * @type {vec3}
-		 * @default [ 1, 1, 1 ]
+		 * @default [ 0, 0, 0 ]
 		 */
-		this.angular_damping = vec3.createFrom( 1, 1, 1 );
+		this.angular_damping = vec3.createFrom( 0, 0, 0 );
 
 		/**
-		 * Amount of restitution this object has
+		 * amount of restitution this object has
 		 *
 		 * @property restitution
 		 * @type {Number}
-		 * @default 0.3
+		 * @default 0.2
 		 */
-		this.restitution = 0.3;
+		this.restitution = 0.2;
 
 		/**
-		 * Amount of friction this object has
+		 * amount of friction this object has
 		 *
 		 * @property friction
 		 * @type {Number}
@@ -148,13 +148,7 @@ Goblin.RigidBody = (function() {
 		this.friction = 0.5;
 
 		/**
-		 * Percentage of friction ( 0.0 - 1.0 ) to apply in each direction, in local (body) frame
-		 * @type {*}
-		 */
-		this.anisotropic_friction = vec3.createFrom( 1, 1, 1 );
-
-		/**
-		 * The rigid body's custom gravity
+		 * the rigid body's custom gravity
 		 *
 		 * @property gravity
 		 * @type {vec3}
@@ -164,7 +158,7 @@ Goblin.RigidBody = (function() {
 		this.gravity = null;
 
 		/**
-		 * The world to which the rigid body has been added,
+		 * the world to which the rigid body has been added,
 		 * this is set when the rigid body is added to a world
 		 *
 		 * @property world
@@ -174,7 +168,7 @@ Goblin.RigidBody = (function() {
 		this.world = null;
 
 		/**
-		 * All resultant force accumulated by the rigid body
+		 * all resultant force accumulated by the rigid body
 		 * this force is applied in the next occurring integration
 		 *
 		 * @property accumulated_force
@@ -195,10 +189,9 @@ Goblin.RigidBody = (function() {
 		 */
 		this.accumulated_torque = vec3.create();
 
+		// Used by the constraint solver to determine what impulse needs to be added to the body
 		this.push_velocity = vec3.create();
 		this.turn_velocity = vec3.create();
-
-		// Used by the constraint solver to determine what impulse needs to be added to the body
 		this.solver_impulse = new Float64Array( 6 );
 
 		// Set default derived values
@@ -214,54 +207,66 @@ Goblin.RigidBody = (function() {
  * @param direction {vec3} direction to use in finding the support point
  * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
  */
-Goblin.RigidBody.prototype.findSupportPoint = function( direction, support_point ) {
-	this.shape.findSupportPoint( this.rotation, this.transform, direction, support_point );
-};
+Goblin.RigidBody.prototype.findSupportPoint = (function(){
+	var local_direction = vec3.create();
+	return function( direction, support_point ) {
+		// Convert direction into local frame for the shape
+		// cells 12-14 are the position offset which we don't want to use for changing the direction vector
+		var x = this.transform_inverse[12],
+			y = this.transform_inverse[13],
+			z = this.transform_inverse[14];
+		this.transform_inverse[12] = this.transform_inverse[13] = this.transform_inverse[14] = 0;
+
+		// Apply rotation
+		mat4.multiplyVec3( this.transform_inverse, direction, local_direction );
+
+		// Reset transform
+		this.transform_inverse[12] = x;
+		this.transform_inverse[13] = y;
+		this.transform_inverse[14] = z;
+
+		this.shape.findSupportPoint( local_direction, support_point );
+
+		// Convert from the shape's local coordinates to world coordinates
+		mat4.multiplyVec3( this.transform, support_point );
+	};
+})();
 
 /**
  * Updates the rigid body's position, velocity, and acceleration
  *
  * @method integrate
- * @param duration {Number} time, in seconds, to use in integration
+ * @param timestep {Number} time, in seconds, to use in integration
  */
-Goblin.RigidBody.prototype.integrate = function( duration ) {
+Goblin.RigidBody.prototype.integrate = function( timestep ) {
 	if ( this.mass === Infinity ) {
 		return;
 	}
 
-	var _vec3_1 = _tmp_vec3_1,
-		_vec3_2 = _tmp_vec3_2;
+	var invmass = 1 / this.mass;
 
-	// Add accumulated forces
-	vec3.set( this.accumulated_force, _vec3_1 );
-	vec3.scale( _vec3_1, 1 / this.mass );
+	// Add accumulated linear force
+	vec3.scale( this.accumulated_force, invmass, _tmp_vec3_1 );
+	vec3.add( this.linear_velocity, _tmp_vec3_1 );
 
-	/* Update linear velocity from the acceleration. */
-	vec3.add( this.linear_velocity, _vec3_1 );
+	// Add accumulated angular force
+	mat3.multiplyVec3 ( this.inverseInertiaTensorWorldFrame, this.accumulated_torque, _tmp_vec3_1 );
+	vec3.scale( _tmp_vec3_1, timestep );
+	vec3.add( this.angular_velocity, _tmp_vec3_1 );
 
+	// Apply damping
+	this.linear_velocity[0] *= 1 / ( 1 + timestep * this.linear_damping[0] );
+	this.linear_velocity[1] *= 1 / ( 1 + timestep * this.linear_damping[1] );
+	this.linear_velocity[2] *= 1 / ( 1 + timestep * this.linear_damping[2] );
+	this.angular_velocity[0] *= 1 / ( 1 + timestep * this.angular_damping[0] );
+	this.angular_velocity[1] *= 1 / ( 1 + timestep * this.angular_damping[1] );
+	this.angular_velocity[2] *= 1 / ( 1 + timestep * this.angular_damping[2] );
 
-	// Calculate angular acceleration from torque inputs.
-	vec3.set( this.accumulated_torque, _vec3_1 );
-	mat3.multiplyVec3( this.inverseInertiaTensorWorldFrame, _vec3_1 );
+	// Update position
+	vec3.scale( this.linear_velocity, timestep, _tmp_vec3_1 );
+	vec3.add( this.position, _tmp_vec3_1 );
 
-	// Update angular velocity from both acceleration and impulse.
-	vec3.scale( _vec3_1, duration );
-	vec3.add( this.angular_velocity, _vec3_1 );
-
-
-	/* Apply damping*/
-	vec3.multiply( this.linear_velocity, this.linear_damping );
-	vec3.multiply( this.angular_velocity, this.angular_damping );
-
-
-	/* Update linear position*/
-	// Simpler, but not quite as accurate as the following method
-	// as it does add the additional velocity caused by acceleration
-	vec3.set( this.linear_velocity, _vec3_1 );
-	vec3.scale( _vec3_1, duration );
-	vec3.add( this.position, _vec3_1 );
-
-	// Apply angular velocity
+	// Update rotation
 	_tmp_quat4_1[0] = this.angular_velocity[0];
 	_tmp_quat4_1[1] = this.angular_velocity[1];
 	_tmp_quat4_1[2] = this.angular_velocity[2];
@@ -269,18 +274,19 @@ Goblin.RigidBody.prototype.integrate = function( duration ) {
 
 	quat4.multiply( _tmp_quat4_1, this.rotation );
 
-	var half_dt = duration * 0.5;
+	var half_dt = timestep * 0.5;
 	this.rotation[0] += half_dt * _tmp_quat4_1[0];
 	this.rotation[1] += half_dt * _tmp_quat4_1[1];
 	this.rotation[2] += half_dt * _tmp_quat4_1[2];
 	this.rotation[3] += half_dt * _tmp_quat4_1[3];
-	//quat4.addScaledVector( this.rotation, this.angular_velocity, duration );
 	quat4.normalize( this.rotation );
 
 	// Clear accumulated forces
 	this.accumulated_force[0] = this.accumulated_force[1] = this.accumulated_force[2] = 0;
 	this.accumulated_torque[0] = this.accumulated_torque[1] = this.accumulated_torque[2] = 0;
 	this.solver_impulse[0] = this.solver_impulse[1] = this.solver_impulse[2] = this.solver_impulse[3] = this.solver_impulse[4] = this.solver_impulse[5] = 0;
+	this.push_velocity[0] = this.push_velocity[1] = this.push_velocity[2] = 0;
+	this.turn_velocity[0] = this.turn_velocity[1] = this.turn_velocity[2] = 0;
 };
 
 /**

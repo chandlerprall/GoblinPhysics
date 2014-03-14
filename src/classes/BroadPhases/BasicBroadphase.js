@@ -79,6 +79,11 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 
 			object_b = this.bodies[j];
 
+			if ( object_a.mass === Infinity && object_b.mass === Infinity ) {
+				// Two static objects aren't considered to be in contact
+				continue;
+			}
+
 			vec3.subtract( object_a.position, object_b.position, _vec3 );
 			distance = vec3.length( _vec3 ) - object_a.bounding_radius - object_b.bounding_radius;
 

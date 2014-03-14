@@ -1,7 +1,7 @@
 /**
  * Provides the classes and algorithms for running GJK+EPA based collision detection
  *
- * @submodule GjkEpa
+ * @class GjkEpa
  * @static
  */
 Goblin.GjkEpa = {
@@ -112,7 +112,6 @@ Goblin.GjkEpa = {
 					}
 
 				} else if ( simplex.length === 3 ) {
-
 					// Triangle
 					a = simplex[ 2 ];
 					b = simplex[ 1 ];
@@ -268,8 +267,6 @@ Goblin.GjkEpa = {
 					if ( vec3.squaredLength( center_adb ) < Goblin.EPSILON ) return true;
 					if ( vec3.squaredLength( center_dcb ) < Goblin.EPSILON ) return true;*/
 
-
-
 					// Tetrahedron doesn't contain the origin, bail
 					// Find which face normal of the tetrahedron aligns best to AO
 					var best = 0, dot = 0, shortest = Infinity, distance = 0;
@@ -359,6 +356,8 @@ Goblin.GjkEpa = {
 
 			// @TODO there is a big debate about what the best initial search direction is - do any answers have much weight?
 			vec3.subtract( object_b.position, object_a.position, direction );
+			vec3.normalize( direction );
+
 			support_point = Goblin.ObjectPool.getObject( 'GJKSupportPoint' );
 			Goblin.GjkEpa.findSupportPoint( object_a, object_b, direction, support_point );
 			simplex.push( support_point );
