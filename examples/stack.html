@@ -33,7 +33,6 @@
 			var controls = new THREE.TrackballControls( camera, renderer.domElement );
             
             var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.SequentialImpulseSolver );
-			world.solver.max_iterations = 1;
 			window.world = world;
 
 			var i, particles, particles = [];
