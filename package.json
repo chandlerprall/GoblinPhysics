@@ -1,6 +1,6 @@
 {
   "name": "GoblinPhysics",
-  "version": "0.0.1",
+  "version": "0.1",
   "description": "Physics engine for Javascript",
   "main": "goblin-module.js",
   "directories": {
