@@ -39,6 +39,7 @@ Roadmap
 * Internal object re-use (framework for this is in place, need to actually use it)
 * Island solver
 * Box-Box near phase for better performance and stability
+* Force generators
 
 Tests
 -----
