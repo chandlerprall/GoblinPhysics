@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>GJK with spheres | Goblin Physics</title>
+	<title>Support Points | Goblin Physics</title>
 
 	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<link rel="stylesheet" type="text/css" href="css/mocha.css"/>
@@ -23,9 +23,10 @@
 
 				var sphere = testUtils.createSphere( 2, 1 ), // radius, mass
 					box = testUtils.createBox( 3, 4, 5, 1 ), // half width (x), half height (y), half length (z), mass
-					cylinder = testUtils.createCylinder( 3, 2.5, 1 ); // radius, half height, mass
+					cylinder = testUtils.createCylinder( 3, 2.5, 1 ), // radius, half height, mass
+					cone = testUtils.createCone( 3, 2.5, 1 );
 
-                describe('Sphere', function(){
+				describe('Sphere', function(){
 					it('Base Sphere 1', function(){
 						var direction = vec3.createFrom( 1, 0, 0 ),
 							point = vec3.create(),
@@ -331,6 +332,117 @@
 						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+				});
+
+				describe('Cone', function(){
+					it('Base Cone 1', function(){
+						var direction = vec3.createFrom( 0, 1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 0, 2.5, 0 );
+
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Base Cone 2', function(){
+						var direction = vec3.createFrom( 0, -1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 0, -2.5, 0 );
+
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Base Cone 3', function(){
+						var direction = vec3.createFrom( 1, -1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( Math.sqrt( 4.5 ), -2.5, -Math.sqrt( 4.5 ) );
+
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated Cone 1', function(){
+						var direction = vec3.createFrom( 0, 1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 2, 5.5, 0 );
+
+						cone.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated Cone 2', function(){
+						var direction = vec3.createFrom( 1, -1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 2 + Math.sqrt( 4.5 ), 0.5, -Math.sqrt( 4.5 ) );
+
+						cone.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Cone 1', function(){
+						var direction = vec3.createFrom( 0, 1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 0, 3, -2.5 );
+
+						cone.goblin.position = vec3.create();
+						cone.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Cone 2', function(){
+						var direction = vec3.createFrom( 1, 1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( Math.sqrt( 4.5 ), Math.sqrt( 4.5 ), -2.5 );
+
+						cone.goblin.position = vec3.create();
+						cone.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Cone 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 5, 3, -2.5 );
+
+						cone.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cone.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Cone 2', function(){
+						var direction = vec3.createFrom( 1, 1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 4.121, 5.121, -2.5 );
+
+						cone.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cone.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cone.goblin.updateDerived();
+						cone.goblin.findSupportPoint( direction, point );
 
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
 					});

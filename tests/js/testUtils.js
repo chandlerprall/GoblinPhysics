@@ -123,6 +123,24 @@ window.testUtils = (function(){
 			world.addRigidBody( cylinder.goblin );
 
 			return cylinder;
+		},
+
+		createCone: function( radius, half_height, mass ) {
+			var cone = new THREE.Mesh(
+				new THREE.CylinderGeometry( 0, radius, half_height * 2 ),
+				new THREE.MeshNormalMaterial({ opacity: 1 })
+			);
+			cone.goblin = new Goblin.RigidBody(
+				new Goblin.ConeShape( radius, half_height ),
+				mass
+			);
+			cone.useQuaternion = true;
+
+			objects.push( cone );
+			testUtils.scene.add( cone );
+			world.addRigidBody( cone.goblin );
+
+			return cone;
 		}
 	};
 })();

@@ -134,9 +134,9 @@ Goblin.RigidBody = (function() {
 		 *
 		 * @property restitution
 		 * @type {Number}
-		 * @default 0.2
+		 * @default 0.05
 		 */
-		this.restitution = 0.2;
+		this.restitution = 0.05;
 
 		/**
 		 * amount of friction this object has
