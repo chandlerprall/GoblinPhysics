@@ -21,8 +21,9 @@
 			(function(){
 				Goblin.EPSILON = 0.01;
 
-				var sphere = testUtils.createSphere( 2, 1 ),
-					box = testUtils.createBox( 3, 4, 5, 1 );
+				var sphere = testUtils.createSphere( 2, 1 ), // radius, mass
+					box = testUtils.createBox( 3, 4, 5, 1 ), // half width (x), half height (y), half length (z), mass
+					cylinder = testUtils.createCylinder( 3, 2.5, 1 ); // radius, half height, mass
 
                 describe('Sphere', function(){
 					it('Base Sphere 1', function(){
@@ -219,6 +220,117 @@
 						box.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 0.415, 0, 1 ) ); // 45 degrees
 						box.goblin.updateDerived();
 						box.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+				});
+
+				describe('Cylinder', function(){
+					it('Base Cylinder 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 3, 2.5, 0 );
+
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Base Cylinder 2', function(){
+						var direction = vec3.createFrom( 0, -1, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 0, -2.5, 0 );
+
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Base Cylinder 3', function(){
+						var direction = vec3.createFrom( 1, 1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( Math.sqrt( 4.5 ), 2.5, -Math.sqrt( 4.5 ) );
+
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated Cylinder 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 5, 5.5, 0 );
+
+						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated Cylinder 2', function(){
+						var direction = vec3.createFrom( 1, 1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 2 + Math.sqrt( 4.5 ), 5.5, -Math.sqrt( 4.5 ) );
+
+						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Cylinder 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 3, 0, 2.5 );
+
+						cylinder.goblin.position = vec3.create();
+						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Cylinder 2', function(){
+						var direction = vec3.createFrom( 1, 1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( Math.sqrt( 4.5 ), Math.sqrt( 4.5 ), -2.5 );
+
+						cylinder.goblin.position = vec3.create();
+						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Cylinder 1', function(){
+						var direction = vec3.createFrom( 1, 0, 0 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 5, 3, 2.5 );
+
+						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Cylinder 2', function(){
+						var direction = vec3.createFrom( 1, 1, -1 ),
+							point = vec3.create(),
+							expected = vec3.createFrom( 4.121, 5.121, -2.5 );
+
+						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cylinder.goblin.updateDerived();
+						cylinder.goblin.findSupportPoint( direction, point );
 
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
 					});

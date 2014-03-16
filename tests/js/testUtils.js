@@ -105,6 +105,24 @@ window.testUtils = (function(){
 			world.addRigidBody( box.goblin );
 
 			return box;
+		},
+
+		createCylinder: function( radius, half_height, mass ) {
+			var cylinder = new THREE.Mesh(
+				new THREE.CylinderGeometry( radius, radius, half_height * 2 ),
+				new THREE.MeshNormalMaterial({ opacity: 1 })
+			);
+			cylinder.goblin = new Goblin.RigidBody(
+				new Goblin.CylinderShape( radius, half_height ),
+				mass
+			);
+			cylinder.useQuaternion = true;
+
+			objects.push( cylinder );
+			testUtils.scene.add( cylinder );
+			world.addRigidBody( cylinder.goblin );
+
+			return cylinder;
 		}
 	};
 })();

@@ -59,7 +59,8 @@
 			world.addRigidBody( particle.goblin );
 
 			function spawn() {
-				if ( Math.random() < 0.5 ) {
+				var type = Math.random();
+				if ( type < 0.33 ) {
 					particle = new THREE.Mesh(
 						new THREE.CubeGeometry( 1.5, 1.5, 1.5 ),
 						new THREE.MeshNormalMaterial({ opacity: 1 })
@@ -68,7 +69,7 @@
 						new Goblin.BoxShape( 0.75, 0.75, 0.75 ),
 						1
 					);
-				} else {
+				} else if ( type < 0.66 ) {
 					var radius = Math.random() / 2 + 0.5;
 					particle = new THREE.Mesh(
 						new THREE.SphereGeometry( radius ),
@@ -76,6 +77,17 @@
 					);
 					particle.goblin = new Goblin.RigidBody(
 						new Goblin.SphereShape( radius ),
+						1
+					);
+				} else {
+					var radius = Math.random() / 2 + 0.5,
+						height = Math.random() * 2 + 1;
+					particle = new THREE.Mesh(
+						new THREE.CylinderGeometry( radius, radius, height ),
+						new THREE.MeshNormalMaterial({ opacity: 1 })
+					);
+					particle.goblin = new Goblin.RigidBody(
+						new Goblin.CylinderShape( radius, height / 2 ),
 						1
 					);
 				}
