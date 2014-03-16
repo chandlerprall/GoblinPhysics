@@ -10,7 +10,7 @@ module.exports = function(grunt) {
 
   // Project configuration.
   grunt.initConfig({
-    pkg: '<json:package.json>',
+    pkg: 'GoblinPhysics',
     meta: {
       license: fs.readFileSync( 'LICENSE' ).toString(),
       banner: '/*\n' +
@@ -26,17 +26,24 @@ module.exports = function(grunt) {
     test: {
       files: ['test/**/*.js']
     },
-	concat: {
-	  dist: {
+    concat: {
+      dist: {
          src: [
-		   '<banner:meta.banner>',
-		   'src/intro.js',
-		   'src/classes/**/*.js',
-		   'src/outro.js'
-	     ],
+           '<banner:meta.banner>',
+           'src/intro.js',
+           'src/classes/**/*.js',
+           'src/outro.js'
+         ],
          dest: 'build/goblin.js'
-	  }
-	},
+      }
+    },
+    uglify: {
+      goblin: {
+        files: {
+          'build/goblin.min.js': [ 'build/goblin.js' ]
+        }
+      }
+    },
     min: {
       build: {
         src: ['<banner:meta.banner>', '<config:concat.build.dest>'],
@@ -59,22 +66,22 @@ module.exports = function(grunt) {
         undef: true,
         boss: true,
         eqnull: true,
-		smarttabs: true,
-		globals: {
-		  'vec3': false,
-		  'quat4': true,
-		  'mat4': false,
-		  'mat3': false,
-		  'Goblin': true,
-		  '_tmp_vec3_1': true,
-		  '_tmp_vec3_2': true,
-		  '_tmp_vec3_3': true,
-		  '_tmp_quat4_1': true,
-		  '_tmp_mat3_1': true,
-		  '_tmp_mat3_2': true
-		}
+        smarttabs: true,
+        globals: {
+          'vec3': false,
+          'quat4': true,
+          'mat4': false,
+          'mat3': false,
+          'Goblin': true,
+          '_tmp_vec3_1': true,
+          '_tmp_vec3_2': true,
+          '_tmp_vec3_3': true,
+          '_tmp_quat4_1': true,
+          '_tmp_mat3_1': true,
+          '_tmp_mat3_2': true
+        }
       },
-	  beforeconcat: ['grunt.js', 'src/classes/**/*.js', 'test/**/*.js']
+      beforeconcat: ['grunt.js', 'src/classes/**/*.js', 'test/**/*.js']
     },
     yuidoc: {
       compile: {
@@ -91,7 +98,7 @@ module.exports = function(grunt) {
   });
 
   // Default task.
-  grunt.registerTask('default',  ['jshint', 'concat']);
+  grunt.registerTask('default',  ['jshint', 'concat', 'uglify']);
 
   // Build documentation
   grunt.registerTask('docs', 'yuidoc');
