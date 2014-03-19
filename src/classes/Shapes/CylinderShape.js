@@ -8,7 +8,7 @@ Goblin.CylinderShape = function( radius, half_height ) {
 	/**
 	 * radius of the cylinder
 	 *
-	 * @proptery radius
+	 * @property radius
 	 * @type {Number}
 	 */
 	this.radius = radius;
@@ -16,7 +16,7 @@ Goblin.CylinderShape = function( radius, half_height ) {
 	/**
 	 * half height of the cylinder
 	 *
-	 * @proptery half_height
+	 * @property half_height
 	 * @type {Number}
 	 */
 	this.half_height = half_height;

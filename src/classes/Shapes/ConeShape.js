@@ -8,7 +8,7 @@ Goblin.ConeShape = function( radius, half_height ) {
 	/**
 	 * radius of the cylinder
 	 *
-	 * @proptery radius
+	 * @property radius
 	 * @type {Number}
 	 */
 	this.radius = radius;
@@ -16,11 +16,18 @@ Goblin.ConeShape = function( radius, half_height ) {
 	/**
 	 * half height of the cylinder
 	 *
-	 * @proptery half_height
+	 * @property half_height
 	 * @type {Number}
 	 */
 	this.half_height = half_height;
 
+	/**
+	 * sin of the cone's angle
+	 *
+	 * @property _sinagle
+	 * @type {Number}
+	 * @private
+	 */
 	this._sinangle = this.radius / Math.sqrt( this.radius * this.radius + Math.pow( 2 * this.half_height, 2 ) );
 };
 

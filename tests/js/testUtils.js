@@ -141,6 +141,28 @@ window.testUtils = (function(){
 			world.addRigidBody( cone.goblin );
 
 			return cone;
+		},
+
+		createPlane: function( orientation, half_width, half_length, mass ) {
+			var plane = new THREE.Mesh(
+				new THREE.CubeGeometry(
+					orientation === 1 || orientation === 2 ? half_width * 2 : 0,
+					orientation === 0 ? half_width * 2 : ( orientation === 2 ? half_length * 2 : 0 ),
+					orientation === 0 || orientation === 1 ? half_length * 2 : 0
+				),
+				new THREE.MeshNormalMaterial({ opacity: 1 })
+			);
+			plane.goblin = new Goblin.RigidBody(
+				new Goblin.PlaneShape( orientation, half_width, half_length ),
+				mass
+			);
+			plane.useQuaternion = true;
+
+			objects.push( plane );
+			testUtils.scene.add( plane );
+			world.addRigidBody( plane.goblin );
+
+			return plane;
 		}
 	};
 })();

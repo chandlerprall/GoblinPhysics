@@ -9,7 +9,7 @@ Goblin.BoxShape = function( half_width, half_height, half_depth ) {
 	/**
 	 * Half width of the cube ( X axis )
 	 *
-	 * @proptery half_width
+	 * @property half_width
 	 * @type {Number}
 	 */
 	this.half_width = half_width;
@@ -17,7 +17,7 @@ Goblin.BoxShape = function( half_width, half_height, half_depth ) {
 	/**
 	 * Half height of the cube ( Y axis )
 	 *
-	 * @proptery half_height
+	 * @property half_height
 	 * @type {Number}
 	 */
 	this.half_height = half_height;
@@ -25,7 +25,7 @@ Goblin.BoxShape = function( half_width, half_height, half_depth ) {
 	/**
 	 * Half width of the cube ( Z axis )
 	 *
-	 * @proptery half_height
+	 * @property half_height
 	 * @type {Number}
 	 */
 	this.half_depth = half_depth;
