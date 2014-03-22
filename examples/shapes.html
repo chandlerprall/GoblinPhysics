@@ -39,11 +39,11 @@
 
 			// Ground object
 			particle = new THREE.Mesh(
-				new THREE.CubeGeometry( 20, 5, 20 ),
+				new THREE.CubeGeometry( 20, 2, 20 ),
 				new THREE.MeshNormalMaterial({ polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 10 })
 			);
 			particle.goblin = new Goblin.RigidBody(
-				new Goblin.BoxShape( 10, 2.5, 10 ),
+				new Goblin.BoxShape( 10, 1, 10 ),
 				Infinity
 			);
 			particle.goblin.rotation[2] = -0.03;

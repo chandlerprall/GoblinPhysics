@@ -7,9 +7,9 @@ Goblin.BoxSphere = function( object_a, object_b ) {
 	mat4.multiplyVec3( object_b.transform_inverse, sphere.position, _tmp_vec3_1 );
 
 	// Early out check to see if we can exclude the contact
-	if ( Math.abs( _tmp_vec3_1[0] ) - sphere.bounding_radius > box.shape.half_width ||
-		Math.abs( _tmp_vec3_1[1] ) - sphere.bounding_radius > box.shape.half_height ||
-		Math.abs( _tmp_vec3_1[2] ) - sphere.bounding_radius > box.shape.half_depth )
+	if ( Math.abs( _tmp_vec3_1[0] ) - sphere.shape.radius > box.shape.half_width ||
+		Math.abs( _tmp_vec3_1[1] ) - sphere.shape.radius > box.shape.half_height ||
+		Math.abs( _tmp_vec3_1[2] ) - sphere.shape.radius > box.shape.half_depth )
 	{
 		return;
 	}
@@ -45,7 +45,13 @@ Goblin.BoxSphere = function( object_a, object_b ) {
 	// Check we're in contact
 	vec3.subtract( _tmp_vec3_2, _tmp_vec3_1, _tmp_vec3_3 );
 	distance = vec3.squaredLength( _tmp_vec3_3 );
-	if (distance > sphere.bounding_radius * sphere.bounding_radius ) {
+	if (distance > sphere.shape.radius * sphere.shape.radius ) {
+		return;
+	}
+
+	if ( distance === 0 ) {
+		// The center of the sphere is contained within the box
+		// @TODO better resolution than just ignoring the contact
 		return;
 	}
 
@@ -74,7 +80,7 @@ Goblin.BoxSphere = function( object_a, object_b ) {
 	mat4.multiplyVec3( contact.object_b.transform_inverse, _tmp_vec3_2, contact.contact_point_in_b );
 
 	// Calculate penetration depth
-	contact.penetration_depth = sphere.bounding_radius - Math.sqrt( distance );
+	contact.penetration_depth = sphere.shape.radius - Math.sqrt( distance );
 
 	contact.restitution = ( sphere.restitution + box.restitution ) / 2;
 	contact.friction = ( sphere.friction + box.friction ) / 2;
