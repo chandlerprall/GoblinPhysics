@@ -57,10 +57,8 @@ Goblin.BasicBroadphase.prototype.removeBody = function( body ) {
  * @method predictContactPairs
  */
 Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
-	var _vec3 = _tmp_vec3_1,
-		i, j,
+	var i, j,
 		object_a, object_b,
-		distance,
 		bodies_count = this.bodies.length;
 
 	// Clear any old contact pairs
@@ -84,11 +82,8 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				continue;
 			}
 
-			vec3.subtract( object_a.position, object_b.position, _vec3 );
-			distance = vec3.length( _vec3 ) - object_a.bounding_radius - object_b.bounding_radius;
-
-			if ( distance <= 0 ) {
-				// We have a possible contact
+            if ( object_a.aabb.intersects( object_b.aabb ) )
+            {
 				this.collision_pairs.push([ object_a, object_b ]);
 			}
 		}

@@ -33,6 +33,9 @@ Goblin.PlaneShape = function( orientation, half_width, half_length ) {
 	 */
 	this.half_length = half_length;
 
+    this.aabb = new Goblin.AABB();
+    this.calculateLocalAABB( this.aabb );
+
 
 	if ( this.orientation === 0 ) {
 		this._half_width = 0;
@@ -51,6 +54,52 @@ Goblin.PlaneShape = function( orientation, half_width, half_length ) {
 
 Goblin.PlaneShape.prototype.getBoundingRadius = function() {
 	return Math.max( this.half_width, this.half_length ) * 1.7320508075688772; // largest half-axis * sqrt(3);
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.PlaneShape.prototype.calculateLocalAABB = function( aabb ) {
+    if ( this.orientation === 0 ) {
+        this._half_width = 0;
+        this._half_height = this.half_width;
+        this._half_depth = this.half_length;
+
+        aabb.min[0] = 0;
+        aabb.min[1] = -this.half_width;
+        aabb.min[2] = -this.half_length;
+
+        aabb.max[0] = 0;
+        aabb.max[1] = this.half_width;
+        aabb.max[2] = this.half_length;
+    } else if ( this.orientation === 1 ) {
+        this._half_width = this.half_width;
+        this._half_height = 0;
+        this._half_depth = this.half_length;
+
+        aabb.min[0] = -this.half_width;
+        aabb.min[1] = 0;
+        aabb.min[2] = -this.half_length;
+
+        aabb.max[0] = this.half_width;
+        aabb.max[1] = 0;
+        aabb.max[2] = this.half_length;
+    } else {
+        this._half_width = this.half_width;
+        this._half_height = this.half_length;
+        this._half_depth = 0;
+
+        aabb.min[0] = -this.half_width;
+        aabb.min[1] = -this.half_length;
+        aabb.min[2] = 0;
+
+        aabb.max[0] = this.half_width;
+        aabb.max[1] = this.half_length;
+        aabb.max[2] = 0;
+    }
 };
 
 Goblin.PlaneShape.prototype.getInertiaTensor = function( mass ) {

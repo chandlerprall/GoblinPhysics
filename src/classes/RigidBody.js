@@ -35,6 +35,14 @@ Goblin.RigidBody = (function() {
 		 */
 		this.shape = shape;
 
+        /**
+         * axis-aligned bounding box enclosing this body
+         *
+         * @property aabb
+         * @type {AABB}
+         */
+        this.aabb = new Goblin.AABB();
+
 		/**
 		 * the rigid body's mass
 		 *
@@ -365,6 +373,9 @@ Goblin.RigidBody.prototype.updateDerived = function() {
 	if ( this.mass !== Infinity ) {
 		this.updateInverseInertiaTensorWorldFrame();
 	}
+
+    // Update AABB
+    this.aabb.transform( this.shape.aabb, this.transform );
 };
 
 Goblin.RigidBody.prototype.updateInverseInertiaTensorWorldFrame = function() {

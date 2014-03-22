@@ -5,6 +5,20 @@
  */
 Goblin.SphereShape = function( radius ) {
 	this.radius = radius;
+
+	this.aabb = new Goblin.AABB();
+	this.calculateLocalAABB( this.aabb );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.SphereShape.prototype.calculateLocalAABB = function( aabb ) {
+	aabb.min[0] = aabb.min[1] = aabb.min[2] = -this.radius;
+	aabb.max[0] = aabb.max[1] = aabb.max[2] = this.radius;
 };
 
 Goblin.SphereShape.prototype.getBoundingRadius = function() {

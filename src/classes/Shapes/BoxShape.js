@@ -29,10 +29,29 @@ Goblin.BoxShape = function( half_width, half_height, half_depth ) {
 	 * @type {Number}
 	 */
 	this.half_depth = half_depth;
+
+    this.aabb = new Goblin.AABB();
+    this.calculateLocalAABB( this.aabb );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.BoxShape.prototype.calculateLocalAABB = function( aabb ) {
+    aabb.min[0] = -this.half_width;
+    aabb.min[1] = -this.half_height;
+    aabb.min[2] = -this.half_depth;
+
+    aabb.max[0] = this.half_width;
+    aabb.max[1] = this.half_height;
+    aabb.max[2] = this.half_depth;
 };
 
 Goblin.BoxShape.prototype.getBoundingRadius = function() {
-	return Math.max( this.half_width, this.half_height, this.half_depth ) * 1.7320508075688772; // largest half-axis * sqrt(3);
+    return Math.max( this.half_width, this.half_height, this.half_depth ) * 1.7320508075688772; // largest half-axis * sqrt(3);
 };
 
 Goblin.BoxShape.prototype.getInertiaTensor = function( mass ) {

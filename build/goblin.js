@@ -94,6 +94,88 @@ window.Goblin = (function() {
 
     Goblin.EPSILON = 0.000001;
 /**
+ * @class AABB
+ * @param [min] {vec3}
+ * @param [max] {vec3}
+ * @constructor
+ */
+Goblin.AABB = function( min, max ) {
+	/**
+	 * @property min
+	 * @type {vec3}
+	 */
+	this.min = min || vec3.create();
+
+	/**
+	 * @property max
+	 * @type {vec3}
+	 */
+	this.max = max || vec3.create();
+};
+
+Goblin.AABB.prototype.transform = (function(){
+	var local_half_extents = vec3.create(),
+		local_center = vec3.create(),
+		center = vec3.create(),
+		extents = vec3.create(),
+		abs = mat3.create();
+
+	return function( local_aabb, matrix ) {
+		vec3.subtract( local_aabb.max, local_aabb.min, local_half_extents );
+		vec3.scale( local_half_extents, 0.5 );
+
+		vec3.add( local_aabb.max, local_aabb.min, local_center );
+		vec3.scale( local_center, 0.5 );
+
+		mat4.multiplyVec3( matrix, local_center, center );
+
+		// Extract the absolute rotation matrix
+		abs[0] = Math.abs( matrix[0] );
+		abs[1] = Math.abs( matrix[1] );
+		abs[2] = Math.abs( matrix[2] );
+		abs[3] = Math.abs( matrix[4] );
+		abs[4] = Math.abs( matrix[5] );
+		abs[5] = Math.abs( matrix[6] );
+		abs[6] = Math.abs( matrix[8] );
+		abs[7] = Math.abs( matrix[9] );
+		abs[8] = Math.abs( matrix[10] );
+
+		_tmp_vec3_1[0] = abs[0];
+		_tmp_vec3_1[1] = abs[1];
+		_tmp_vec3_1[2] = abs[2];
+		extents[0] = vec3.dot( local_half_extents, _tmp_vec3_1 );
+
+		_tmp_vec3_1[0] = abs[3];
+		_tmp_vec3_1[1] = abs[4];
+		_tmp_vec3_1[2] = abs[5];
+		extents[1] = vec3.dot( local_half_extents, _tmp_vec3_1 );
+
+		_tmp_vec3_1[0] = abs[6];
+		_tmp_vec3_1[1] = abs[7];
+		_tmp_vec3_1[2] = abs[8];
+		extents[2] = vec3.dot( local_half_extents, _tmp_vec3_1 );
+
+		vec3.subtract( center, extents, this.min );
+		vec3.add( center, extents, this.max );
+	};
+})();
+
+Goblin.AABB.prototype.intersects = function( aabb ) {
+    if (
+        this.max[0] < aabb.min[0] ||
+        this.max[1] < aabb.min[1] ||
+        this.max[2] < aabb.min[2] ||
+        this.min[0] > aabb.max[0] ||
+        this.min[1] > aabb.max[1] ||
+        this.min[2] > aabb.max[2]
+    )
+    {
+        return false;
+    }
+
+    return true;
+};
+/**
  * Performs a n^2 check of all collision objects to see if any could be in contact
  *
  * @class BasicBroadphase
@@ -152,10 +234,8 @@ Goblin.BasicBroadphase.prototype.removeBody = function( body ) {
  * @method predictContactPairs
  */
 Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
-	var _vec3 = _tmp_vec3_1,
-		i, j,
+	var i, j,
 		object_a, object_b,
-		distance,
 		bodies_count = this.bodies.length;
 
 	// Clear any old contact pairs
@@ -179,11 +259,8 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				continue;
 			}
 
-			vec3.subtract( object_a.position, object_b.position, _vec3 );
-			distance = vec3.length( _vec3 ) - object_a.bounding_radius - object_b.bounding_radius;
-
-			if ( distance <= 0 ) {
-				// We have a possible contact
+            if ( object_a.aabb.intersects( object_b.aabb ) )
+            {
 				this.collision_pairs.push([ object_a, object_b ]);
 			}
 		}
@@ -2925,6 +3002,14 @@ Goblin.RigidBody = (function() {
 		 */
 		this.shape = shape;
 
+        /**
+         * axis-aligned bounding box enclosing this body
+         *
+         * @property aabb
+         * @type {AABB}
+         */
+        this.aabb = new Goblin.AABB();
+
 		/**
 		 * the rigid body's mass
 		 *
@@ -3255,6 +3340,9 @@ Goblin.RigidBody.prototype.updateDerived = function() {
 	if ( this.mass !== Infinity ) {
 		this.updateInverseInertiaTensorWorldFrame();
 	}
+
+    // Update AABB
+    this.aabb.transform( this.shape.aabb, this.transform );
 };
 
 Goblin.RigidBody.prototype.updateInverseInertiaTensorWorldFrame = function() {
@@ -3710,10 +3798,29 @@ Goblin.BoxShape = function( half_width, half_height, half_depth ) {
 	 * @type {Number}
 	 */
 	this.half_depth = half_depth;
+
+    this.aabb = new Goblin.AABB();
+    this.calculateLocalAABB( this.aabb );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.BoxShape.prototype.calculateLocalAABB = function( aabb ) {
+    aabb.min[0] = -this.half_width;
+    aabb.min[1] = -this.half_height;
+    aabb.min[2] = -this.half_depth;
+
+    aabb.max[0] = this.half_width;
+    aabb.max[1] = this.half_height;
+    aabb.max[2] = this.half_depth;
 };
 
 Goblin.BoxShape.prototype.getBoundingRadius = function() {
-	return Math.max( this.half_width, this.half_height, this.half_depth ) * 1.7320508075688772; // largest half-axis * sqrt(3);
+    return Math.max( this.half_width, this.half_height, this.half_depth ) * 1.7320508075688772; // largest half-axis * sqrt(3);
 };
 
 Goblin.BoxShape.prototype.getInertiaTensor = function( mass ) {
@@ -3787,6 +3894,9 @@ Goblin.ConeShape = function( radius, half_height ) {
 	 */
 	this.half_height = half_height;
 
+    this.aabb = new Goblin.AABB();
+    this.calculateLocalAABB( this.aabb );
+
 	/**
 	 * sin of the cone's angle
 	 *
@@ -3799,6 +3909,20 @@ Goblin.ConeShape = function( radius, half_height ) {
 
 Goblin.ConeShape.prototype.getBoundingRadius = function() {
 	return Math.max( this.radius, this.half_height );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.ConeShape.prototype.calculateLocalAABB = function( aabb ) {
+    aabb.min[0] = aabb.min[2] = -this.radius;
+    aabb.min[1] = -this.half_height;
+
+    aabb.max[0] = aabb.max[2] = this.radius;
+    aabb.max[1] = this.half_height;
 };
 
 Goblin.ConeShape.prototype.getInertiaTensor = function( mass ) {
@@ -3865,10 +3989,27 @@ Goblin.CylinderShape = function( radius, half_height ) {
 	 * @type {Number}
 	 */
 	this.half_height = half_height;
+
+    this.aabb = new Goblin.AABB();
+    this.calculateLocalAABB( this.aabb );
 };
 
 Goblin.CylinderShape.prototype.getBoundingRadius = function() {
 	return Math.max( this.radius, this.half_height );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.CylinderShape.prototype.calculateLocalAABB = function( aabb ) {
+    aabb.min[0] = aabb.min[2] = -this.radius;
+    aabb.min[1] = -this.half_height;
+
+    aabb.max[0] = aabb.max[2] = this.radius;
+    aabb.max[1] = this.half_height;
 };
 
 Goblin.CylinderShape.prototype.getInertiaTensor = function( mass ) {
@@ -3947,6 +4088,9 @@ Goblin.PlaneShape = function( orientation, half_width, half_length ) {
 	 */
 	this.half_length = half_length;
 
+    this.aabb = new Goblin.AABB();
+    this.calculateLocalAABB( this.aabb );
+
 
 	if ( this.orientation === 0 ) {
 		this._half_width = 0;
@@ -3965,6 +4109,52 @@ Goblin.PlaneShape = function( orientation, half_width, half_length ) {
 
 Goblin.PlaneShape.prototype.getBoundingRadius = function() {
 	return Math.max( this.half_width, this.half_length ) * 1.7320508075688772; // largest half-axis * sqrt(3);
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.PlaneShape.prototype.calculateLocalAABB = function( aabb ) {
+    if ( this.orientation === 0 ) {
+        this._half_width = 0;
+        this._half_height = this.half_width;
+        this._half_depth = this.half_length;
+
+        aabb.min[0] = 0;
+        aabb.min[1] = -this.half_width;
+        aabb.min[2] = -this.half_length;
+
+        aabb.max[0] = 0;
+        aabb.max[1] = this.half_width;
+        aabb.max[2] = this.half_length;
+    } else if ( this.orientation === 1 ) {
+        this._half_width = this.half_width;
+        this._half_height = 0;
+        this._half_depth = this.half_length;
+
+        aabb.min[0] = -this.half_width;
+        aabb.min[1] = 0;
+        aabb.min[2] = -this.half_length;
+
+        aabb.max[0] = this.half_width;
+        aabb.max[1] = 0;
+        aabb.max[2] = this.half_length;
+    } else {
+        this._half_width = this.half_width;
+        this._half_height = this.half_length;
+        this._half_depth = 0;
+
+        aabb.min[0] = -this.half_width;
+        aabb.min[1] = -this.half_length;
+        aabb.min[2] = 0;
+
+        aabb.max[0] = this.half_width;
+        aabb.max[1] = this.half_length;
+        aabb.max[2] = 0;
+    }
 };
 
 Goblin.PlaneShape.prototype.getInertiaTensor = function( mass ) {
@@ -4040,6 +4230,20 @@ Goblin.PlaneShape.prototype.findSupportPoint = function( direction, support_poin
  */
 Goblin.SphereShape = function( radius ) {
 	this.radius = radius;
+
+	this.aabb = new Goblin.AABB();
+	this.calculateLocalAABB( this.aabb );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.SphereShape.prototype.calculateLocalAABB = function( aabb ) {
+	aabb.min[0] = aabb.min[1] = aabb.min[2] = -this.radius;
+	aabb.max[0] = aabb.max[1] = aabb.max[2] = this.radius;
 };
 
 Goblin.SphereShape.prototype.getBoundingRadius = function() {

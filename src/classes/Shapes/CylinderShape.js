@@ -20,10 +20,27 @@ Goblin.CylinderShape = function( radius, half_height ) {
 	 * @type {Number}
 	 */
 	this.half_height = half_height;
+
+    this.aabb = new Goblin.AABB();
+    this.calculateLocalAABB( this.aabb );
 };
 
 Goblin.CylinderShape.prototype.getBoundingRadius = function() {
 	return Math.max( this.radius, this.half_height );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.CylinderShape.prototype.calculateLocalAABB = function( aabb ) {
+    aabb.min[0] = aabb.min[2] = -this.radius;
+    aabb.min[1] = -this.half_height;
+
+    aabb.max[0] = aabb.max[2] = this.radius;
+    aabb.max[1] = this.half_height;
 };
 
 Goblin.CylinderShape.prototype.getInertiaTensor = function( mass ) {

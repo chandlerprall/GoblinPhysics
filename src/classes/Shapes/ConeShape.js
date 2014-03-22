@@ -21,6 +21,9 @@ Goblin.ConeShape = function( radius, half_height ) {
 	 */
 	this.half_height = half_height;
 
+    this.aabb = new Goblin.AABB();
+    this.calculateLocalAABB( this.aabb );
+
 	/**
 	 * sin of the cone's angle
 	 *
@@ -33,6 +36,20 @@ Goblin.ConeShape = function( radius, half_height ) {
 
 Goblin.ConeShape.prototype.getBoundingRadius = function() {
 	return Math.max( this.radius, this.half_height );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.ConeShape.prototype.calculateLocalAABB = function( aabb ) {
+    aabb.min[0] = aabb.min[2] = -this.radius;
+    aabb.min[1] = -this.half_height;
+
+    aabb.max[0] = aabb.max[2] = this.radius;
+    aabb.max[1] = this.half_height;
 };
 
 Goblin.ConeShape.prototype.getInertiaTensor = function( mass ) {
