@@ -50,10 +50,6 @@ Goblin.BoxShape.prototype.calculateLocalAABB = function( aabb ) {
     aabb.max[2] = this.half_depth;
 };
 
-Goblin.BoxShape.prototype.getBoundingRadius = function() {
-    return Math.max( this.half_width, this.half_height, this.half_depth ) * 1.7320508075688772; // largest half-axis * sqrt(3);
-};
-
 Goblin.BoxShape.prototype.getInertiaTensor = function( mass ) {
 	var height_squared = this.half_height * this.half_height * 4,
 		width_squared = this.half_width * this.half_width * 4,

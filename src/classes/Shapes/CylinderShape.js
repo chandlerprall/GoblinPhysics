@@ -25,10 +25,6 @@ Goblin.CylinderShape = function( radius, half_height ) {
     this.calculateLocalAABB( this.aabb );
 };
 
-Goblin.CylinderShape.prototype.getBoundingRadius = function() {
-	return Math.max( this.radius, this.half_height );
-};
-
 /**
  * Calculates this shape's local AABB and stores it in the passed AABB object
  *

@@ -1880,7 +1880,7 @@ Goblin.SphereSphere = function( object_a, object_b ) {
 
 	// If the distance between the objects is greater than their combined radii
 	// then they are not touching, continue processing the other possible contacts
-	if ( distance > object_a.bounding_radius + object_b.bounding_radius ) {
+	if ( distance > object_a.shape.radius + object_b.shape.radius ) {
 		return;
 	}
 
@@ -1898,12 +1898,12 @@ Goblin.SphereSphere = function( object_a, object_b ) {
 	vec3.add( _tmp_vec3_1, position_a, contact.contact_point );
 
 	// Calculate penetration depth
-	contact.penetration_depth = object_a.bounding_radius + object_b.bounding_radius - distance;
+	contact.penetration_depth = object_a.shape.radius + object_b.shape.radius - distance;
 
 	// Contact points in both objects - in world coordinates at first
-	vec3.scale( contact.contact_normal, contact.object_a.bounding_radius, contact.contact_point_in_a );
+	vec3.scale( contact.contact_normal, contact.object_a.shape.radius, contact.contact_point_in_a );
 	vec3.add( contact.contact_point_in_a, contact.object_a.position );
-	vec3.scale( contact.contact_normal, -contact.object_b.bounding_radius, contact.contact_point_in_b );
+	vec3.scale( contact.contact_normal, -contact.object_b.shape.radius, contact.contact_point_in_b );
 	vec3.add( contact.contact_point_in_b, contact.object_b.position );
 
 	// Find actual contact point
@@ -2976,8 +2976,6 @@ Goblin.ObjectPool.registerType( 'FrictionConstraint', function() { return new Go
  *
  * @class RigidBody
  * @constructor
- * @param bounding_radius {Number} distance from the center of the object to the furthest point on the object,
- *                                 creating a bounding sphere which envelops the object
  * @param mass {Number} mass of the rigid body
  */
 Goblin.RigidBody = (function() {
@@ -2991,15 +2989,6 @@ Goblin.RigidBody = (function() {
 		 * @type {Number}
 		 */
 		this.id = body_count++;
-
-		/**
-		 * distance from the center of the object to the furthest point in the object,
-		 * creating a bounding sphere enveloping the object
-		 *
-		 * @property bounding_radius
-		 * @type {Number}
-		 */
-		this.bounding_radius = shape.getBoundingRadius();
 
 		/**
 		 * shape definition for this rigid body
@@ -3825,10 +3814,6 @@ Goblin.BoxShape.prototype.calculateLocalAABB = function( aabb ) {
     aabb.max[2] = this.half_depth;
 };
 
-Goblin.BoxShape.prototype.getBoundingRadius = function() {
-    return Math.max( this.half_width, this.half_height, this.half_depth ) * 1.7320508075688772; // largest half-axis * sqrt(3);
-};
-
 Goblin.BoxShape.prototype.getInertiaTensor = function( mass ) {
 	var height_squared = this.half_height * this.half_height * 4,
 		width_squared = this.half_width * this.half_width * 4,
@@ -3913,10 +3898,6 @@ Goblin.ConeShape = function( radius, half_height ) {
 	this._sinangle = this.radius / Math.sqrt( this.radius * this.radius + Math.pow( 2 * this.half_height, 2 ) );
 };
 
-Goblin.ConeShape.prototype.getBoundingRadius = function() {
-	return Math.max( this.radius, this.half_height );
-};
-
 /**
  * Calculates this shape's local AABB and stores it in the passed AABB object
  *
@@ -3998,10 +3979,6 @@ Goblin.CylinderShape = function( radius, half_height ) {
 
     this.aabb = new Goblin.AABB();
     this.calculateLocalAABB( this.aabb );
-};
-
-Goblin.CylinderShape.prototype.getBoundingRadius = function() {
-	return Math.max( this.radius, this.half_height );
 };
 
 /**
@@ -4111,10 +4088,6 @@ Goblin.PlaneShape = function( orientation, half_width, half_length ) {
 		this._half_height = this.half_length;
 		this._half_depth = 0;
 	}
-};
-
-Goblin.PlaneShape.prototype.getBoundingRadius = function() {
-	return Math.max( this.half_width, this.half_length ) * 1.7320508075688772; // largest half-axis * sqrt(3);
 };
 
 /**
@@ -4250,10 +4223,6 @@ Goblin.SphereShape = function( radius ) {
 Goblin.SphereShape.prototype.calculateLocalAABB = function( aabb ) {
 	aabb.min[0] = aabb.min[1] = aabb.min[2] = -this.radius;
 	aabb.max[0] = aabb.max[1] = aabb.max[2] = this.radius;
-};
-
-Goblin.SphereShape.prototype.getBoundingRadius = function() {
-	return this.radius;
 };
 
 Goblin.SphereShape.prototype.getInertiaTensor = function( mass ) {

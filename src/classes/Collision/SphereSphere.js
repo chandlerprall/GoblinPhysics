@@ -9,7 +9,7 @@ Goblin.SphereSphere = function( object_a, object_b ) {
 
 	// If the distance between the objects is greater than their combined radii
 	// then they are not touching, continue processing the other possible contacts
-	if ( distance > object_a.bounding_radius + object_b.bounding_radius ) {
+	if ( distance > object_a.shape.radius + object_b.shape.radius ) {
 		return;
 	}
 
@@ -27,12 +27,12 @@ Goblin.SphereSphere = function( object_a, object_b ) {
 	vec3.add( _tmp_vec3_1, position_a, contact.contact_point );
 
 	// Calculate penetration depth
-	contact.penetration_depth = object_a.bounding_radius + object_b.bounding_radius - distance;
+	contact.penetration_depth = object_a.shape.radius + object_b.shape.radius - distance;
 
 	// Contact points in both objects - in world coordinates at first
-	vec3.scale( contact.contact_normal, contact.object_a.bounding_radius, contact.contact_point_in_a );
+	vec3.scale( contact.contact_normal, contact.object_a.shape.radius, contact.contact_point_in_a );
 	vec3.add( contact.contact_point_in_a, contact.object_a.position );
-	vec3.scale( contact.contact_normal, -contact.object_b.bounding_radius, contact.contact_point_in_b );
+	vec3.scale( contact.contact_normal, -contact.object_b.shape.radius, contact.contact_point_in_b );
 	vec3.add( contact.contact_point_in_b, contact.object_b.position );
 
 	// Find actual contact point

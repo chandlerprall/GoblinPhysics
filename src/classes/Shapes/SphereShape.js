@@ -21,10 +21,6 @@ Goblin.SphereShape.prototype.calculateLocalAABB = function( aabb ) {
 	aabb.max[0] = aabb.max[1] = aabb.max[2] = this.radius;
 };
 
-Goblin.SphereShape.prototype.getBoundingRadius = function() {
-	return this.radius;
-};
-
 Goblin.SphereShape.prototype.getInertiaTensor = function( mass ) {
 	var element = 0.4 * mass * this.radius * this.radius;
 	return mat3.createFrom(

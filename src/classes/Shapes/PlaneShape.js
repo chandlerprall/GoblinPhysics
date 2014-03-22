@@ -52,10 +52,6 @@ Goblin.PlaneShape = function( orientation, half_width, half_length ) {
 	}
 };
 
-Goblin.PlaneShape.prototype.getBoundingRadius = function() {
-	return Math.max( this.half_width, this.half_length ) * 1.7320508075688772; // largest half-axis * sqrt(3);
-};
-
 /**
  * Calculates this shape's local AABB and stores it in the passed AABB object
  *

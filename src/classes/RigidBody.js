@@ -3,8 +3,6 @@
  *
  * @class RigidBody
  * @constructor
- * @param bounding_radius {Number} distance from the center of the object to the furthest point on the object,
- *                                 creating a bounding sphere which envelops the object
  * @param mass {Number} mass of the rigid body
  */
 Goblin.RigidBody = (function() {
@@ -18,15 +16,6 @@ Goblin.RigidBody = (function() {
 		 * @type {Number}
 		 */
 		this.id = body_count++;
-
-		/**
-		 * distance from the center of the object to the furthest point in the object,
-		 * creating a bounding sphere enveloping the object
-		 *
-		 * @property bounding_radius
-		 * @type {Number}
-		 */
-		this.bounding_radius = shape.getBoundingRadius();
 
 		/**
 		 * shape definition for this rigid body
