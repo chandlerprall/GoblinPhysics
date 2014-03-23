@@ -26,10 +26,18 @@ Goblin.NearPhase.prototype.updateContactManifolds = function() {
 	while ( current !== null ) {
 		current.update();
 
-		// @TODO if a manifold has 0 points, remove it
-
-		prev = current;
-		current = current.next_manifold;
+		if ( current.points.length === 0 ) {
+			Goblin.ObjectPool.freeObject( 'ContactManifold', current );
+			if ( prev == null ) {
+				this.contact_manifolds.first = current.next_manifold;
+			} else {
+				prev.next_manifold = current.next_manifold;
+			}
+			current = current.next_manifold;
+		} else {
+			prev = current;
+			current = current.next_manifold;
+		}
 	}
 };
 
