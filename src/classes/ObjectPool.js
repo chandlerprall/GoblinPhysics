@@ -60,9 +60,6 @@ Goblin.ObjectPool = {
 };
 
 // register the objects used in Goblin
-Goblin.ObjectPool.registerType( 'vec3', vec3.create );
-Goblin.ObjectPool.registerType( 'mat3', mat3.create );
-Goblin.ObjectPool.registerType( 'MassPointContact', function() { return new Goblin.MassPointContact(); } );
 Goblin.ObjectPool.registerType( 'ContactDetails', function() { return new Goblin.ContactDetails(); } );
 Goblin.ObjectPool.registerType( 'ContactManifold', function() { return new Goblin.ContactManifold(); } );
 Goblin.ObjectPool.registerType( 'GJKSupportPoint', function() { return new Goblin.GjkEpa.SupportPoint( vec3.create(), vec3.create(), vec3.create(), vec3.create() ); } );

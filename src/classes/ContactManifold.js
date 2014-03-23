@@ -115,6 +115,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 	var i;
 	for ( i = 0; i < this.points.length; i++ ) {
 		if ( vec3.dist( this.points[i].contact_point, contact.contact_point ) <= 0.02 ) {
+			Goblin.ObjectPool.freeObject( 'ContactDetails', contact );
 			return;
 		}
 	}
@@ -139,14 +140,14 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
  */
 Goblin.ContactManifold.prototype.update = function() {
 	// Update positions / depths of contacts
-	var i = this.points.length - 1,
+	var i,
 		j,
 		point,
 		object_a_world_coords = vec3.create(),
 		object_b_world_coords = vec3.create(),
 		vector_difference = vec3.create();
 
-	while( i >= 0 ) {
+	for ( i = 0; i < this.points.length; i++ ) {
 		point = this.points[i];
 
 		// Convert the local contact points into world coordinates
@@ -164,7 +165,8 @@ Goblin.ContactManifold.prototype.update = function() {
 		// If distance from contact is too great remove this contact point
 		if ( point.penetration_depth < -0.02 ) {
 			// Points are too far away along the contact normal
-			for ( j = this.points.length - 2; j >= i; j-- ) {
+			Goblin.ObjectPool.freeObject( 'ContactDetails', point );
+			for ( j = i; j < this.points.length; j++ ) {
 				this.points[j] = this.points[j + 1];
 			}
 			this.points.length = this.points.length - 1;
@@ -177,13 +179,12 @@ Goblin.ContactManifold.prototype.update = function() {
 			var distance = vec3.squaredLength( _tmp_vec3_1 );
 			if ( distance > 0.2 * 0.2 ) {
 				// Points are indeed too far away
-				for ( j = this.points.length - 2; j >= i; j-- ) {
+				Goblin.ObjectPool.freeObject( 'ContactDetails', point );
+				for ( j = i; j < this.points.length; j++ ) {
 					this.points[j] = this.points[j + 1];
 				}
 				this.points.length = this.points.length - 1;
 			}
 		}
-
-		i--;
 	}
 };
