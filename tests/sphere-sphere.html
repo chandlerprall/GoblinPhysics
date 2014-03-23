@@ -24,9 +24,11 @@
 			 */
 			(function(){
 				var sphere1 = testUtils.createSphere( 1, 1 );
+				sphere1.goblin.restitution = 0.2;
 				sphere1.goblin.linear_velocity[1] = 2;
 
 				var sphere2 = testUtils.createSphere( 1, 1 );
+				sphere2.goblin.restitution = 0.2;
 				sphere2.goblin.position[1] = 3;
 				sphere2.goblin.linear_velocity[1] = -2;
 
@@ -35,7 +37,6 @@
 						Goblin.EPSILON = 0.001;
 
 						describe('Collision Results', function(){
-
 							it('Sphere 1 Velocity', function(){
 								return assert( testUtils.withinEpsilon( sphere1.goblin.linear_velocity[1], -0.466 ) );
 							});
@@ -43,7 +44,6 @@
 							it('Sphere 2 Velocity', function(){
 								return assert( testUtils.withinEpsilon( sphere2.goblin.linear_velocity[1], 0.466 ) );
 							});
-
 						});
 
 						mocha.run();
