@@ -90,6 +90,8 @@ window.Goblin = (function() {
 		_tmp_quat4_1 = quat4.create(),
 
 		_tmp_mat3_1 = mat3.create(),
-		_tmp_mat3_2 = mat3.create();
+		_tmp_mat3_2 = mat3.create(),
+
+		_tmp_mat4_1 = mat4.create();
 
     Goblin.EPSILON = 0.000001;

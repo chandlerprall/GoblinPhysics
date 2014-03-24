@@ -78,7 +78,8 @@ module.exports = function(grunt) {
           '_tmp_vec3_3': true,
           '_tmp_quat4_1': true,
           '_tmp_mat3_1': true,
-          '_tmp_mat3_2': true
+          '_tmp_mat3_2': true,
+		  '_tmp_mat4_1': true
         }
       },
       beforeconcat: ['grunt.js', 'src/classes/**/*.js', 'test/**/*.js']
