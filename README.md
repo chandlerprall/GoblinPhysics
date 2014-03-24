@@ -14,9 +14,9 @@ Examples
 Features
 --------
 * Rigid body simulation
-* Sphere and Box shapes
-* Test suite
+* Sphere, Box, Cone, Cylinder, and Plane shapes
 * Example scripts
+* Test suite
 
 Documentation
 -------------
@@ -24,10 +24,9 @@ See `Building` below for how to generate documentation. Hosted version available
 
 Roadmap
 -------
-**Planned for v0.2**
-* Cone and Cylinder shapes
-* Axis Aligned Bounding Boxes to replace the current Bounding Sphere
-* Clean up friction constraint
+**Planned for v0.3**
+* Ray casting / picking
+* Compound objects
 
 **Non-exhaustive list of planned features**
 * Convex hull shape
