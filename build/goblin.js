@@ -2749,6 +2749,45 @@ Goblin.DragForce.prototype.applyForce = function() {
 		object.applyForce( force );
 	}
 };
+Goblin.LinkedList = function() {
+	this.first = null;
+};
+
+Goblin.LinkedList.prototype.add = function( entry ) {
+	// Unordered list, just add the entry to the front
+	if ( this.first == null ) {
+		this.first = entry;
+	} else {
+		this.first.prev = entry;
+		entry.next = this.first;
+		this.first = entry;
+	}
+};
+
+Goblin.LinkedList.prototype.remove = function( value ) {
+	var entry;
+
+	while ( entry = this.first ) {
+		if ( entry.value === value ) {
+			if ( entry.prev ) {
+				entry.prev = entry.next;
+			}
+			if ( entry.next ) {
+				entry.next = entry.prev;
+			}
+
+			return;
+		}
+		entry = entry.next;
+	}
+};
+
+Goblin.LinkedListEntry = function( value ) {
+	this.value = value;
+
+	this.prev = null;
+	this.next = null;
+};
 /**
  * Provides methods useful for working with various types of geometries
  *
@@ -3042,6 +3081,11 @@ Goblin.ObjectPool.registerType( 'GJK2SupportPoint', function() { return new Gobl
 Goblin.ObjectPool.registerType( 'ConstraintRow', function() { return new Goblin.ConstraintRow(); } );
 Goblin.ObjectPool.registerType( 'ContactConstraint', function() { return new Goblin.ContactConstraint(); } );
 Goblin.ObjectPool.registerType( 'FrictionConstraint', function() { return new Goblin.FrictionConstraint(); } );
+Goblin.ObjectPool.registerType( 'RayIntersection', function() { return new Goblin.RayIntersection(); } );
+Goblin.RayIntersection = function() {
+	this.object = null;
+	this.point = vec3.create();
+};
 /**
  * Represents a rigid body
  *
@@ -3250,6 +3294,7 @@ Goblin.RigidBody = (function() {
  */
 Goblin.RigidBody.prototype.findSupportPoint = (function(){
 	var local_direction = vec3.create();
+
 	return function( direction, support_point ) {
 		// Convert direction into local frame for the shape
 		// cells 12-14 are the position offset which we don't want to use for changing the direction vector
@@ -3270,6 +3315,34 @@ Goblin.RigidBody.prototype.findSupportPoint = (function(){
 
 		// Convert from the shape's local coordinates to world coordinates
 		mat4.multiplyVec3( this.transform, support_point );
+	};
+})();
+
+/**
+ * Checks if a ray segment intersects with the object
+ *
+ * @method rayIntersect
+ * @property ray_start {vec3} start point of the segment
+ * @property ray_end {vec3{ end point of the segment
+ * @property intersection_list {LinkedList} list to append possible intersection to
+ */
+Goblin.RigidBody.prototype.rayIntersect = (function(){
+	var local_start = vec3.create(),
+		local_end = vec3.create();
+
+	return function( ray_start, ray_end, intersection_list ) {
+		// transform start & end into local coordinates
+		mat4.multiplyVec3( this.transform_inverse, ray_start, local_start );
+		mat4.multiplyVec3( this.transform_inverse, ray_end, local_end );
+
+		// Intersect with shape
+		var intersection = this.shape.rayIntersect( local_start, local_end );
+
+		if ( intersection != null ) {
+			intersection.object = this; // change from the shape to the body
+			mat4.multiplyVec3( this.transform, intersection.point ); // transform shape's local coordinates to the body's world coordinates
+			intersection_list.add( intersection );
+		}
 	};
 })();
 
@@ -4318,6 +4391,60 @@ Goblin.SphereShape.prototype.findSupportPoint = (function(){
 	return function( direction, support_point ) {
 		vec3.normalize( direction, temp );
 		vec3.scale( temp, this.radius, support_point );
+	};
+})();
+
+/**
+ * Checks if a ray segment intersects with the shape
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
+ */
+Goblin.SphereShape.prototype.rayIntersect = (function(){
+	var direction = vec3.create(),
+		length;
+
+	return function( start, end ) {
+		vec3.subtract( end, start, direction );
+		length = vec3.length( direction );
+		vec3.scale( direction, 1 / length ); // normalize direction
+
+		var a = vec3.dot( start, direction ),
+			b = vec3.dot( start, start ) - this.radius * this.radius;
+
+		// if ray starts outside of sphere and points away, exit
+		if ( a >= 0 && b >= 0 ) {
+			return null;
+		}
+
+		var discr = a * a - b;
+
+		// Check for ray miss
+		if ( discr < 0 ) {
+			return null;
+		}
+
+		// ray intersects, find closest intersection point
+		var discr_sqrt = Math.sqrt( discr ),
+			t = -a - discr_sqrt;
+		if ( t < 0 ) {
+			//t = 0;
+			t = -a + discr_sqrt;
+		}
+
+		// verify the segment intersects
+		if ( t > length ) {
+			return null;
+		}
+
+		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		intersection.object = this;
+		vec3.scale( direction, t, intersection.point );
+		vec3.add( intersection.point, start );
+
+		return intersection;
 	};
 })();
 /**

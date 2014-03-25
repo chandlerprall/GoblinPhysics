@@ -206,6 +206,7 @@ Goblin.RigidBody = (function() {
  */
 Goblin.RigidBody.prototype.findSupportPoint = (function(){
 	var local_direction = vec3.create();
+
 	return function( direction, support_point ) {
 		// Convert direction into local frame for the shape
 		// cells 12-14 are the position offset which we don't want to use for changing the direction vector
@@ -226,6 +227,34 @@ Goblin.RigidBody.prototype.findSupportPoint = (function(){
 
 		// Convert from the shape's local coordinates to world coordinates
 		mat4.multiplyVec3( this.transform, support_point );
+	};
+})();
+
+/**
+ * Checks if a ray segment intersects with the object
+ *
+ * @method rayIntersect
+ * @property ray_start {vec3} start point of the segment
+ * @property ray_end {vec3{ end point of the segment
+ * @property intersection_list {LinkedList} list to append possible intersection to
+ */
+Goblin.RigidBody.prototype.rayIntersect = (function(){
+	var local_start = vec3.create(),
+		local_end = vec3.create();
+
+	return function( ray_start, ray_end, intersection_list ) {
+		// transform start & end into local coordinates
+		mat4.multiplyVec3( this.transform_inverse, ray_start, local_start );
+		mat4.multiplyVec3( this.transform_inverse, ray_end, local_end );
+
+		// Intersect with shape
+		var intersection = this.shape.rayIntersect( local_start, local_end );
+
+		if ( intersection != null ) {
+			intersection.object = this; // change from the shape to the body
+			mat4.multiplyVec3( this.transform, intersection.point ); // transform shape's local coordinates to the body's world coordinates
+			intersection_list.add( intersection );
+		}
 	};
 })();
 

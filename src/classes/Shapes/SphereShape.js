@@ -45,3 +45,56 @@ Goblin.SphereShape.prototype.findSupportPoint = (function(){
 		vec3.scale( temp, this.radius, support_point );
 	};
 })();
+
+/**
+ * Checks if a ray segment intersects with the shape
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
+ */
+Goblin.SphereShape.prototype.rayIntersect = (function(){
+	var direction = vec3.create(),
+		length;
+
+	return function( start, end ) {
+		vec3.subtract( end, start, direction );
+		length = vec3.length( direction );
+		vec3.scale( direction, 1 / length ); // normalize direction
+
+		var a = vec3.dot( start, direction ),
+			b = vec3.dot( start, start ) - this.radius * this.radius;
+
+		// if ray starts outside of sphere and points away, exit
+		if ( a >= 0 && b >= 0 ) {
+			return null;
+		}
+
+		var discr = a * a - b;
+
+		// Check for ray miss
+		if ( discr < 0 ) {
+			return null;
+		}
+
+		// ray intersects, find closest intersection point
+		var discr_sqrt = Math.sqrt( discr ),
+			t = -a - discr_sqrt;
+		if ( t < 0 ) {
+			t = -a + discr_sqrt;
+		}
+
+		// verify the segment intersects
+		if ( t > length ) {
+			return null;
+		}
+
+		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		intersection.object = this;
+		vec3.scale( direction, t, intersection.point );
+		vec3.add( intersection.point, start );
+
+		return intersection;
+	};
+})();
