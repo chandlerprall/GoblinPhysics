@@ -21,13 +21,16 @@
 			(function(){
 				Goblin.EPSILON = 0.01;
 
-				var sphere = testUtils.createSphere( 2, 1 ), // radius, mass
-					box = testUtils.createBox( 3, 4, 5, 1 ), // half width (x), half height (y), half length (z), mass
+				var sphere = testUtils.createSphere( 2, 0 ); // radius, mass
+					/*box = testUtils.createBox( 3, 4, 5, 1 ), // half width (x), half height (y), half length (z), mass
 					cylinder = testUtils.createCylinder( 3, 2.5, 1 ), // radius, half height, mass
 					cone = testUtils.createCone( 3, 2.5, 1 ), // radius, half height, mass
 					plane_x = testUtils.createPlane( 0, 5, 10, 1 ), // orientation, half_width, half_length, mass
 					plane_y = testUtils.createPlane( 1, 5, 10, 1 ), // orientation, half_width, half_length, mass
-					plane_z = testUtils.createPlane( 2, 5, 10, 1 ); // orientation, half_width, half_length, mass
+					plane_z = testUtils.createPlane( 2, 5, 10, 1 ); // orientation, half_width, half_length, mass*/
+
+				sphere.material.transparent = true;
+				sphere.material.opacity = 0.6;
 
 				describe('Sphere', function(){
 
@@ -94,58 +97,46 @@
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 
-					return;
-
 					it('Rotated Sphere 1', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 2, 0, 0 );
+						var start = vec3.createFrom( -4, 0, 0 ),
+							stop = vec3.createFrom( 4, 0, 0 ),
+							expected = vec3.createFrom( -2, 0, 0 ),
+							intersection_list = new Goblin.LinkedList();
 
 						sphere.goblin.position = vec3.create();
 						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
 						sphere.goblin.updateDerived();
-						sphere.goblin.findSupportPoint( direction, point );
+						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Sphere 2', function(){
-						var direction = vec3.createFrom( 1, 1, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( Math.sqrt( 2 ), Math.sqrt( 2 ), 0 );
+						var start = vec3.createFrom( 0, 2, 2 ),
+							stop = vec3.createFrom( 0, -2, -2 ),
+							expected = vec3.createFrom( 0, Math.sqrt( 2 ), Math.sqrt( 2 ) ),
+							intersection_list = new Goblin.LinkedList();
 
 						sphere.goblin.position = vec3.create();
-						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1 ) );
 						sphere.goblin.updateDerived();
-						sphere.goblin.findSupportPoint( direction, point );
+						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 
 					it('Translated & Rotated Sphere 1', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 4, 3, 0 );
+						var start = vec3.createFrom( -10, 0, 1 ),
+							stop = vec3.createFrom( 10, 0, 1 ),
+							expected = vec3.createFrom( 4.13, 0, 1  ),
+							intersection_list = new Goblin.LinkedList();
 
-						sphere.goblin.position = vec3.createFrom( 2, 3, 0 );
-						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						sphere.goblin.position = vec3.createFrom( 5, 1.5, 0 );
+						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0.5, 1 ) );
 						sphere.goblin.updateDerived();
-						sphere.goblin.findSupportPoint( direction, point );
+						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Translated & Rotated Sphere 2', function(){
-						var direction = vec3.createFrom( -1, -1, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( -Math.sqrt( 2 ) + 2, -Math.sqrt( 2 ) + 3, 0 );
-
-						sphere.goblin.position = vec3.createFrom( 2, 3, 0 );
-						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
-						sphere.goblin.updateDerived();
-						sphere.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
                 });
 				return;

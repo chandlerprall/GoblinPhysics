@@ -244,6 +244,7 @@ Goblin.RigidBody.prototype.rayIntersect = (function(){
 
 	return function( ray_start, ray_end, intersection_list ) {
 		// transform start & end into local coordinates
+		//debugger;
 		mat4.multiplyVec3( this.transform_inverse, ray_start, local_start );
 		mat4.multiplyVec3( this.transform_inverse, ray_end, local_end );
 

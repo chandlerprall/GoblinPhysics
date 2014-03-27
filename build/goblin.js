@@ -3332,6 +3332,7 @@ Goblin.RigidBody.prototype.rayIntersect = (function(){
 
 	return function( ray_start, ray_end, intersection_list ) {
 		// transform start & end into local coordinates
+		//debugger;
 		mat4.multiplyVec3( this.transform_inverse, ray_start, local_start );
 		mat4.multiplyVec3( this.transform_inverse, ray_end, local_end );
 
@@ -4430,7 +4431,6 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
 		var discr_sqrt = Math.sqrt( discr ),
 			t = -a - discr_sqrt;
 		if ( t < 0 ) {
-			//t = 0;
 			t = -a + discr_sqrt;
 		}
 
