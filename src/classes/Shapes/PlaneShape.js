@@ -164,3 +164,60 @@ Goblin.PlaneShape.prototype.findSupportPoint = function( direction, support_poin
 		support_point[2] = this._half_depth;
 	}
 };
+
+/**
+ * Checks if a ray segment intersects with the shape
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
+ */
+Goblin.PlaneShape.prototype.rayIntersect = (function(){
+	var normal = vec3.create(),
+		ab = vec3.create(),
+		point = vec3.create(),
+		t;
+
+	return function( start, end ) {
+		//debugger;
+		if ( this.orientation === 0 ) {
+			normal[0] = 1;
+			normal[1] = normal[2] = 0;
+		} else if ( this.orientation === 1 ) {
+			normal[1] = 1;
+			normal[0] = normal[2] = 0;
+		} else {
+			normal[2] = 1;
+			normal[0] = normal[1] = 0;
+		}
+
+		vec3.subtract( end, start, ab );
+		t = -vec3.dot( normal, start ) / vec3.dot( normal, ab );
+
+		if ( t < 0 || t > 1 ) {
+			return null;
+		}
+
+		vec3.scale( ab, t, point );
+		vec3.add( point, start );
+
+		if ( point[0] < -this._half_width || point[0] > this._half_width ) {
+			return null;
+		}
+
+		if ( point[1] < -this._half_height || point[1] > this._half_height ) {
+			return null;
+		}
+
+		if ( point[2] < -this._half_depth || point[2] > this._half_depth ) {
+			return null;
+		}
+
+		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		intersection.object = this;
+		vec3.set( point, intersection.point );
+
+		return intersection;
+	};
+})();

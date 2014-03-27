@@ -204,6 +204,62 @@
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 				});
+
+				describe('Plane', function(){
+					it('Base Plane', function(){
+						var start = vec3.createFrom( -10, 2, 0 ),
+							stop = vec3.createFrom( 10, 2, 0 ),
+							expected = vec3.createFrom( 0, 2, 0 ),
+							intersection_list = new Goblin.LinkedList();
+
+						plane_x.goblin.updateDerived();
+						plane_x.goblin.rayIntersect( start, stop, intersection_list );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+					});
+
+					it('Translated Plane', function(){
+						var start = vec3.createFrom( -10, 6, 0 ),
+							stop = vec3.createFrom( 10, 6, 0 ),
+							expected = vec3.createFrom( 2, 6, 0 ),
+							intersection_list = new Goblin.LinkedList();
+
+						plane_x.goblin.position = vec3.createFrom( 2, 1, 0 );
+						plane_x.goblin.updateDerived();
+						plane_x.goblin.rayIntersect( start, stop, intersection_list );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Plane', function(){
+						var start = vec3.createFrom( 2, 0, 10 ),
+							stop = vec3.createFrom( 2, 0, -10 ),
+							expected = vec3.createFrom( 2, 0, 0 ),
+							intersection_list = new Goblin.LinkedList();
+
+						plane_x.goblin.position = vec3.create();
+						plane_x.goblin.rotation = quat4.createFrom( 0, 1, 0, 1 );
+						plane_x.goblin.updateDerived();
+						plane_x.goblin.rayIntersect( start, stop, intersection_list );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Plane', function(){
+						var start = vec3.createFrom( 0, 6, 10 ),
+							stop = vec3.createFrom( 0, 6, -10 ),
+							expected = vec3.createFrom( 0, 6, 0 ),
+							intersection_list = new Goblin.LinkedList();
+
+						plane_x.goblin.position = vec3.createFrom( 0, 1, 0 );
+						plane_x.goblin.rotation = quat4.createFrom( 0, 1, 0, 1 );
+						plane_x.goblin.updateDerived();
+						plane_x.goblin.rayIntersect( start, stop, intersection_list );
+
+						console.log( intersection_list.first.point[0], intersection_list.first.point[1], intersection_list.first.point[2] );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+					});
+				});
 				return;
 				describe('Cylinder', function(){
 					it('Base Cylinder 1', function(){
@@ -422,156 +478,6 @@
 						cone.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
 						cone.goblin.updateDerived();
 						cone.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-				});
-
-				describe('PlaneX', function(){
-					it('Base PlaneX 1', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 0, 5, 10 );
-
-						plane_x.goblin.updateDerived();
-						plane_x.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Base PlaneX 2', function(){
-						var direction = vec3.createFrom( 0, -1, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 0, -5, 10 );
-
-						plane_x.goblin.updateDerived();
-						plane_x.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Rotated PlaneX', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 0, -9.99, 5 );
-
-						plane_x.goblin.position = vec3.create();
-						plane_x.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) ); // 90 degrees around X axis
-						plane_x.goblin.updateDerived();
-						plane_x.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Translated & Rotated PlaneX', function(){
-						var direction = vec3.createFrom( 1, 1, -1 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 11.99, 8, 0 );
-
-						plane_x.goblin.position = vec3.createFrom( 2, 3, 0 );
-						plane_x.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1 ) ); // 90 degrees
-						plane_x.goblin.updateDerived();
-						plane_x.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-				});
-
-				describe('PlaneY', function(){
-					it('Base PlaneY 1', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 5, 0, 10 );
-
-						plane_y.goblin.updateDerived();
-						plane_y.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Base PlaneY 2', function(){
-						var direction = vec3.createFrom( 0, -1, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 5, 0, 10 );
-
-						plane_y.goblin.updateDerived();
-						plane_y.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Rotated PlaneY', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 5, -9.99, 0 );
-
-						plane_y.goblin.position = vec3.create();
-						plane_y.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) ); // 90 degrees around X axis
-						plane_y.goblin.updateDerived();
-						plane_y.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Translated & Rotated PlaneY', function(){
-						var direction = vec3.createFrom( 1, 1, -1 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 12, 3, -4.99 );
-
-						plane_y.goblin.position = vec3.createFrom( 2, 3, 0 );
-						plane_y.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1 ) ); // 90 degrees
-						plane_y.goblin.updateDerived();
-						plane_y.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-				});
-
-				describe('PlaneZ', function(){
-					it('Base PlaneZ 1', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 5, 10, 0 );
-
-						plane_z.goblin.updateDerived();
-						plane_z.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Base PlaneZ 2', function(){
-						var direction = vec3.createFrom( 0, -1, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 5, -10, 0 );
-
-						plane_z.goblin.updateDerived();
-						plane_z.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Rotated PlaneZ', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 5, 0, 9.99 );
-
-						plane_z.goblin.position = vec3.create();
-						plane_z.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) ); // 90 degrees around X axis
-						plane_z.goblin.updateDerived();
-						plane_z.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Translated & Rotated PlaneZ', function(){
-						var direction = vec3.createFrom( 1, 1, -1 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 2, 13, -4.99 );
-
-						plane_z.goblin.position = vec3.createFrom( 2, 3, 0 );
-						plane_z.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1 ) ); // 90 degrees
-						plane_z.goblin.updateDerived();
-						plane_z.goblin.findSupportPoint( direction, point );
 
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
 					});
