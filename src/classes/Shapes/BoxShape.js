@@ -98,3 +98,60 @@ Goblin.BoxShape.prototype.findSupportPoint = function( direction, support_point 
 		support_point[2] = this.half_depth;
 	}
 };
+
+/**
+ * Checks if a ray segment intersects with the shape
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
+ */
+Goblin.BoxShape.prototype.rayIntersect = (function(){
+	var direction = vec3.create(),
+		tmin, tmax,
+		ood, t1, t2;
+
+	return function( start, end ) {
+		tmin = 0;
+
+		vec3.subtract( end, start, direction );
+		tmax = vec3.length( direction );
+		vec3.scale( direction, 1 / tmax ); // normalize direction
+
+		for ( var i = 0; i < 3; i++ ) {
+			var extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+
+			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
+				// Ray is parallel to axis
+				if ( start[i] < -extent || start[i] > extent ) {
+					return null;
+				}
+			} else {
+				ood = 1 / direction[i];
+				t1 = ( -extent - start[i] ) * ood;
+				t2 = ( extent - start[i] ) * ood;
+				if ( t1 > t2 ) {
+					ood = t1; // ood is a convenient temp variable as it's not used again
+					t1 = t2;
+					t2 = ood;
+				}
+
+				// Find intersection intervals
+				tmin = Math.max( tmin, t1 );
+				tmax = Math.min( tmax, t2 );
+
+				if ( tmin > tmax ) {
+					return null;
+				}
+			}
+		}
+
+		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		intersection.object = this;
+		vec3.scale( direction, tmin, intersection.point );
+		vec3.add( intersection.point, start );
+
+		return intersection;
+	};
+})();
