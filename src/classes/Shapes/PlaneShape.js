@@ -180,7 +180,6 @@ Goblin.PlaneShape.prototype.rayIntersect = (function(){
 		t;
 
 	return function( start, end ) {
-		//debugger;
 		if ( this.orientation === 0 ) {
 			normal[0] = 1;
 			normal[1] = normal[2] = 0;

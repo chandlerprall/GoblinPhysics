@@ -4216,12 +4216,6 @@ Goblin.CylinderShape.prototype.getInertiaTensor = function( mass ) {
  * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
  */
 Goblin.CylinderShape.prototype.findSupportPoint = function( direction, support_point ) {
-	/*
-	 support_point = [
-
-	 ]
-	 */
-
 	// Calculate the support point in the local frame
 	if ( direction[1] < 0 ) {
 		support_point[1] = -this.half_height;
@@ -4238,6 +4232,186 @@ Goblin.CylinderShape.prototype.findSupportPoint = function( direction, support_p
 		support_point[2] = r_s * direction[2];
 	}
 };
+
+/**
+ * Checks if a ray segment intersects with the shape
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
+ */
+Goblin.CylinderShape.prototype.rayIntersect = (function(){
+	var p = vec3.create(),
+		q = vec3.create();
+
+	return function ( start, end ) {
+		p[1] = this.half_height;
+		q[1] = -this.half_height;
+
+		var d = vec3.create();
+		vec3.subtract( q, p, d );
+
+		var m = vec3.create();
+		vec3.subtract( start, p, m );
+
+		var n = vec3.create();
+		vec3.subtract( end, start, n );
+
+		var md = vec3.dot( m, d ),
+			nd = vec3.dot( n, d ),
+			dd = vec3.dot( d, d );
+
+		// Test if segment fully outside either endcap of cylinder
+		if ( md < 0 && md + nd < 0 ) {
+			return null; // Segment outside 'p' side of cylinder
+		}
+		if ( md > dd && md + nd > dd ) {
+			return null; // Segment outside 'q' side of cylinder
+		}
+
+		var nn = vec3.dot( n, n ),
+			mn = vec3.dot( m, n ),
+			a = dd * nn - nd * nd,
+			k = vec3.dot( m, m ) - this.radius * this.radius,
+			c = dd * k - md * md,
+			t, t0;
+
+		if ( Math.abs( a ) < Goblin.EPSILON ) {
+			// Segment runs parallel to cylinder axis
+			if ( c > 0 ) {
+				return null; // 'a' and thus the segment lie outside cylinder
+			}
+
+			// Now known that segment intersects cylinder; figure out how it intersects
+			if ( md < 0 ) {
+				t = -mn / nn; // Intersect segment against 'p' endcap
+			} else if ( md > dd ) {
+				t = (nd - mn) / nn; // Intersect segment against 'q' endcap
+			} else {
+				t = 0; // 'a' lies inside cylinder
+			}
+		} else {
+			var b = dd * mn - nd * md,
+				discr = b * b - a * c;
+
+			if ( discr < 0 ) {
+				return null; // No real roots; no intersection
+			}
+
+			t0 = t = ( -b - Math.sqrt( discr ) ) / a;
+			
+			if ( md + t * nd < 0 ) {
+				// Intersection outside cylinder on 'p' side
+				if ( nd <= 0 ) {
+					return null; // Segment pointing away from endcap
+				}
+				t = -md / nd;
+				// Keep intersection if Dot(S(t) - p, S(t) - p) <= r^2
+				if ( k + t * ( 2 * mn + t * nn ) <= 0 ) {
+					t0 = t;
+				}
+			} else if ( md + t * nd > dd ) {
+				// Intersection outside cylinder on 'q' side
+				if ( nd >= 0 ) {
+					return null; // Segment pointing away from endcap
+				}
+				t = ( dd - md ) / nd;
+				// Keep intersection if Dot(S(t) - q, S(t) - q) <= r^2
+				if ( k + dd - 2 * md + t * ( 2 * ( mn - nd ) + t * nn ) <= 0 ) {
+					t0 = t;
+				}
+			}
+			t = t0;
+
+			// Intersection if segment intersects cylinder between the end-caps
+			if ( t < 0 || t > 1 ) {
+				return null;
+			}
+
+			// Segment intersects cylinder between the endcaps; t is correct
+			var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+			intersection.object = this;
+			vec3.scale( n, t, intersection.point );
+			vec3.add( intersection.point, start );
+			debugger;
+			return intersection;
+		}
+	};
+
+	/*return function( start, end ) {
+		p1[1] = this.half_height;
+		q1[1] = -this.half_height;
+
+		var d1 = vec3.create(),
+			d2 = vec3.create();
+		vec3.subtract( q1, p1, d1 );
+		vec3.subtract( end, start, d2 );
+
+		var r = vec3.create();
+		vec3.subtract( p1, start, r );
+
+		var a = vec3.dot( d1, d1 ),
+			e = vec3.dot( d2, d2 ),
+			f = vec3.dot( d2, r ),
+			c = vec3.dot( d1, r );
+
+		var s, t;
+
+		if ( e <= Goblin.EPSILON ) {
+			// segment is essentially a point
+			t = 0;
+			s = Math.min( Math.max( 0, -c / a ), 1 );
+		} else {
+			var b = vec3.dot( d1, d2 ),
+				denom = a * e - b * b;
+
+			if ( denom !== 0 ) {
+				s = Math.min( Math.max( ( b * f - c * e ) / denom , 0 ), 1 );
+			} else {
+				s = 0;
+			}
+
+			t = ( b * s + f ) / e;
+
+			if ( t < 0 ) {
+				t = 0;
+				s = Math.min( Math.max( 0, -c / a ), 1 );
+			} else if ( t > 1) {
+				t = 1;
+				s = Math.min( Math.max( 0, ( b - c ) / a ), 1 );
+			}
+		}
+
+		vec3.scale( d1, s, local_point );
+		vec3.add( local_point, p1 );
+
+		vec3.scale( d2, t, segment_point );
+		vec3.add( segment_point, start );
+
+		vec3.subtract( segment_point, local_point, distance );
+		var d = vec3.squaredLength( distance );
+
+		if ( d <= this.radius * this.radius ) {
+			// Intersection
+			d = this.radius * this.radius - d;
+
+			// set d2 = vector pointing from segment_point to intersection point
+			vec3.normalize( d2 );
+			vec3.scale( d2, d );
+			vec3.subtract( segment_point, d2 );
+		}
+
+		debugger;*/
+
+		/*var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		intersection.object = this;
+		vec3.scale( n, t, intersection.point );
+		vec3.add( intersection.point, start );
+
+		return intersection;
+	};*/
+})();
 /**
  * @class PlaneShape
  * @param orientation {Number} index of axis which is the plane's normal ( 0 = X, 1 = Y, 2 = Z )
@@ -4420,7 +4594,6 @@ Goblin.PlaneShape.prototype.rayIntersect = (function(){
 		t;
 
 	return function( start, end ) {
-		//debugger;
 		if ( this.orientation === 0 ) {
 			normal[0] = 1;
 			normal[1] = normal[2] = 0;
