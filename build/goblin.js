@@ -3332,7 +3332,6 @@ Goblin.RigidBody.prototype.rayIntersect = (function(){
 
 	return function( ray_start, ray_end, intersection_list ) {
 		// transform start & end into local coordinates
-		//debugger;
 		mat4.multiplyVec3( this.transform_inverse, ray_start, local_start );
 		mat4.multiplyVec3( this.transform_inverse, ray_end, local_end );
 
@@ -4300,7 +4299,7 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 			}
 
 			t0 = t = ( -b - Math.sqrt( discr ) ) / a;
-			
+
 			if ( md + t * nd < 0 ) {
 				// Intersection outside cylinder on 'p' side
 				if ( nd <= 0 ) {
@@ -4328,89 +4327,16 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 			if ( t < 0 || t > 1 ) {
 				return null;
 			}
-
-			// Segment intersects cylinder between the endcaps; t is correct
-			var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
-			intersection.object = this;
-			vec3.scale( n, t, intersection.point );
-			vec3.add( intersection.point, start );
-			debugger;
-			return intersection;
-		}
-	};
-
-	/*return function( start, end ) {
-		p1[1] = this.half_height;
-		q1[1] = -this.half_height;
-
-		var d1 = vec3.create(),
-			d2 = vec3.create();
-		vec3.subtract( q1, p1, d1 );
-		vec3.subtract( end, start, d2 );
-
-		var r = vec3.create();
-		vec3.subtract( p1, start, r );
-
-		var a = vec3.dot( d1, d1 ),
-			e = vec3.dot( d2, d2 ),
-			f = vec3.dot( d2, r ),
-			c = vec3.dot( d1, r );
-
-		var s, t;
-
-		if ( e <= Goblin.EPSILON ) {
-			// segment is essentially a point
-			t = 0;
-			s = Math.min( Math.max( 0, -c / a ), 1 );
-		} else {
-			var b = vec3.dot( d1, d2 ),
-				denom = a * e - b * b;
-
-			if ( denom !== 0 ) {
-				s = Math.min( Math.max( ( b * f - c * e ) / denom , 0 ), 1 );
-			} else {
-				s = 0;
-			}
-
-			t = ( b * s + f ) / e;
-
-			if ( t < 0 ) {
-				t = 0;
-				s = Math.min( Math.max( 0, -c / a ), 1 );
-			} else if ( t > 1) {
-				t = 1;
-				s = Math.min( Math.max( 0, ( b - c ) / a ), 1 );
-			}
 		}
 
-		vec3.scale( d1, s, local_point );
-		vec3.add( local_point, p1 );
-
-		vec3.scale( d2, t, segment_point );
-		vec3.add( segment_point, start );
-
-		vec3.subtract( segment_point, local_point, distance );
-		var d = vec3.squaredLength( distance );
-
-		if ( d <= this.radius * this.radius ) {
-			// Intersection
-			d = this.radius * this.radius - d;
-
-			// set d2 = vector pointing from segment_point to intersection point
-			vec3.normalize( d2 );
-			vec3.scale( d2, d );
-			vec3.subtract( segment_point, d2 );
-		}
-
-		debugger;*/
-
-		/*var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		// Segment intersects cylinder between the endcaps; t is correct
+		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
 		vec3.scale( n, t, intersection.point );
 		vec3.add( intersection.point, start );
 
 		return intersection;
-	};*/
+	};
 })();
 /**
  * @class PlaneShape

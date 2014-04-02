@@ -29,7 +29,7 @@
 					plane_y = testUtils.createPlane( 1, 5, 10, 1 ), // orientation, half_width, half_length, mass
 					plane_z = testUtils.createPlane( 2, 5, 10, 1 ); // orientation, half_width, half_length, mass
 
-				/*describe('Sphere', function(){
+				describe('Sphere', function(){
 
 					it('Base Sphere 1', function(){
 						var start = vec3.createFrom( -4, 0, 0 ),
@@ -258,121 +258,99 @@
 
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
-				});*/
+				});
 
 				describe('Cylinder', function(){
 					it('Base Cylinder 1', function(){
-						// r=3, h=2.5
-						var start = vec3.createFrom( -1.1, -10, 0 ),
-							stop = vec3.createFrom( 0.1, 10, 0 ),
-							expected = vec3.createFrom( 0, 0, 0 ),
+						var start = vec3.createFrom( 0, -10, 0 ),
+							stop = vec3.createFrom( 0, 10, 0 ),
+							expected = vec3.createFrom( 0, -2.5, 0 ),
 							intersection_list = new Goblin.LinkedList();
 
-						//cylinder.goblin.position = vec3.createFrom( 0, 1, 0 );
-						//cylinder.goblin.rotation = quat4.createFrom( 0, 1, 0, 1 );
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						/*console.log( intersection_list.first.point[0], intersection_list.first.point[1], intersection_list.first.point[2] );
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );*/
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
-					return;
+
 					it('Base Cylinder 2', function(){
-						var direction = vec3.createFrom( 0, -1, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 0, -2.5, 0 );
+						var start = vec3.createFrom( -10, 2, 10 ),
+							stop = vec3.createFrom( 10, 1, -10 ),
+							expected = vec3.createFrom( -Math.sqrt( 4.5 ), 1.6, Math.sqrt( 4.5 ) ),
+							intersection_list = new Goblin.LinkedList();
 
 						cylinder.goblin.updateDerived();
-						cylinder.goblin.findSupportPoint( direction, point );
+						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Base Cylinder 3', function(){
-						var direction = vec3.createFrom( 1, 1, -1 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( Math.sqrt( 4.5 ), 2.5, -Math.sqrt( 4.5 ) );
-
-						cylinder.goblin.updateDerived();
-						cylinder.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 
 					it('Translated Cylinder 1', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 5, 5.5, 0 );
+						var start = vec3.createFrom( 0, -10, 0 ),
+							stop = vec3.createFrom( 0, 10, 0 ),
+							expected = vec3.createFrom( 0, -1.5, 0 ),
+							intersection_list = new Goblin.LinkedList();
 
-						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cylinder.goblin.position = vec3.createFrom( 2, 1, 0 );
 						cylinder.goblin.updateDerived();
-						cylinder.goblin.findSupportPoint( direction, point );
+						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 
 					it('Translated Cylinder 2', function(){
-						var direction = vec3.createFrom( 1, 1, -1 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 2 + Math.sqrt( 4.5 ), 5.5, -Math.sqrt( 4.5 ) );
+						var start = vec3.createFrom( -5, -10, -3 ),
+							stop = vec3.createFrom( 5, 10, -3 ),
+							expected = vec3.createFrom( 0.25, 0.5, -3 ),
+							intersection_list = new Goblin.LinkedList();
 
-						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
+						cylinder.goblin.position = vec3.createFrom( 3, 3, -3 );
 						cylinder.goblin.updateDerived();
-						cylinder.goblin.findSupportPoint( direction, point );
+						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Cylinder 1', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 3, 0, 2.5 );
+						var start = vec3.createFrom( 0, -10, 0 ),
+							stop = vec3.createFrom( 0, 10, 0 ),
+							expected = vec3.createFrom( 0, -2.5, 0 ),
+							intersection_list = new Goblin.LinkedList();
 
-						cylinder.goblin.position = vec3.create();
-						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+						cylinder.goblin.position = vec3.createFrom( 0, 0, 0 );
+						cylinder.goblin.rotation = quat4.createFrom( 0, 1, 0, 1 );
 						cylinder.goblin.updateDerived();
-						cylinder.goblin.findSupportPoint( direction, point );
+						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Cylinder 2', function(){
-						var direction = vec3.createFrom( 1, 1, -1 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( Math.sqrt( 4.5 ), Math.sqrt( 4.5 ), -2.5 );
+						var start = vec3.createFrom( 0, -10, 0 ),
+							stop = vec3.createFrom( 0, 10, 0 ),
+							expected = vec3.createFrom( 0, -3, 0 ),
+							intersection_list = new Goblin.LinkedList();
 
 						cylinder.goblin.position = vec3.create();
 						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
 						cylinder.goblin.updateDerived();
-						cylinder.goblin.findSupportPoint( direction, point );
+						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 
-					it('Translated & Rotated Cylinder 1', function(){
-						var direction = vec3.createFrom( 1, 0, 0 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 5, 3, 2.5 );
+					it('Translated & Rotated Cylinder', function(){
+						var start = vec3.createFrom( -10, 2, 10 ),
+							stop = vec3.createFrom( 10, 1, -10 ),
+							expected = vec3.createFrom( -0.62, 1.53, 0.62 ),
+							intersection_list = new Goblin.LinkedList();
 
 						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
 						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
 						cylinder.goblin.updateDerived();
-						cylinder.goblin.findSupportPoint( direction, point );
+						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
-					});
-
-					it('Translated & Rotated Cylinder 2', function(){
-						var direction = vec3.createFrom( 1, 1, -1 ),
-							point = vec3.create(),
-							expected = vec3.createFrom( 4.121, 5.121, -2.5 );
-
-						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
-						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
-						cylinder.goblin.updateDerived();
-						cylinder.goblin.findSupportPoint( direction, point );
-
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 				});
 				return;

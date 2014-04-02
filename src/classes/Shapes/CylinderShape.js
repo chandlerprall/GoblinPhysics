@@ -170,14 +170,14 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 			if ( t < 0 || t > 1 ) {
 				return null;
 			}
-
-			// Segment intersects cylinder between the endcaps; t is correct
-			var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
-			intersection.object = this;
-			vec3.scale( n, t, intersection.point );
-			vec3.add( intersection.point, start );
-
-			return intersection;
 		}
+
+		// Segment intersects cylinder between the endcaps; t is correct
+		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		intersection.object = this;
+		vec3.scale( n, t, intersection.point );
+		vec3.add( intersection.point, start );
+
+		return intersection;
 	};
 })();
