@@ -356,15 +356,15 @@
 
 				describe('Cone', function(){
 					it('Base Cone 1', function(){
-						var start = vec3.createFrom( -10, 0, 0 ),
-							stop = vec3.createFrom( 10, 0, 0 ),
-							expected = vec3.createFrom( -3, 0, 0 ),
+						var start = vec3.createFrom( -10, -2.5, 0 ),
+							stop = vec3.createFrom( 10, -2.5, 0 ),
+							expected = vec3.createFrom( -3, -2.5, 0 ),
 							intersection_list = new Goblin.LinkedList();
 
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-						//return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
 					});
 					return;
 					it('Base Cone 2', function(){

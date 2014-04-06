@@ -4174,8 +4174,7 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 		vec3.scale( direction, 1 / length ); // normalize direction
 
 		var cosangle = Math.cos( Math.asin( this._sinangle ) ),
-			point = null,
-			points = [];
+			point = null;
 
 		var A = vec3.createFrom( 0, -1, 0 );
 
@@ -4202,29 +4201,36 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 			} else if ( discr > Goblin.EPSILON ) {
 				var root = Math.sqrt( discr ),
 					invC2 = 1 / c2,
-					quantity = 0;
+					tmin;
 
-				t = ( -c1 - root ) * invC2;
-				point = vec3.create();
-				vec3.scale( direction, t, point );
-				vec3.add( point, start );
-				E[1] = point[1] - this.half_height;
-				dot = vec3.dot( E, A );
-				if ( dot >= 0 ) {
-					points.push( point );
+				tmin = t = ( -c1 - root ) * invC2;
+				if ( tmin >= 0 && tmin <= length ) {
+					point = vec3.create();
+					vec3.scale( direction, t, point );
+					vec3.add( point, start );
+					E[1] = point[1] - this.half_height;
+					dot = vec3.dot( E, A );
+					if ( dot < 0 ) {
+						point = null;
+					}
 				}
 
 				t = ( -c1 + root ) * invC2;
-				point = vec3.create();
-				vec3.scale( direction, t, point );
-				vec3.add( point, start );
-				E[1] = point[1] - this.half_height;
-				dot = vec3.dot( E, A );
-				if ( dot >= 0 ) {
-					points.push( point );
+				if ( t >= 0 && t <= length ) {
+					if ( t < tmin || point == null ) {
+						tmin = t;
+						point = vec3.create();
+						vec3.scale( direction, t, point );
+						vec3.add( point, start );
+						E[1] = point[1] - this.half_height;
+						dot = vec3.dot( E, A );
+						if ( dot < 0 ) {
+							point = null;
+						}
+					}
 				}
 
-				if ( points.length === 0 ) {
+				if ( point == null ) {
 					return null;
 				}
 			} else {
@@ -4234,9 +4240,13 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 				vec3.subtract( start, point, point );
 				E[1] = point[1] - this.half_height;
 				dot = vec3.dot( E, A );
-				if ( dot >= 0 ) {
-					points.push( point );
-				} else {
+				if ( dot < 0 ) {
+					return null;
+				}
+
+				// Verify segment reaches point
+				vec3.subtract( point, start, _tmp_vec3_1 );
+				if ( vec3.squaredLength( _tmp_vec3_1 ) > length * length ) {
 					return null;
 				}
 			}
@@ -4247,9 +4257,7 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 			vec3.add( point, start );
 			E[1] = point[1] - this.half_height;
 			dot = vec3.dot( E, A );
-			if ( dot >= 0 ) {
-				points.push( point );
-			} else {
+			if ( dot < 0 ) {
 				return null;
 			}
 		} else if ( Math.abs( c0 ) >= Goblin.EPSILON) {
@@ -4257,17 +4265,13 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 		} else {
 			point = vec3.create();
 			point[1] = this.half_height;
-			points.push( point );
 		}
 
-		console.log( points );
-
-		/*var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
-		vec3.scale( direction, t, intersection.point );
-		vec3.add( intersection.point, start );
+		vec3.set( point, intersection.point );
 
-		return intersection;*/
+		return intersection;
 	};
 })();
 /**
