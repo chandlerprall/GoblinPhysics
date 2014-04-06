@@ -90,3 +90,118 @@ Goblin.ConeShape.prototype.findSupportPoint = function( direction, support_point
 		support_point[1] = -this.half_height;
 	}
 };
+
+/**
+ * Checks if a ray segment intersects with the shape
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
+ */
+Goblin.ConeShape.prototype.rayIntersect = (function(){
+	var direction = vec3.create(),
+		length;
+
+	return function( start, end ) {
+		vec3.subtract( end, start, direction );
+		length = vec3.length( direction );
+		vec3.scale( direction, 1 / length ); // normalize direction
+
+		var cosangle = Math.cos( Math.asin( this._sinangle ) ),
+			point = null,
+			points = [];
+
+		var A = vec3.createFrom( 0, -1, 0 );
+
+		var AdD = vec3.dot( A, direction ),
+			cosSqr = cosangle * cosangle;
+
+		var E = vec3.create();
+		E[0] = start[0];
+		E[1] = start[1] - this.half_height;
+		E[2] = start[2];
+
+		var AdE = vec3.dot( A, E ),
+			DdE = vec3.dot( direction, E ),
+			EdE = vec3.dot( E, E ),
+			c2 = AdD * AdD - cosSqr,
+			c1 = AdD * AdE - cosSqr * DdE,
+			c0 = AdE * AdE - cosSqr * EdE,
+			dot, t;
+
+		if ( Math.abs( c2 ) >= Goblin.EPSILON ) {
+			var discr = c1 * c1 - c0 * c2;
+			if ( discr < 0 ) {
+				return null;
+			} else if ( discr > Goblin.EPSILON ) {
+				var root = Math.sqrt( discr ),
+					invC2 = 1 / c2,
+					quantity = 0;
+
+				t = ( -c1 - root ) * invC2;
+				point = vec3.create();
+				vec3.scale( direction, t, point );
+				vec3.add( point, start );
+				E[1] = point[1] - this.half_height;
+				dot = vec3.dot( E, A );
+				if ( dot >= 0 ) {
+					points.push( point );
+				}
+
+				t = ( -c1 + root ) * invC2;
+				point = vec3.create();
+				vec3.scale( direction, t, point );
+				vec3.add( point, start );
+				E[1] = point[1] - this.half_height;
+				dot = vec3.dot( E, A );
+				if ( dot >= 0 ) {
+					points.push( point );
+				}
+
+				if ( points.length === 0 ) {
+					return null;
+				}
+			} else {
+				t = c1 / c2;
+				point = vec3.create();
+				vec3.scale( direction, t, point );
+				vec3.subtract( start, point, point );
+				E[1] = point[1] - this.half_height;
+				dot = vec3.dot( E, A );
+				if ( dot >= 0 ) {
+					points.push( point );
+				} else {
+					return null;
+				}
+			}
+		} else if ( Math.abs( c1 ) >= Goblin.EPSILON ) {
+			t = 0.5 * c0 / c1;
+			point = vec3.create();
+			vec3.scale( direction, t, point );
+			vec3.add( point, start );
+			E[1] = point[1] - this.half_height;
+			dot = vec3.dot( E, A );
+			if ( dot >= 0 ) {
+				points.push( point );
+			} else {
+				return null;
+			}
+		} else if ( Math.abs( c0 ) >= Goblin.EPSILON) {
+			return null;
+		} else {
+			point = vec3.create();
+			point[1] = this.half_height;
+			points.push( point );
+		}
+
+		console.log( points );
+
+		/*var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+		intersection.object = this;
+		vec3.scale( direction, t, intersection.point );
+		vec3.add( intersection.point, start );
+
+		return intersection;*/
+	};
+})();
