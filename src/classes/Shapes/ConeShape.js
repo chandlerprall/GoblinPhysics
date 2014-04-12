@@ -122,21 +122,23 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
         var t1, t2;
 
         // Check for intersection with cone base
+		p1[0] = p1[1] = p1[2] = 0;
         t1 = this._rayIntersectBase( start, end, p1 );
 
         // Check for intersection with cone shape
+		p2[0] = p2[1] = p2[2] = 0;
         t2 = this._rayIntersectCone( start, direction, length, p2 );
 
         var intersection;
 
         if ( !t1 && !t2 ) {
             return null;
-        } else if ( !t2 || ( t1 < t2 ) ) {
+        } else if ( !t2 || ( t1 &&  t1 < t2 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
             vec3.set( p1, intersection.point );
             return intersection;
-        } else if ( !t1 || ( t2 < t1 ) ) {
+        } else if ( !t1 || ( t2 && t2 < t1 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
             vec3.set( p2, intersection.point );
@@ -216,7 +218,7 @@ Goblin.ConeShape.prototype._rayIntersectCone = (function(){
 
         if ( Math.abs( c2 ) >= Goblin.EPSILON ) {
             var discr = c1 * c1 - c0 * c2;
-            if ( discr < 0 ) {
+			if ( discr < -Goblin.EPSILON ) {
                 return null;
             } else if ( discr > Goblin.EPSILON ) {
                 var root = Math.sqrt( discr ),
@@ -282,12 +284,8 @@ Goblin.ConeShape.prototype._rayIntersectCone = (function(){
             }
             tmin = t;
             vec3.set( _point, point );
-        } else if ( Math.abs( c0 ) >= Goblin.EPSILON) {
-            return null;
         } else {
-            console.error( 'No t value :(' );
-            point[0] = point[2] = 0;
-            point[1] = this.half_height;
+            return null;
         }
 
         if ( point[1] < -this.half_height ) {
