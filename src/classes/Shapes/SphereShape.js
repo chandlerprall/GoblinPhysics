@@ -93,6 +93,7 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
 		vec3.scale( direction, t, intersection.point );
+		intersection.t = t;
 		vec3.add( intersection.point, start );
 
 		return intersection;

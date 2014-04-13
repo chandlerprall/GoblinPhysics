@@ -236,7 +236,7 @@ Goblin.RigidBody.prototype.findSupportPoint = (function(){
  * @method rayIntersect
  * @property ray_start {vec3} start point of the segment
  * @property ray_end {vec3{ end point of the segment
- * @property intersection_list {LinkedList} list to append possible intersection to
+ * @property intersection_list {Array} array to append intersection to
  */
 Goblin.RigidBody.prototype.rayIntersect = (function(){
 	var local_start = vec3.create(),
@@ -253,7 +253,7 @@ Goblin.RigidBody.prototype.rayIntersect = (function(){
 		if ( intersection != null ) {
 			intersection.object = this; // change from the shape to the body
 			mat4.multiplyVec3( this.transform, intersection.point ); // transform shape's local coordinates to the body's world coordinates
-			intersection_list.add( intersection );
+			intersection_list.push( intersection );
 		}
 	};
 })();

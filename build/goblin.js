@@ -177,6 +177,58 @@ Goblin.AABB.prototype.intersects = function( aabb ) {
 
     return true;
 };
+
+/**
+ * Checks if a ray segment intersects with this AABB
+ *
+ * @method testRayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {boolean}
+ */
+Goblin.AABB.prototype.testRayIntersect = (function(){
+	var direction = vec3.create(),
+		tmin, tmax,
+		ood, t1, t2;
+
+	return function( start, end ) {
+		tmin = 0;
+
+		vec3.subtract( end, start, direction );
+		tmax = vec3.length( direction );
+		vec3.scale( direction, 1 / tmax ); // normalize direction
+
+		for ( var i = 0; i < 3; i++ ) {
+			var extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+
+			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
+				// Ray is parallel to axis
+				if ( start[i] < -extent || start[i] > extent ) {
+					return false;
+				}
+			} else {
+				ood = 1 / direction[i];
+				t1 = ( -extent - start[i] ) * ood;
+				t2 = ( extent - start[i] ) * ood;
+				if ( t1 > t2 ) {
+					ood = t1; // ood is a convenient temp variable as it's not used again
+					t1 = t2;
+					t2 = ood;
+				}
+
+				// Find intersection intervals
+				tmin = Math.max( tmin, t1 );
+				tmax = Math.min( tmax, t2 );
+
+				if ( tmin > tmax ) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	};
+})();
 /**
  * Performs a n^2 check of all collision objects to see if any could be in contact
  *
@@ -267,6 +319,29 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 			}
 		}
 	}
+};
+
+/**
+ * Checks if a ray segment intersects with objects in the world
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {Array<RayIntersection>} an unsorted array of intersections
+ */
+Goblin.BasicBroadphase.prototype.rayIntersect = function( start, end ) {
+	var bodies_count = this.bodies.length,
+		i, body,
+		intersections = [];
+
+	for ( i = 0; i < bodies_count; i++ ) {
+		body = this.bodies[i];
+		if ( body.aabb.testRayIntersect( start, end ) ) {
+			body.rayIntersect( start, end, intersections );
+		}
+	}
+
+	return intersections;
 };
 Goblin.BoxSphere = function( object_a, object_b ) {
 	var sphere = object_a.shape instanceof Goblin.SphereShape ? object_a : object_b,
@@ -3085,6 +3160,7 @@ Goblin.ObjectPool.registerType( 'RayIntersection', function() { return new Gobli
 Goblin.RayIntersection = function() {
 	this.object = null;
 	this.point = vec3.create();
+	this.t = null;
 };
 /**
  * Represents a rigid body
@@ -3324,7 +3400,7 @@ Goblin.RigidBody.prototype.findSupportPoint = (function(){
  * @method rayIntersect
  * @property ray_start {vec3} start point of the segment
  * @property ray_end {vec3{ end point of the segment
- * @property intersection_list {LinkedList} list to append possible intersection to
+ * @property intersection_list {Array} array to append intersection to
  */
 Goblin.RigidBody.prototype.rayIntersect = (function(){
 	var local_start = vec3.create(),
@@ -3341,7 +3417,7 @@ Goblin.RigidBody.prototype.rayIntersect = (function(){
 		if ( intersection != null ) {
 			intersection.object = this; // change from the shape to the body
 			mat4.multiplyVec3( this.transform, intersection.point ); // transform shape's local coordinates to the body's world coordinates
-			intersection_list.add( intersection );
+			intersection_list.push( intersection );
 		}
 	};
 })();
@@ -4057,6 +4133,7 @@ Goblin.BoxShape.prototype.rayIntersect = (function(){
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
+		intersection.t = tmin;
 		vec3.scale( direction, tmin, intersection.point );
 		vec3.add( intersection.point, start );
 
@@ -4201,11 +4278,13 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
         } else if ( !t2 || ( t1 &&  t1 < t2 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
+			intersection.t = t1;
             vec3.set( p1, intersection.point );
             return intersection;
         } else if ( !t1 || ( t2 && t2 < t1 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
+			intersection.t = t2;
             vec3.set( p2, intersection.point );
             return intersection;
         }
@@ -4349,12 +4428,8 @@ Goblin.ConeShape.prototype._rayIntersectCone = (function(){
             }
             tmin = t;
             vec3.set( _point, point );
-        } else if ( Math.abs( c0 ) >= Goblin.EPSILON) {
-            return null;
         } else {
-            console.error( 'No t value :(' );
-            point[0] = point[2] = 0;
-            point[1] = this.half_height;
+            return null;
         }
 
         if ( point[1] < -this.half_height ) {
@@ -4541,6 +4616,7 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 		// Segment intersects cylinder between the endcaps; t is correct
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
+		intersection.t = t;
 		vec3.scale( n, t, intersection.point );
 		vec3.add( intersection.point, start );
 
@@ -4764,6 +4840,7 @@ Goblin.PlaneShape.prototype.rayIntersect = (function(){
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
+		intersection.t = t;
 		vec3.set( point, intersection.point );
 
 		return intersection;
@@ -4864,6 +4941,7 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
 		vec3.scale( direction, t, intersection.point );
+		intersection.t = t;
 		vec3.add( intersection.point, start );
 
 		return intersection;
@@ -5016,16 +5094,6 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         }
     }
 };
-/**
- * Adds a mass point to the world
- *
- * @method addMassPoint
- * @param mass_point {Goblin.MassPoint} mass point to add to the world
- */
-Goblin.World.prototype.addMassPoint = function( mass_point ) {
-	mass_point.world = this;
-	this.mass_points.push( mass_point );
-};
 
 /**
  * Adds a rigid body to the world
@@ -5075,6 +5143,7 @@ Goblin.World.prototype.addForceGenerator = function( force_generator ) {
 
 	this.force_generators.push( force_generator );
 };
+
 /**
  * removes a force generator from the world
  *
@@ -5090,6 +5159,7 @@ Goblin.World.prototype.removeForceGenerator = function( force_generator ) {
 		}
 	}
 };
+
 /**
  * adds a constraint to the world
  *
@@ -5108,6 +5178,7 @@ Goblin.World.prototype.addConstraint = function( constraint ) {
 	constraint.world = this;
 	this.constraints.push( constraint );
 };
+
 /**
  * removes a constraint from the world
  *
@@ -5123,5 +5194,30 @@ Goblin.World.prototype.removeConstraint = function( constraint ) {
 		}
 	}
 };
+
+/**
+ * Checks if a ray segment intersects with objects in the world
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {Array<RayIntersection>} an array of intersections, sorted by distance from `start`
+ */
+Goblin.World.prototype.rayIntersect = (function(){
+	var tSort = function( a, b ) {
+		if ( a.t < b.t ) {
+			return -1;
+		} else if ( a.t > b.t ) {
+			return 1;
+		} else {
+			return 0;
+		}
+	};
+	return function( start, end ) {
+		var intersections = this.broadphase.rayIntersect( start, end );
+		intersections.sort( tSort );
+		return intersections;
+	};
+})();
 	return Goblin;
 })();

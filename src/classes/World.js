@@ -145,16 +145,6 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         }
     }
 };
-/**
- * Adds a mass point to the world
- *
- * @method addMassPoint
- * @param mass_point {Goblin.MassPoint} mass point to add to the world
- */
-Goblin.World.prototype.addMassPoint = function( mass_point ) {
-	mass_point.world = this;
-	this.mass_points.push( mass_point );
-};
 
 /**
  * Adds a rigid body to the world
@@ -204,6 +194,7 @@ Goblin.World.prototype.addForceGenerator = function( force_generator ) {
 
 	this.force_generators.push( force_generator );
 };
+
 /**
  * removes a force generator from the world
  *
@@ -219,6 +210,7 @@ Goblin.World.prototype.removeForceGenerator = function( force_generator ) {
 		}
 	}
 };
+
 /**
  * adds a constraint to the world
  *
@@ -237,6 +229,7 @@ Goblin.World.prototype.addConstraint = function( constraint ) {
 	constraint.world = this;
 	this.constraints.push( constraint );
 };
+
 /**
  * removes a constraint from the world
  *
@@ -252,3 +245,28 @@ Goblin.World.prototype.removeConstraint = function( constraint ) {
 		}
 	}
 };
+
+/**
+ * Checks if a ray segment intersects with objects in the world
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {Array<RayIntersection>} an array of intersections, sorted by distance from `start`
+ */
+Goblin.World.prototype.rayIntersect = (function(){
+	var tSort = function( a, b ) {
+		if ( a.t < b.t ) {
+			return -1;
+		} else if ( a.t > b.t ) {
+			return 1;
+		} else {
+			return 0;
+		}
+	};
+	return function( start, end ) {
+		var intersections = this.broadphase.rayIntersect( start, end );
+		intersections.sort( tSort );
+		return intersections;
+	};
+})();

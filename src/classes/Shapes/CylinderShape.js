@@ -175,6 +175,7 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 		// Segment intersects cylinder between the endcaps; t is correct
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
+		intersection.t = t;
 		vec3.scale( n, t, intersection.point );
 		vec3.add( intersection.point, start );
 

@@ -136,11 +136,13 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
         } else if ( !t2 || ( t1 &&  t1 < t2 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
+			intersection.t = t1;
             vec3.set( p1, intersection.point );
             return intersection;
         } else if ( !t1 || ( t2 && t2 < t1 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
+			intersection.t = t2;
             vec3.set( p2, intersection.point );
             return intersection;
         }

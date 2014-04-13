@@ -89,3 +89,26 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 		}
 	}
 };
+
+/**
+ * Checks if a ray segment intersects with objects in the world
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {Array<RayIntersection>} an unsorted array of intersections
+ */
+Goblin.BasicBroadphase.prototype.rayIntersect = function( start, end ) {
+	var bodies_count = this.bodies.length,
+		i, body,
+		intersections = [];
+
+	for ( i = 0; i < bodies_count; i++ ) {
+		body = this.bodies[i];
+		if ( body.aabb.testRayIntersect( start, end ) ) {
+			body.rayIntersect( start, end, intersections );
+		}
+	}
+
+	return intersections;
+};

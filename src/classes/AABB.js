@@ -80,3 +80,55 @@ Goblin.AABB.prototype.intersects = function( aabb ) {
 
     return true;
 };
+
+/**
+ * Checks if a ray segment intersects with this AABB
+ *
+ * @method testRayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {boolean}
+ */
+Goblin.AABB.prototype.testRayIntersect = (function(){
+	var direction = vec3.create(),
+		tmin, tmax,
+		ood, t1, t2;
+
+	return function( start, end ) {
+		tmin = 0;
+
+		vec3.subtract( end, start, direction );
+		tmax = vec3.length( direction );
+		vec3.scale( direction, 1 / tmax ); // normalize direction
+
+		for ( var i = 0; i < 3; i++ ) {
+			var extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+
+			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
+				// Ray is parallel to axis
+				if ( start[i] < -extent || start[i] > extent ) {
+					return false;
+				}
+			} else {
+				ood = 1 / direction[i];
+				t1 = ( -extent - start[i] ) * ood;
+				t2 = ( extent - start[i] ) * ood;
+				if ( t1 > t2 ) {
+					ood = t1; // ood is a convenient temp variable as it's not used again
+					t1 = t2;
+					t2 = ood;
+				}
+
+				// Find intersection intervals
+				tmin = Math.max( tmin, t1 );
+				tmax = Math.min( tmax, t2 );
+
+				if ( tmin > tmax ) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	};
+})();

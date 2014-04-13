@@ -149,6 +149,7 @@ Goblin.BoxShape.prototype.rayIntersect = (function(){
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
+		intersection.t = tmin;
 		vec3.scale( direction, tmin, intersection.point );
 		vec3.add( intersection.point, start );
 
