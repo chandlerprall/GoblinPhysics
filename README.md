@@ -14,7 +14,8 @@ Examples
 Features
 --------
 * Rigid body simulation
-* Sphere, Box, Cone, Cylinder, and Plane shapes
+* Sphere, Box, Cone, Cylinder, Plane, and Compound shapes
+* Ray tracing
 * Example scripts
 * Test suite
 
@@ -24,9 +25,14 @@ See `Building` below for how to generate documentation. Hosted version available
 
 Roadmap
 -------
-**Planned for v0.3**
-* Ray casting / picking
-* Compound objects
+**Planned for v0.4**
+* Optimizations
+* Code cleanup
+* Examples cleanup
+
+** Planned for 0.5**
+* Event/callback system
+* Revolute constraints
 
 **Non-exhaustive list of planned features**
 * Convex hull shape
