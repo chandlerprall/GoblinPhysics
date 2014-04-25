@@ -30,7 +30,7 @@ Roadmap
 * Code cleanup
 * Examples cleanup
 
-** Planned for 0.5**
+**Planned for 0.5**
 * Event/callback system
 * Revolute constraints
 
