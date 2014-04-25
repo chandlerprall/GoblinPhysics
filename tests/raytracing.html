@@ -35,36 +35,36 @@
 						var start = vec3.createFrom( -4, 0, 0 ),
 							stop = vec3.createFrom( 4, 0, 0 ),
 							expected = vec3.createFrom( -2, 0, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						sphere.goblin.updateDerived();
 						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Base Sphere 2', function(){
 						var start = vec3.createFrom( 0, 2, 2 ),
 							stop = vec3.createFrom( 0, -2, -2 ),
 							expected = vec3.createFrom( 0, Math.sqrt( 2 ), Math.sqrt( 2 ) ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						sphere.goblin.updateDerived();
 						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Base Sphere 2', function(){
 						var start = vec3.createFrom( 0, 0, 0 ),
 							stop = vec3.createFrom( 2, 0, -2 ),
 							expected = vec3.createFrom( Math.sqrt( 2 ), 0, -Math.sqrt( 2 ) ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						sphere.goblin.updateDerived();
 						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 
@@ -72,68 +72,68 @@
 						var start = vec3.createFrom( 2, 3, 0 ),
 							stop = vec3.createFrom( 2, 1, 0 ),
 							expected = vec3.createFrom( 2, 1, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						sphere.goblin.position = vec3.createFrom( 2, 3, 0 );
 						sphere.goblin.updateDerived();
 						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated Sphere 2', function(){
 						var start = vec3.createFrom( 0, 5, 0 ),
 							stop = vec3.createFrom( 4, 5, 0 ),
 							expected = vec3.createFrom( 2, 5, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						sphere.goblin.position = vec3.createFrom( 2, 3, 0 );
 						sphere.goblin.updateDerived();
 						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Sphere 1', function(){
 						var start = vec3.createFrom( -4, 0, 0 ),
 							stop = vec3.createFrom( 4, 0, 0 ),
 							expected = vec3.createFrom( -2, 0, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						sphere.goblin.position = vec3.create();
 						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
 						sphere.goblin.updateDerived();
 						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Sphere 2', function(){
 						var start = vec3.createFrom( 0, 2, 2 ),
 							stop = vec3.createFrom( 0, -2, -2 ),
 							expected = vec3.createFrom( 0, Math.sqrt( 2 ), Math.sqrt( 2 ) ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						sphere.goblin.position = vec3.create();
 						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1 ) );
 						sphere.goblin.updateDerived();
 						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated & Rotated Sphere 1', function(){
 						var start = vec3.createFrom( -10, 0, 1 ),
 							stop = vec3.createFrom( 10, 0, 1 ),
 							expected = vec3.createFrom( 4.13, 0, 1  ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						sphere.goblin.position = vec3.createFrom( 5, 1.5, 0 );
 						sphere.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0.5, 1 ) );
 						sphere.goblin.updateDerived();
 						sphere.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
                 });
 
@@ -142,37 +142,37 @@
 						var start = vec3.createFrom( -5, 0, 0 ),
 							stop = vec3.createFrom( 0, 0, 0 ),
 							expected = vec3.createFrom( -3, 0, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						box.goblin.updateDerived();
 						box.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Base Box 2', function(){
 						var start = vec3.createFrom( -2, 5, 0 ),
 							stop = vec3.createFrom( 0, 0, 0 ),
 							expected = vec3.createFrom( -1.6, 4, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						box.goblin.updateDerived();
 						box.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated Box', function(){
 						var start = vec3.createFrom( 5, -10, 9 ),
 							stop = vec3.createFrom( 5, 0, 9 ),
 							expected = vec3.createFrom( 5, -7, 9 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						box.goblin.position = vec3.createFrom( 2, -3, 4 );
 						box.goblin.updateDerived();
 						box.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Box', function(){
@@ -180,28 +180,28 @@
 						var start = vec3.createFrom( 0, 0, 10 ),
 							stop = vec3.createFrom( 0, 0, 0 ),
 							expected = vec3.createFrom( 0, 0, 3 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						box.goblin.position = vec3.createFrom( 0, 0, 0 );
 						box.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1 ) ); // 90 degrees around Y axis
 						box.goblin.updateDerived();
 						box.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated & Rotated Box', function(){
 						var start = vec3.createFrom( 0, -2, -10 ),
 							stop = vec3.createFrom( 0, -2, 0 ),
 							expected = vec3.createFrom( 0, -2, -4 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						box.goblin.position = vec3.createFrom( 2, -3, 0 );
 						box.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) ); // 90 degrees around X axis
 						box.goblin.updateDerived();
 						box.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 				});
 
@@ -210,53 +210,53 @@
 						var start = vec3.createFrom( -10, 2, 0 ),
 							stop = vec3.createFrom( 10, 2, 0 ),
 							expected = vec3.createFrom( 0, 2, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						plane_x.goblin.updateDerived();
 						plane_x.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated Plane', function(){
 						var start = vec3.createFrom( -10, 6, 0 ),
 							stop = vec3.createFrom( 10, 6, 0 ),
 							expected = vec3.createFrom( 2, 6, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						plane_x.goblin.position = vec3.createFrom( 2, 1, 0 );
 						plane_x.goblin.updateDerived();
 						plane_x.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Plane', function(){
 						var start = vec3.createFrom( 2, 0, 10 ),
 							stop = vec3.createFrom( 2, 0, -10 ),
 							expected = vec3.createFrom( 2, 0, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						plane_x.goblin.position = vec3.create();
 						plane_x.goblin.rotation = quat4.createFrom( 0, 1, 0, 1 );
 						plane_x.goblin.updateDerived();
 						plane_x.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated & Rotated Plane', function(){
 						var start = vec3.createFrom( 0, 6, 10 ),
 							stop = vec3.createFrom( 0, 6, -10 ),
 							expected = vec3.createFrom( 0, 6, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						plane_x.goblin.position = vec3.createFrom( 0, 1, 0 );
 						plane_x.goblin.rotation = quat4.createFrom( 0, 1, 0, 1 );
 						plane_x.goblin.updateDerived();
 						plane_x.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 				});
 
@@ -265,92 +265,92 @@
 						var start = vec3.createFrom( 0, -10, 0 ),
 							stop = vec3.createFrom( 0, 10, 0 ),
 							expected = vec3.createFrom( 0, -2.5, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Base Cylinder 2', function(){
 						var start = vec3.createFrom( -10, 2, 10 ),
 							stop = vec3.createFrom( 10, 1, -10 ),
 							expected = vec3.createFrom( -Math.sqrt( 4.5 ), 1.6, Math.sqrt( 4.5 ) ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated Cylinder 1', function(){
 						var start = vec3.createFrom( 0, -10, 0 ),
 							stop = vec3.createFrom( 0, 10, 0 ),
 							expected = vec3.createFrom( 0, -1.5, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cylinder.goblin.position = vec3.createFrom( 2, 1, 0 );
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated Cylinder 2', function(){
 						var start = vec3.createFrom( -5, -10, -3 ),
 							stop = vec3.createFrom( 5, 10, -3 ),
 							expected = vec3.createFrom( 0.25, 0.5, -3 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cylinder.goblin.position = vec3.createFrom( 3, 3, -3 );
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Cylinder 1', function(){
 						var start = vec3.createFrom( 0, -10, 0 ),
 							stop = vec3.createFrom( 0, 10, 0 ),
 							expected = vec3.createFrom( 0, -2.5, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cylinder.goblin.position = vec3.createFrom( 0, 0, 0 );
 						cylinder.goblin.rotation = quat4.createFrom( 0, 1, 0, 1 );
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Cylinder 2', function(){
 						var start = vec3.createFrom( 0, -10, 0 ),
 							stop = vec3.createFrom( 0, 10, 0 ),
 							expected = vec3.createFrom( 0, -3, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cylinder.goblin.position = vec3.create();
 						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated & Rotated Cylinder', function(){
 						var start = vec3.createFrom( -10, 2, 10 ),
 							stop = vec3.createFrom( 10, 1, -10 ),
 							expected = vec3.createFrom( -0.62, 1.53, 0.62 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cylinder.goblin.position = vec3.createFrom( 2, 3, 0 );
 						cylinder.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
 						cylinder.goblin.updateDerived();
 						cylinder.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 				});
 
@@ -359,91 +359,91 @@
 						var start = vec3.createFrom( -10, -2.5, 0 ),
 							stop = vec3.createFrom( 10, -2.5, 0 ),
 							expected = vec3.createFrom( -3, -2.5, 0 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-                        return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+                        return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Base Cone 2', function(){
                         var start = vec3.createFrom( 2.12, -10, -2.12 ),
                             stop = vec3.createFrom( 2.12, 0, -2.12 ),
                             expected = vec3.createFrom( 2.12, -2.5, -2.12 ),
-                            intersection_list = new Goblin.LinkedList();
+                            intersection_list = [];
 
                         cone.goblin.updateDerived();
                         cone.goblin.rayIntersect( start, stop, intersection_list );
 
-                        return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+                        return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Base Cone 3', function(){
 						var start = vec3.createFrom( 0, 1, 10 ),
 							stop = vec3.createFrom( 0, 1, -10 ),
 							expected = vec3.createFrom( 0, 1, 0.9 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated Cone 1', function(){
 						var start = vec3.createFrom( 0, 1, 10 ),
 							stop = vec3.createFrom( 0, 1, -10 ),
 							expected = vec3.createFrom( 0, 1, 0.12 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cone.goblin.position = vec3.createFrom( 1, 1, -1 );
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Cone 1', function(){
 						var start = vec3.createFrom( 0, 1, 10 ),
 							stop = vec3.createFrom( 0, 1, -10 ),
 							expected = vec3.createFrom( 0, 1, 0.9 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cone.goblin.position = vec3.create();
 						cone.goblin.rotation = quat4.createFrom( 0, 1, 0, 1 );
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Rotated Cone 2', function(){
 						var start = vec3.createFrom( 0, 0, -10 ),
 							stop = vec3.createFrom( 0, 0, 10 ),
 							expected = vec3.createFrom( 0, 0, -2.5 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cone.goblin.position = vec3.create();
 						cone.goblin.rotation = quat4.createFrom( 1, 0, 0, 1 );
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Translated & Rotated Cone 1', function(){
 						var start = vec3.createFrom( 0, 0, 10 ),
 							stop = vec3.createFrom( 0, 0, -10 ),
 							expected = vec3.createFrom( 0, 0, -0.86 ),
-							intersection_list = new Goblin.LinkedList();
+							intersection_list = [];
 
 						cone.goblin.position = vec3.createFrom( 1, 1, -1 );
 						cone.goblin.rotation = quat4.createFrom( 1, 0, 0, 1 );
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list.first.point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 				});
 			})();
