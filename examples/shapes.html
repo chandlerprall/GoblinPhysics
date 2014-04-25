@@ -32,7 +32,7 @@
 			var controls = new THREE.TrackballControls( camera, renderer.domElement );
             
             var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.SequentialImpulseSolver );
-			world.solver.relaxation = 0.2; // This example looks better with softer relaxation
+			//world.solver.relaxation = 0.2; // This example looks better with softer relaxation
 			window.world = world;
 
 			var i, particles, particles = [];
@@ -58,9 +58,37 @@
 			particles.push( particle );
 			world.addRigidBody( particle.goblin );
 
+			var boxshape = new Goblin.BoxShape( 1, 0.125, 0.5 ),
+				sphereshape = new Goblin.SphereShape( 0.5 );
+
+			var compoundspheres = new Goblin.CompoundShape();
+			compoundspheres.addChildShape(
+				sphereshape,
+				vec3.createFrom( 0, -0.3, 0 ),
+				quat4.createFrom( 0, 0, 0, 1 )
+			);
+			compoundspheres.addChildShape(
+				sphereshape,
+				vec3.createFrom( 0, 0.3, 0 ),
+				quat4.createFrom( 0, 0, 0, 1 )
+			);
+
+			var compoundboxes = new Goblin.CompoundShape();
+			compoundboxes.addChildShape(
+				boxshape,
+				vec3.createFrom( 0, 0, 0 ),
+				quat4.createFrom( 0, 0, 0, 1 )
+			);
+			compoundboxes.addChildShape(
+				boxshape,
+				vec3.createFrom( 0, 0, 0 ),
+				quat4.normalize( quat4.createFrom( 0, 0, 1, 1 ) )
+			);
+
 			function spawn() {
 				var type = Math.random();
-				if ( type < 0.2 ) {
+
+				if ( type < 0.14 ) {
 					particle = new THREE.Mesh(
 						new THREE.CubeGeometry( 1.5, 1.5, 1.5 ),
 						new THREE.MeshNormalMaterial({ opacity: 1 })
@@ -69,7 +97,7 @@
 						new Goblin.BoxShape( 0.75, 0.75, 0.75 ),
 						1
 					);
-				} else if ( type < 0.4 ) {
+				} else if ( type < 0.28 ) {
 					var radius = Math.random() / 2 + 0.5;
 					particle = new THREE.Mesh(
 						new THREE.SphereGeometry( radius ),
@@ -79,7 +107,7 @@
 						new Goblin.SphereShape( radius ),
 						1
 					);
-				} else if ( type < 0.6 ) {
+				} else if ( type < 0.42 ) {
 					var radius = Math.random() / 2 + 0.5,
 						height = Math.random() * 2 + 1;
 					particle = new THREE.Mesh(
@@ -90,7 +118,7 @@
 						new Goblin.CylinderShape( radius, height / 2 ),
 						1
 					);
-				} else if ( type < 0.8 ) {
+				} else if ( type < 0.57 ) {
 					var radius = Math.random() / 2 + 0.5,
 						height = Math.random() * 2 + 1;
 					particle = new THREE.Mesh(
@@ -101,7 +129,7 @@
 						new Goblin.ConeShape( radius, height / 2 ),
 						1
 					);
-				} else {
+				} else if ( type < 0.71 ) {
 					var width = Math.random() * 2 + 1,
 						length = Math.random() * 2 + 1,
 						orientation = Math.round( Math.random() * 3 );
@@ -117,6 +145,42 @@
 						new Goblin.PlaneShape( orientation, width / 2, length / 2 ),
 						0.1
 					);
+				} else if ( type < 0.85 ) {
+					particle = new THREE.Object3D();
+
+					var sphere1 = new THREE.Mesh(
+						new THREE.SphereGeometry( 0.5 ),
+						new THREE.MeshNormalMaterial()
+					);
+					sphere1.position.x = 0;
+					sphere1.position.y = -0.3;
+					particle.add( sphere1 );
+
+					var sphere2 = new THREE.Mesh(
+						new THREE.SphereGeometry( 0.5 ),
+						new THREE.MeshNormalMaterial()
+					);
+					sphere2.position.y = 0.3;
+					particle.add( sphere2 );
+
+					particle.goblin = new Goblin.RigidBody( compoundspheres, 1 );
+				} else {
+					particle = new THREE.Object3D();
+
+					var box1 = new THREE.Mesh(
+						new THREE.CubeGeometry( 2, 0.25, 1 ),
+						new THREE.MeshNormalMaterial({ opacity: 1 })
+					);
+					particle.add( box1 );
+
+					var box2 = new THREE.Mesh(
+						new THREE.CubeGeometry( 2, 0.25, 1 ),
+						new THREE.MeshNormalMaterial({ opacity: 1 })
+					);
+					box2.rotation.z = Math.PI / -2;
+					particle.add( box2 );
+
+					particle.goblin = new Goblin.RigidBody( compoundboxes, 2 );
 				}
 
 				particle.position.set( Math.random() * 3, 10, Math.random() * 3 );

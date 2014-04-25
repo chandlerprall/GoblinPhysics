@@ -3,7 +3,8 @@
  *
  * @class RigidBody
  * @constructor
- * @param mass {Number} mass of the rigid body
+ * @param shape
+ * @param mass {Number}
  */
 Goblin.RigidBody = (function() {
 	var body_count = 0;
@@ -351,7 +352,6 @@ Goblin.RigidBody.prototype.applyForce = function( force ) {
  * @param point {vec3} world coordinates where force originates
  */
 Goblin.RigidBody.prototype.applyForceAtWorldPoint = function( force, point ) {
-	// @TODO support for moving center of mass
 	var _vec3 = _tmp_vec3_1;
 	vec3.set( point, _vec3 );
 	vec3.subtract( _vec3, this.position );
@@ -392,8 +392,8 @@ Goblin.RigidBody.prototype.updateDerived = function() {
 		this.updateInverseInertiaTensorWorldFrame();
 	}
 
-    // Update AABB
-    this.aabb.transform( this.shape.aabb, this.transform );
+	// Update AABB
+	this.aabb.transform( this.shape.aabb, this.transform );
 };
 
 Goblin.RigidBody.prototype.updateInverseInertiaTensorWorldFrame = function() {

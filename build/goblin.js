@@ -2219,6 +2219,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[2] = -contact.contact_normal[2];
 
 		vec3.subtract( contact.contact_point, contact.object_a.position, _tmp_vec3_1 );
+		//vec3.set( contact.contact_point_in_a, _tmp_vec3_1 );
 		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[3] = -_tmp_vec3_1[0];
 		row.jacobian[4] = -_tmp_vec3_1[1];
@@ -2234,6 +2235,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[8] = contact.contact_normal[2];
 
 		vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_1 );
+		//vec3.set( contact.contact_point_in_b, _tmp_vec3_1 );
 		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[9] = _tmp_vec3_1[0];
 		row.jacobian[10] = _tmp_vec3_1[1];
@@ -3038,6 +3040,106 @@ Goblin.NearPhase.prototype.updateContactManifolds = function() {
 	}
 };
 
+Goblin.NearPhase.prototype.midPhase = function( object_a, object_b ) {
+	var compound,
+		other;
+
+	if ( object_a.shape instanceof Goblin.CompoundShape ) {
+		compound = object_a;
+		other = object_b;
+	} else {
+		compound = object_b;
+		other = object_a;
+	}
+
+	var proxy = Goblin.ObjectPool.getObject( 'RigidBodyProxy' ),
+		child_shape, contact;
+	for ( var i = 0; i < compound.shape.child_shapes.length; i++ ) {
+		child_shape = compound.shape.child_shapes[i];
+		proxy.setFrom( compound, child_shape );
+
+		if ( proxy.shape instanceof Goblin.CompoundShape || other.shape instanceof Goblin.CompoundShape ) {
+			this.midPhase( proxy, other );
+		} else {
+			contact = this.getContact( proxy, other );
+			if ( contact != null ) {
+				
+				var parent_a, parent_b;
+				if ( contact.object_a === proxy ) {
+					contact.object_a = compound;
+					parent_a = proxy;
+					parent_b = other;
+				} else {
+					contact.object_b = compound;
+					parent_a = other;
+					parent_b = proxy;
+				}
+
+				if ( parent_a instanceof Goblin.RigidBodyProxy ) {
+					while ( parent_a.parent ) {
+						if ( parent_a instanceof Goblin.RigidBodyProxy ) {
+							mat4.multiplyVec3( parent_a.shape_data.transform, contact.contact_point_in_a );
+						}
+						parent_a = parent_a.parent;
+					}
+				}
+
+				if ( parent_b instanceof Goblin.RigidBodyProxy ) {
+					while ( parent_b.parent ) {
+						if ( parent_b instanceof Goblin.RigidBodyProxy ) {
+							mat4.multiplyVec3( parent_b.shape_data.transform, contact.contact_point_in_b );
+						}
+						parent_b = parent_b.parent;
+					}
+				}
+
+				contact.object_a = parent_a;
+				contact.object_b = parent_b;
+				this.addContact( parent_a, parent_b, contact );
+			}
+		}
+	}
+	Goblin.ObjectPool.freeObject( 'RigidBodyProxy', proxy );
+};
+
+/**
+ * Tests two objects for contact
+ *
+ * @method getContact
+ * @param {RigidBody} object_a
+ * @param {RigidBody} object_b
+ */
+Goblin.NearPhase.prototype.getContact = function( object_a, object_b ) {
+	if ( object_a.shape instanceof Goblin.CompoundShape || object_b.shape instanceof Goblin.CompoundShape ) {
+		this.midPhase( object_a, object_b );
+		return;
+	}
+
+	var contact;
+
+	if ( object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.SphereShape ) {
+		// Sphere - Sphere contact check
+		contact = Goblin.SphereSphere( object_a, object_b );
+	} else if (
+		object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.BoxShape ||
+		object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.SphereShape
+		) {
+		// Sphere - Box contact check
+		contact = Goblin.BoxSphere( object_a, object_b );
+	} else {
+		// contact check based on GJK
+		if ( (contact = Goblin.GjkEpa2.GJK( object_a, object_b )) != null ) {
+			contact = Goblin.GjkEpa2.EPA( contact );
+		}
+	}
+
+	return contact;
+};
+
+Goblin.NearPhase.prototype.addContact = function( object_a, object_b, contact ) {
+	this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
+};
+
 /**
  * Loops over the passed array of object pairs which may be in contact
  * valid contacts are put in this object's `contacts` property
@@ -3046,44 +3148,16 @@ Goblin.NearPhase.prototype.updateContactManifolds = function() {
  */
 Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
 	var i,
-		possible_contacts_length = possible_contacts.length,
-		object_a,
-		object_b,
-		contact;
+		contact,
+		possible_contacts_length = possible_contacts.length;
 
 	// Make sure all of the manifolds are up to date
 	this.updateContactManifolds();
 
 	for ( i = 0; i < possible_contacts_length; i++ ) {
-		object_a = possible_contacts[i][0];
-		object_b = possible_contacts[i][1];
-
-		if ( object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.SphereShape ) {
-			// Sphere - Sphere contact check
-			contact = Goblin.SphereSphere( object_a, object_b );
-			if ( contact != null ) {
-				this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
-			}
-		} else if (
-				object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.BoxShape ||
-				object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.SphereShape
-			) {
-			// Sphere - Box contact check
-			contact = Goblin.BoxSphere( object_a, object_b );
-			if ( contact != null ) {
-				this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
-			}
-		} else {
-			// contact check based on GJK
-            /*if ( (contact = Goblin.GjkEpa.GJK( object_a, object_b )) !== false ) {
-                this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
-            }*/
-			if ( (contact = Goblin.GjkEpa2.GJK( object_a, object_b )) != null ) {
-				contact = Goblin.GjkEpa2.EPA( contact );
-				if ( contact != null ) {
-					this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
-				}
-			}
+		contact = this.getContact( possible_contacts[i][0], possible_contacts[i][1] );
+		if ( contact != null ) {
+			this.addContact( possible_contacts[i][0], possible_contacts[i][1], contact );
 		}
 	}
 };
@@ -3157,6 +3231,7 @@ Goblin.ObjectPool.registerType( 'ConstraintRow', function() { return new Goblin.
 Goblin.ObjectPool.registerType( 'ContactConstraint', function() { return new Goblin.ContactConstraint(); } );
 Goblin.ObjectPool.registerType( 'FrictionConstraint', function() { return new Goblin.FrictionConstraint(); } );
 Goblin.ObjectPool.registerType( 'RayIntersection', function() { return new Goblin.RayIntersection(); } );
+Goblin.ObjectPool.registerType( 'RigidBodyProxy', function() { return new Goblin.RigidBodyProxy(); } );
 Goblin.RayIntersection = function() {
 	this.object = null;
 	this.point = vec3.create();
@@ -3167,7 +3242,8 @@ Goblin.RayIntersection = function() {
  *
  * @class RigidBody
  * @constructor
- * @param mass {Number} mass of the rigid body
+ * @param shape
+ * @param mass {Number}
  */
 Goblin.RigidBody = (function() {
 	var body_count = 0;
@@ -3515,7 +3591,6 @@ Goblin.RigidBody.prototype.applyForce = function( force ) {
  * @param point {vec3} world coordinates where force originates
  */
 Goblin.RigidBody.prototype.applyForceAtWorldPoint = function( force, point ) {
-	// @TODO support for moving center of mass
 	var _vec3 = _tmp_vec3_1;
 	vec3.set( point, _vec3 );
 	vec3.subtract( _vec3, this.position );
@@ -3556,8 +3631,8 @@ Goblin.RigidBody.prototype.updateDerived = function() {
 		this.updateInverseInertiaTensorWorldFrame();
 	}
 
-    // Update AABB
-    this.aabb.transform( this.shape.aabb, this.transform );
+	// Update AABB
+	this.aabb.transform( this.shape.aabb, this.transform );
 };
 
 Goblin.RigidBody.prototype.updateInverseInertiaTensorWorldFrame = function() {
@@ -3622,6 +3697,57 @@ Goblin.RigidBody.prototype.updateInverseInertiaTensorWorldFrame = function() {
 		t62*rotmat[10];
 
 	mat3.inverse( this.inverseInertiaTensorWorldFrame, this.inertiaTensorWorldFrame );
+};
+Goblin.RigidBodyProxy = function() {
+	this.parent = null;
+	this.id = null;
+
+	this.shape = null;
+
+	this.aabb = new Goblin.AABB();
+
+	this.mass = null;
+
+	this.position = vec3.create();
+	this.rotation = quat4.create();
+
+	this.transform = mat4.create();
+	this.transform_inverse = mat4.create();
+
+	this.restitution = null;
+	this.friction = null;
+};
+
+Goblin.RigidBodyProxy.prototype.setFrom = function( parent, shape_data ) {
+	this.parent = parent;
+
+	this.id = parent.id;
+
+	this.shape = shape_data.shape;
+	this.shape_data = shape_data;
+
+	this.mass = parent.mass;
+
+	mat4.multiplyVec3( parent.transform, shape_data.position, this.position );
+	quat4.multiply( parent.rotation, shape_data.rotation, this.rotation );
+
+	mat4.fromRotationTranslation( this.rotation, this.position, this.transform );
+	mat4.inverse( this.transform, this.transform_inverse );
+
+	this.aabb.transform( this.shape.aabb, this.transform );
+
+	this.restitution = parent.restitution;
+	this.friction = parent.friction;
+};
+
+Goblin.RigidBodyProxy.prototype.findSupportPoint = Goblin.RigidBody.prototype.findSupportPoint;
+
+Goblin.RigidBodyProxy.prototype.getRigidBody = function() {
+	var body = this.parent;
+	while ( body.parent ) {
+		body = this.parent;
+	}
+	return body;
 };
 /**
  * Adapted from BulletPhysics's btSequentialImpulseSolver
@@ -4140,6 +4266,93 @@ Goblin.BoxShape.prototype.rayIntersect = (function(){
 		return intersection;
 	};
 })();
+/**
+ * @class CompoundShape
+ * @constructor
+ */
+Goblin.CompoundShape = function() {
+	this.child_shapes = [];
+
+	this.aabb = new Goblin.AABB();
+	this.calculateLocalAABB( this.aabb );
+};
+
+/**
+ * Adds the child shape at `position` and `rotation` relative to the compound shape
+ *
+ * @method addChildShape
+ * @param shape
+ * @param position
+ * @param rotation
+ */
+Goblin.CompoundShape.prototype.addChildShape = function( shape, position, rotation ) {
+	this.child_shapes.push( new Goblin.CompoundShapeChild( shape, position, rotation ) );
+	this.calculateLocalAABB( this.aabb );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.CompoundShape.prototype.calculateLocalAABB = function( aabb ) {
+	aabb.min[0] = aabb.min[1] = aabb.min[2] = Infinity;
+	aabb.max[0] = aabb.max[1] = aabb.max[2] = -Infinity;
+
+	var i, shape,
+		shape_aabb = new Goblin.AABB();
+
+	for ( i = 0; i < this.child_shapes.length; i++ ) {
+		shape = this.child_shapes[i];
+
+		aabb.min[0] = Math.min( aabb.min[0], shape.aabb.min[0] );
+		aabb.min[1] = Math.min( aabb.min[1], shape.aabb.min[1] );
+		aabb.min[2] = Math.min( aabb.min[2], shape.aabb.min[2] );
+
+		aabb.max[0] = Math.max( aabb.max[0], shape.aabb.max[0] );
+		aabb.max[1] = Math.max( aabb.max[1], shape.aabb.max[1] );
+		aabb.max[2] = Math.max( aabb.max[2], shape.aabb.max[2] );
+	}
+};
+
+Goblin.CompoundShape.prototype.getInertiaTensor = function( mass ) {
+	return mat3.createFrom(
+		1, 0, 0,
+		0, 1, 0,
+		0, 0, 1
+	);
+};
+
+/**
+ * Checks if a ray segment intersects with the shape
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
+ */
+Goblin.CompoundShape.prototype.rayIntersect = function( start, end ) {
+
+};
+/**
+ * @class CompoundShapeChild
+ * @constructor
+ */
+Goblin.CompoundShapeChild = function( shape, position, rotation ) {
+	this.shape = shape;
+
+	this.position = vec3.createFrom.apply( vec3, position );
+	this.rotation = quat4.createFrom.apply( quat4, rotation );
+
+	this.transform = mat4.create();
+	this.transform_inverse = mat4.create();
+	mat4.fromRotationTranslation( this.rotation, this.position, this.transform );
+	mat4.inverse( this.transform, this.transform_inverse );
+
+	this.aabb = new Goblin.AABB();
+	this.aabb.transform( this.shape.aabb, this.transform );
+};
 /**
  * @class ConeShape
  * @param radius {Number} radius of the cylinder

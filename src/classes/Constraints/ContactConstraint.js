@@ -21,6 +21,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[2] = -contact.contact_normal[2];
 
 		vec3.subtract( contact.contact_point, contact.object_a.position, _tmp_vec3_1 );
+		//vec3.set( contact.contact_point_in_a, _tmp_vec3_1 );
 		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[3] = -_tmp_vec3_1[0];
 		row.jacobian[4] = -_tmp_vec3_1[1];
@@ -36,6 +37,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[8] = contact.contact_normal[2];
 
 		vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_1 );
+		//vec3.set( contact.contact_point_in_b, _tmp_vec3_1 );
 		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[9] = _tmp_vec3_1[0];
 		row.jacobian[10] = _tmp_vec3_1[1];
