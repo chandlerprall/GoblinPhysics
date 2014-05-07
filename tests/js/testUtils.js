@@ -9,6 +9,7 @@ window.testUtils = (function(){
 	var startThree = function() {
 		// Setup Three.js
 		renderer = new THREE.WebGLRenderer({ antialias: true });
+		renderer.setClearColor( new THREE.Color( 0xFFFFFF ) );
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		document.body.appendChild( renderer.domElement );
 
@@ -80,7 +81,6 @@ window.testUtils = (function(){
 				new Goblin.SphereShape( radius ),
 				mass
 			);
-			sphere.useQuaternion = true;
 
 			objects.push( sphere );
 			testUtils.scene.add( sphere );
@@ -91,14 +91,13 @@ window.testUtils = (function(){
 
 		createBox: function( half_width, half_height, half_length, mass ) {
 			var box = new THREE.Mesh(
-				new THREE.CubeGeometry( half_width * 2, half_height * 2, half_length * 2 ),
+				new THREE.BoxGeometry( half_width * 2, half_height * 2, half_length * 2 ),
 				new THREE.MeshNormalMaterial({ opacity: 1 })
 			);
 			box.goblin = new Goblin.RigidBody(
 				new Goblin.BoxShape( half_width, half_height, half_length ),
 				mass
 			);
-			box.useQuaternion = true;
 
 			objects.push( box );
 			testUtils.scene.add( box );
@@ -116,7 +115,6 @@ window.testUtils = (function(){
 				new Goblin.CylinderShape( radius, half_height ),
 				mass
 			);
-			cylinder.useQuaternion = true;
 
 			objects.push( cylinder );
 			testUtils.scene.add( cylinder );
@@ -134,7 +132,6 @@ window.testUtils = (function(){
 				new Goblin.ConeShape( radius, half_height ),
 				mass
 			);
-			cone.useQuaternion = true;
 
 			objects.push( cone );
 			testUtils.scene.add( cone );
@@ -145,7 +142,7 @@ window.testUtils = (function(){
 
 		createPlane: function( orientation, half_width, half_length, mass ) {
 			var plane = new THREE.Mesh(
-				new THREE.CubeGeometry(
+				new THREE.BoxGeometry(
 					orientation === 1 || orientation === 2 ? half_width * 2 : 0,
 					orientation === 0 ? half_width * 2 : ( orientation === 2 ? half_length * 2 : 0 ),
 					orientation === 0 || orientation === 1 ? half_length * 2 : 0
@@ -156,7 +153,6 @@ window.testUtils = (function(){
 				new Goblin.PlaneShape( orientation, half_width, half_length ),
 				mass
 			);
-			plane.useQuaternion = true;
 
 			objects.push( plane );
 			testUtils.scene.add( plane );

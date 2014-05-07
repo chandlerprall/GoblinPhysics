@@ -8,6 +8,7 @@
 	<script type="text/javascript" src="js/chai.js"></script>
 	<script type="text/javascript" src="js/mocha.js"></script>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
 	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/testUtils.js"></script>
@@ -17,6 +18,7 @@
 		var assert = (typeof chai !== "undefined" && chai !== null ? chai.assert : void 0) || require('chai').assert;
 		window.onload = function() {
 			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+			testUtils.render();
 
 			(function(){
 				Goblin.EPSILON = 0.01;
