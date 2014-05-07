@@ -57,7 +57,7 @@ window.exampleUtils = (function(){
 				normal: '228_normal.png',
 				normal_scale: 7
 			},
-			ground: {
+			pebbles: {
 				diffuse: '254_diffuse.png',
 				normal: '254_normal.png',
 				normal_scale: 4
@@ -67,14 +67,23 @@ window.exampleUtils = (function(){
 				normal: '210_normal.png',
 				specular: '210_specular.png',
 				shininess: 200,
-				normal_scale: 4
+				normal_scale: 4,
+				metal: true
 			},
 			scratched_metal: {
 				diffuse: '213_diffuse.png',
 				normal: '213_normal.png',
 				specular: '213_specular.png',
 				shininess: 300,
-				normal_scale: 3
+				normal_scale: 3,
+				metal: true
+			},
+			cement: {
+				diffuse: '173_diffuse.png',
+				normal: '173_normal.png',
+				specular: '173_specular.png',
+				shininess: 30,
+				normal_scale: 2
 			}
 		},
 
@@ -247,7 +256,7 @@ window.exampleUtils = (function(){
 				material.normalScale.set( def.normal_scale, def.normal_scale );
 			}
 
-			if ( def.specular ) {
+			if ( def.metal ) {
 				material.metal = true;
 			}
 
