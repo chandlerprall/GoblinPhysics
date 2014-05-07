@@ -12,6 +12,7 @@
 	</style>
 
 	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
 	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 
@@ -40,7 +41,7 @@
 
 			// Ground object
 			particle = new THREE.Mesh(
-				new THREE.CubeGeometry( 10, 1, 10 ),
+				new THREE.BoxGeometry( 10, 1, 10 ),
 				new THREE.MeshNormalMaterial({ opacity: 0.7, transparent: true })
 			);
 			particle.goblin = new Goblin.RigidBody(
@@ -48,7 +49,6 @@
 				Infinity
 			);
 			particle.position.set( 0, -0.5, 0 );
-			particle.useQuaternion = true;
 
 			particle.goblin.position[0] = particle.position.x;
 			particle.goblin.position[1] = particle.position.y;
@@ -62,10 +62,9 @@
 				for ( j = 0; j < 1; j++ ) {
 					for ( k = 0; k < 5; k++ ) {
 						particle = new THREE.Mesh(
-							new THREE.CubeGeometry( 6, 1, 6 ),
+							new THREE.BoxGeometry( 6, 1, 6 ),
 							new THREE.MeshNormalMaterial({ opacity: 0.7, transparent: true })
 						);
-						particle.useQuaternion = true;
 						scene.add( particle );
 
 						particle.goblin = new Goblin.RigidBody(

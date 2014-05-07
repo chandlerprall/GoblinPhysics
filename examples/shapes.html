@@ -12,6 +12,7 @@
 	</style>
 
 	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
 	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 
@@ -32,14 +33,14 @@
 			var controls = new THREE.TrackballControls( camera, renderer.domElement );
             
             var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.SequentialImpulseSolver );
-			//world.solver.relaxation = 0.2; // This example looks better with softer relaxation
+			world.solver.relaxation = 0.2; // This example looks better with softer relaxation
 			window.world = world;
 
 			var i, particles, particles = [];
 
 			// Ground object
 			particle = new THREE.Mesh(
-				new THREE.CubeGeometry( 20, 2, 20 ),
+				new THREE.BoxGeometry( 20, 2, 20 ),
 				new THREE.MeshNormalMaterial({ polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 10 })
 			);
 			particle.goblin = new Goblin.RigidBody(
@@ -49,7 +50,6 @@
 			particle.goblin.rotation[2] = -0.03;
 
 			particle.position.set( 0, -6, 0 );
-			particle.useQuaternion = true;
 
 			particle.goblin.position[0] = particle.position.x;
 			particle.goblin.position[1] = particle.position.y;
@@ -90,7 +90,7 @@
 
 				if ( type < 0.14 ) {
 					particle = new THREE.Mesh(
-						new THREE.CubeGeometry( 1.5, 1.5, 1.5 ),
+						new THREE.BoxGeometry( 1.5, 1.5, 1.5 ),
 						new THREE.MeshNormalMaterial({ opacity: 1 })
 					);
 					particle.goblin = new Goblin.RigidBody(
@@ -134,7 +134,7 @@
 						length = Math.random() * 2 + 1,
 						orientation = Math.round( Math.random() * 3 );
 					particle = new THREE.Mesh(
-						new THREE.CubeGeometry(
+						new THREE.BoxGeometry(
 							orientation === 1 || orientation === 2 ? width : 0,
 							orientation === 0 ? width : ( orientation === 2 ? length : 0 ),
 							orientation === 0 || orientation === 1 ? length : 0
@@ -168,13 +168,13 @@
 					particle = new THREE.Object3D();
 
 					var box1 = new THREE.Mesh(
-						new THREE.CubeGeometry( 2, 0.25, 1 ),
+						new THREE.BoxGeometry( 2, 0.25, 1 ),
 						new THREE.MeshNormalMaterial({ opacity: 1 })
 					);
 					particle.add( box1 );
 
 					var box2 = new THREE.Mesh(
-						new THREE.CubeGeometry( 2, 0.25, 1 ),
+						new THREE.BoxGeometry( 2, 0.25, 1 ),
 						new THREE.MeshNormalMaterial({ opacity: 1 })
 					);
 					box2.rotation.z = Math.PI / -2;
@@ -184,7 +184,6 @@
 				}
 
 				particle.position.set( Math.random() * 3, 10, Math.random() * 3 );
-				particle.useQuaternion = true;
 
 				particle.goblin.position[0] = particle.position.x;
 				particle.goblin.position[1] = particle.position.y;

@@ -12,6 +12,7 @@
 	</style>
 
 	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
 	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 
@@ -38,7 +39,7 @@
 
 			// Ground object
 			particle = new THREE.Mesh(
-				new THREE.CubeGeometry( 20, 2, 20 ),
+				new THREE.BoxGeometry( 20, 2, 20 ),
 				new THREE.MeshNormalMaterial({ polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 10 })
 			);
 
@@ -56,7 +57,6 @@
 			//particle.goblin.rotation[2] = -0.03;
 
 			particle.position.set( 0, -5, 0 );
-			particle.useQuaternion = true;
 
 			particle.goblin.position[0] = particle.position.x;
 			particle.goblin.position[1] = particle.position.y;
@@ -112,13 +112,13 @@
 				//particle.add( sphere2 );
 
 				var box1 = new THREE.Mesh(
-					new THREE.CubeGeometry( 2, 0.25, 1 ),
+					new THREE.BoxGeometry( 2, 0.25, 1 ),
 					new THREE.MeshNormalMaterial({ opacity: 1 })
 				);
 				particle.add( box1 );
 
 				var box2 = new THREE.Mesh(
-					new THREE.CubeGeometry( 2, 0.25, 1 ),
+					new THREE.BoxGeometry( 2, 0.25, 1 ),
 					new THREE.MeshNormalMaterial({ opacity: 1 })
 				);
 				//box2.position.x = -1;
@@ -130,7 +130,6 @@
 				//particle.position.set( Math.random() * 3, 10, Math.random() * 3 );
 				particle.position.set( 0, -3, 0 );
 				particle.goblin.rotation[2] = 0.3;
-				particle.useQuaternion = true;
 
 				particle.goblin.position[0] = particle.position.x;
 				particle.goblin.position[1] = particle.position.y;
@@ -158,8 +157,6 @@
 			spawn();
 
 			window.particles = particles;
-
-			var contacts = null;
 
 			var render = function() {
 				controls.update();
@@ -189,21 +186,6 @@
 						particle.goblin.rotation[2],
 						particle.goblin.rotation[3]
 					);
-				}
-
-				if ( contacts ) {
-					scene.remove( contacts );
-				}
-				contacts = new THREE.Object3D();
-				scene.add( contacts );
-				for ( i = 0; i < world.solver.contact_constraints.length; i++ ) {
-					var point = world.solver.contact_constraints[i].contact.contact_point,
-						contact = new THREE.Mesh(
-							new THREE.SphereGeometry( 0.1 ),
-							new THREE.MeshBasicMaterial({ color: 0x0000FF })
-						);
-					contact.position.set( point[0], point[1], point[2] );
-					contacts.add( contact );
 				}
 
 				renderer.render( scene, camera );
