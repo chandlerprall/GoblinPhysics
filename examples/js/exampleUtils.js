@@ -54,23 +54,27 @@ window.exampleUtils = (function(){
 		materials: {
 			wood: {
 				diffuse: '228_diffuse.png',
-				normal: '228_normal.png'
+				normal: '228_normal.png',
+				normal_scale: 7
 			},
 			ground: {
 				diffuse: '254_diffuse.png',
-				normal: '254_normal.png'
+				normal: '254_normal.png',
+				normal_scale: 4
 			},
 			rusted_metal: {
 				diffuse: '210_diffuse.png',
 				normal: '210_normal.png',
 				specular: '210_specular.png',
-				shininess: 100
+				shininess: 200,
+				normal_scale: 4
 			},
 			scratched_metal: {
 				diffuse: '213_diffuse.png',
 				normal: '213_normal.png',
 				specular: '213_specular.png',
-				shininess: 30
+				shininess: 300,
+				normal_scale: 3
 			}
 		},
 
@@ -112,8 +116,10 @@ window.exampleUtils = (function(){
 		createSphere: function( radius, mass, material ) {
 			var sphere = new THREE.Mesh(
 				new THREE.SphereGeometry( radius, 32, 32 ),
-				new THREE.MeshNormalMaterial({ opacity: 1 })
+				material
 			);
+			sphere.castShadow = true;
+			sphere.receiveShadow = true;
 			sphere.goblin = new Goblin.RigidBody(
 				new Goblin.SphereShape( radius ),
 				mass
@@ -236,6 +242,14 @@ window.exampleUtils = (function(){
 			}
 
 			var material = new THREE.MeshPhongMaterial( material_def );
+
+			if ( def.normal_scale ) {
+				material.normalScale.set( def.normal_scale, def.normal_scale );
+			}
+
+			if ( def.specular ) {
+				material.metal = true;
+			}
 
 			return material;
 		}

@@ -19,7 +19,7 @@
 			var box_geometry = new THREE.BoxGeometry( 4, 0.5, 1 ),
 				box_shape = new Goblin.BoxShape( 2, 0.25, 0.5 ),
 				compound_shape = new Goblin.CompoundShape();
-				box_material = exampleUtils.createMaterial( 'scratched_metal', 1, 1 );
+				box_material = exampleUtils.createMaterial( 'scratched_metal', 1, 0.2 );
 
 			compound_shape.addChildShape(
 				box_shape,

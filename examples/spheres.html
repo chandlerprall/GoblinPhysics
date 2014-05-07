@@ -1,190 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Goblin Testbed</title>
-
-	<style type="text/css">
-		html, body {
-			margin: 0;
-			padding: 0;
-			overflow: hidden;
-		}
-	</style>
-
+	<title>Spheres | Goblin Physics</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
 	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/exampleUtils.js"></script>
 
 	<script type="text/javascript">
-		setMatrixArrayType( Array );
 		window.onload = function() {
-			var renderer = new THREE.WebGLRenderer({ antialias: true });
-			//var renderer = new THREE.CanvasRenderer({ antialias: true });
-			renderer.setSize( window.innerWidth, window.innerHeight );
-			document.body.appendChild( renderer.domElement );
+			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
 
-			var scene = new THREE.Scene;
-			window.scene = scene;
-
-			var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .01, 1000 );
-			camera.position.set( 0, 9, 21 );
-			camera.lookAt( scene.position );
-
-			var controls = new THREE.TrackballControls( camera, renderer.domElement );
-
-			var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.SequentialImpulseSolver );
-			window.world = world;
-
-			var i, j, particles, particles = [];
+			var sphere_material_1 = exampleUtils.createMaterial( 'rusted_metal', 1, 1 ),
+				sphere_material_2 = exampleUtils.createMaterial( 'scratched_metal', 3, 2 ),
+				sphere;
 
 			// Base spheres
 			for ( i = 0; i < 5; i++ ) {
 				for ( j = 0; j < 5; j++ ) {
-					particle = new THREE.Mesh(
-						new THREE.SphereGeometry( 1, 32, 32 ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.SphereShape( 1 ),
-						0
-					);
-					particle.position.set( i * 2 - 2.5, 0, j * 2 - 2.5 );
-
-					particle.goblin.position[0] = particle.position.x;
-					particle.goblin.position[1] = particle.position.y;
-					particle.goblin.position[2] = particle.position.z;
-
-					scene.add( particle );
-					particles.push( particle );
-					world.addRigidBody( particle.goblin );
+					sphere = exampleUtils.createSphere( 1, 0, sphere_material_2 );
+					sphere.goblin.position[0] = i * 2 - 2.5;
+					sphere.goblin.position[1] = 0;
+					sphere.goblin.position[2] = j * 2 - 2.5;
 				}
 			}
 
 			// 2nd level
 			for ( i = 0; i < 4; i++ ) {
 				for ( j = 0; j < 4; j++ ) {
-					particle = new THREE.Mesh(
-						new THREE.SphereGeometry( 1, 32, 32 ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.SphereShape( 1 ),
-						10
-					);
-					particle.position.set( i * 2 - 1.5, 2, j * 2 - 1.5 );
-
-					particle.goblin.position[0] = particle.position.x;
-					particle.goblin.position[1] = particle.position.y;
-					particle.goblin.position[2] = particle.position.z;
-					scene.add( particle );
-					particles.push( particle );
-					world.addRigidBody( particle.goblin );
+					sphere = exampleUtils.createSphere( 1, 10, sphere_material_2 );
+					sphere.goblin.position[0] = i * 2 - 1.5;
+					sphere.goblin.position[1] = 2;
+					sphere.goblin.position[2] = j * 2 - 1.5;
 				}
 			}
 
 			// 3rd level
 			for ( i = 0; i < 3; i++ ) {
 				for ( j = 0; j < 3; j++ ) {
-					particle = new THREE.Mesh(
-						new THREE.SphereGeometry( 1, 32, 32 ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.SphereShape( 1 ),
-						10
-					);
-					particle.position.set( i * 2 - 0.5, 4, j * 2 - 0.5 );
-
-					particle.goblin.position[0] = particle.position.x;
-					particle.goblin.position[1] = particle.position.y;
-					particle.goblin.position[2] = particle.position.z;
-					scene.add( particle );
-					particles.push( particle );
-					world.addRigidBody( particle.goblin );
+					sphere = exampleUtils.createSphere( 1, 10, sphere_material_2 );
+					sphere.goblin.position[0] = i * 2 - 0.5;
+					sphere.goblin.position[1] = 4;
+					sphere.goblin.position[2] = j * 2 - 0.5;
 				}
 			}
 
 			// 4th level
 			for ( i = 0; i < 2; i++ ) {
 				for ( j = 0; j < 2; j++ ) {
-					particle = new THREE.Mesh(
-						new THREE.SphereGeometry( 1, 32, 32 ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.SphereShape( 1 ),
-						10
-					);
-					particle.position.set( i * 2 + 0.5, 6, j * 2 + 0.5 );
-
-					particle.goblin.position[0] = particle.position.x;
-					particle.goblin.position[1] = particle.position.y;
-					particle.goblin.position[2] = particle.position.z;
-					scene.add( particle );
-					particles.push( particle );
-					world.addRigidBody( particle.goblin );
+					sphere = exampleUtils.createSphere( 1, 10, sphere_material_2 );
+					sphere.goblin.position[0] = i * 2 + 0.5;
+					sphere.goblin.position[1] = 6;
+					sphere.goblin.position[2] = j * 2 + 0.5;
 				}
 			}
 
 			// 5th level
 			for ( i = 0; i < 1; i++ ) {
 				for ( j = 0; j < 1; j++ ) {
-					particle = new THREE.Mesh(
-						new THREE.SphereGeometry( 1.5, 32, 32 ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.SphereShape( 1.5 ),
-						500
-					);
-					particle.position.set( i * 2 + 1.5, 15, j * 2 + 1.5 );
-
-					particle.goblin.position[0] = particle.position.x;
-					particle.goblin.position[1] = particle.position.y;
-					particle.goblin.position[2] = particle.position.z;
-					scene.add( particle );
-					particles.push( particle );
-					world.addRigidBody( particle.goblin );
+					sphere = exampleUtils.createSphere( 1.5, 500, sphere_material_1 );
+					sphere.goblin.position[0] = i * 2 + 1.5;
+					sphere.goblin.position[1] = 15;
+					sphere.goblin.position[2] = j * 2 + 1.5;
 				}
 			}
 
-			window.particles = particles;
-
-			var render = function() {
-				controls.update();
-
-				try {
-					world.step( 1 / 60, 1 / 240 );
-				}
-				catch(e){
-					window.stop = true;
-					throw e;
-				}
-				if ( window.stop !== true ) {
-					requestAnimationFrame( render );
-					//setTimeout( render, 200 );
-				}
-
-				var i, particle;
-				for ( i = 0; i < particles.length; i++ ) {
-					particle = particles[i];
-					particle.position.set(
-						particle.goblin.position[0],
-						particle.goblin.position[1],
-						particle.goblin.position[2]
-					);
-					particle.quaternion.set(
-						particle.goblin.rotation[0],
-						particle.goblin.rotation[1],
-						particle.goblin.rotation[2],
-						particle.goblin.rotation[3]
-					);
-				}
-				renderer.render( scene, camera );
-			};
-			window.render = render;
-			render();
+			exampleUtils.run();
 		};
 	</script>
 </head>
