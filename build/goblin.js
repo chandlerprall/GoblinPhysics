@@ -3574,6 +3574,16 @@ Goblin.RigidBody.prototype.setGravity = function( x, y, z ) {
 };
 
 /**
+ * Directly adds linear velocity to the body
+ *
+ * @method applyImpulse
+ * @param impulse {vec3} linear velocity to add to the body
+ */
+Goblin.RigidBody.prototype.applyImpulse = function( impulse ) {
+	vec3.add( this.linear_velocity, impulse );
+};
+
+/**
  * Adds a force to the rigid_body which will be used only for the next integration
  *
  * @method applyForce

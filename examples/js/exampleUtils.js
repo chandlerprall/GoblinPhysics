@@ -16,7 +16,7 @@ window.exampleUtils = (function(){
 		exampleUtils.scene = new THREE.Scene();
 
 		camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 1000 );
-		camera.position.set( 0, 9, 21 );
+		camera.position.set( 0, 15, 30 );
 		camera.lookAt( exampleUtils.scene.position );
 
 		controls = new THREE.TrackballControls( camera, renderer.domElement );
@@ -25,7 +25,7 @@ window.exampleUtils = (function(){
 		exampleUtils.scene.add( ambient_light );
 
 		var directional_light = new THREE.DirectionalLight( new THREE.Color( 0xFFFFFF ) );
-		directional_light.position.set( 5, 40, 10 );
+		directional_light.position.set( 10, 30, 20 );
 		directional_light.shadowCameraLeft = directional_light.shadowCameraBottom = -50;
 		directional_light.shadowCameraRight = directional_light.shadowCameraTop = 50;
 		directional_light.castShadow = true;
@@ -41,6 +41,7 @@ window.exampleUtils = (function(){
 	};
 
 	return {
+		objects: objects,
 		scene: null,
 		world: null,
 		ontick: null,
@@ -58,6 +59,18 @@ window.exampleUtils = (function(){
 			ground: {
 				diffuse: '254_diffuse.png',
 				normal: '254_normal.png'
+			},
+			rusted_metal: {
+				diffuse: '210_diffuse.png',
+				normal: '210_normal.png',
+				specular: '210_specular.png',
+				shininess: 100
+			},
+			scratched_metal: {
+				diffuse: '213_diffuse.png',
+				normal: '213_normal.png',
+				specular: '213_specular.png',
+				shininess: 30
 			}
 		},
 
@@ -192,25 +205,37 @@ window.exampleUtils = (function(){
 		createMaterial: function( name, repeat_x, repeat_y ) {
 			var def = exampleUtils.materials[name],
 				map = THREE.ImageUtils.loadTexture( 'textures/' + def.diffuse ),
-				normalMap;
+				normalMap, specularMap,
+				material_def = {
+					shininess: 0
+				};
 
 			map.repeat.x = repeat_x;
 			map.repeat.y = repeat_y;
 			map.wrapS = map.wrapT = THREE.RepeatWrapping;
 			map.anisotropy = renderer.getMaxAnisotropy();
+			material_def.map = map;
+
 			if ( def.normal ) {
 				normalMap = THREE.ImageUtils.loadTexture( 'textures/' + def.normal, THREE.RepeatWrapping );
 				normalMap.repeat.x = repeat_x;
 				normalMap.repeat.y = repeat_y;
 				normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
 				normalMap.anisotropy = renderer.getMaxAnisotropy();
+				material_def.normalMap = normalMap;
 			}
 
-			var material = new THREE.MeshPhongMaterial({
-				map: map,
-				normalMap: normalMap,
-				reflectivity: 0
-			});
+			if ( def.specular ) {
+				specularMap = THREE.ImageUtils.loadTexture( 'textures/' + def.specular, THREE.RepeatWrapping );
+				specularMap.repeat.x = repeat_x;
+				specularMap.repeat.y = repeat_y;
+				specularMap.wrapS = specularMap.wrapT = THREE.RepeatWrapping;
+				specularMap.anisotropy = renderer.getMaxAnisotropy();
+				material_def.specularMap = specularMap;
+				material_def.shininess = def.shininess;
+			}
+
+			var material = new THREE.MeshPhongMaterial( material_def );
 
 			return material;
 		}
