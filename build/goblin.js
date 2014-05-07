@@ -3063,7 +3063,7 @@ Goblin.NearPhase.prototype.midPhase = function( object_a, object_b ) {
 		} else {
 			contact = this.getContact( proxy, other );
 			if ( contact != null ) {
-				
+
 				var parent_a, parent_b;
 				if ( contact.object_a === proxy ) {
 					contact.object_a = compound;
@@ -5170,6 +5170,14 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
  */
 Goblin.World = function( broadphase, nearphase, solver ) {
 	/**
+	 * How many time steps have been simulated. If the steps are always the same length then total simulation time = world.ticks * time_step
+	 *
+	 * @property ticks
+	 * @type {number}
+	 */
+	this.ticks = 0;
+
+	/**
 	 * The broadphase used by the world to find possible contacts
 	 *
 	 * @property broadphase
@@ -5256,6 +5264,7 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
 
     time_loops = time_delta / max_step;
     for ( x = 0; x < time_loops; x++ ) {
+		this.ticks++;
         delta = Math.min( max_step, time_delta );
         time_delta -= max_step;
 
