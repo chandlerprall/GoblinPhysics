@@ -4420,11 +4420,52 @@ Goblin.CompoundShape.prototype.calculateLocalAABB = function( aabb ) {
 };
 
 Goblin.CompoundShape.prototype.getInertiaTensor = function( mass ) {
-	return mat3.createFrom(
-		1, 0, 0,
-		0, 1, 0,
-		0, 0, 1
-	);
+	var tensor = mat3.identity(),
+		j = mat3.create(),
+		i,
+		child,
+		child_tensor;
+
+	mass /= this.child_shapes.length;
+
+	// Holds center of current tensor
+	_tmp_vec3_1[0] = _tmp_vec3_1[1] = _tmp_vec3_1[2] = 0;
+
+	for ( i = 0; i < this.child_shapes.length; i++ ) {
+		child = this.child_shapes[i];
+
+		vec3.subtract( _tmp_vec3_1, child.position );
+
+		j[0] = mass * -( _tmp_vec3_1[1] * _tmp_vec3_1[1] + _tmp_vec3_1[2] * _tmp_vec3_1[1] );
+		j[1] = mass * _tmp_vec3_1[0] * _tmp_vec3_1[1];
+		j[2] = mass * _tmp_vec3_1[0] * _tmp_vec3_1[2];
+
+		j[3] = mass * _tmp_vec3_1[0] * _tmp_vec3_1[1];
+		j[4] = mass * -( _tmp_vec3_1[0] * _tmp_vec3_1[0] + _tmp_vec3_1[2] * _tmp_vec3_1[2] );
+		j[5] = mass * _tmp_vec3_1[1] * _tmp_vec3_1[2];
+
+		j[6] = mass * _tmp_vec3_1[0] * _tmp_vec3_1[2];
+		j[7] = mass * _tmp_vec3_1[1] * _tmp_vec3_1[2];
+		j[8] = mass * -( _tmp_vec3_1[0] * _tmp_vec3_1[0] + _tmp_vec3_1[1] * _tmp_vec3_1[1] );
+
+		mat4.toMat3( child.transform, _tmp_mat3_1 );
+		child_tensor = child.shape.getInertiaTensor( mass );
+		mat3.transpose( _tmp_mat3_1, _tmp_mat3_2 );
+		mat3.multiply( _tmp_mat3_1, child_tensor );
+		mat3.multiply( _tmp_mat3_1, _tmp_mat3_2 );
+
+		tensor[0] += _tmp_mat3_1[0] + j[0];
+		tensor[1] += _tmp_mat3_1[1] + j[1];
+		tensor[2] += _tmp_mat3_1[2] + j[2];
+		tensor[3] += _tmp_mat3_1[3] + j[3];
+		tensor[4] += _tmp_mat3_1[4] + j[4];
+		tensor[5] += _tmp_mat3_1[5] + j[5];
+		tensor[6] += _tmp_mat3_1[6] + j[6];
+		tensor[7] += _tmp_mat3_1[7] + j[7];
+		tensor[8] += _tmp_mat3_1[8] + j[8];
+	}
+
+	return tensor;
 };
 
 /**
