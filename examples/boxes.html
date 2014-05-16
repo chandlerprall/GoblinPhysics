@@ -20,11 +20,12 @@
 			var box_material = exampleUtils.createMaterial( 'wood', 1, 1 );
 
 			var spawnBox = function() {
-				box = exampleUtils.createBox( 1, 1, 1, 2, box_material );
+				box = exampleUtils.createBox( 2, 2, 2, 1, box_material );
 				box.goblin.position[1] = 20;
-				box.goblin.applyImpulse( vec3.createFrom( 0, -10, 0 ) );
+				box.goblin.applyImpulse( vec3.createFrom( 0, -20, 2 ) );
 			};
 			setInterval( spawnBox, 1000 );
+			spawnBox();
 
 			exampleUtils.run();
 		};

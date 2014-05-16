@@ -2,8 +2,7 @@
  * Extensions to gl-matrix quat4
  */
 (function() {
-	var _quat = quat4.create(),
-		_vec = vec3.create();
+	var _quat = quat4.create();
 
 	/**
 	 * @method rotateByVector
@@ -48,34 +47,12 @@
 
 		quat4.multiply( quat, _quat );
 
-		/*vec3.scale( vec, scale, _vec );
-		vec3.scale( _vec, 0.5 );
-
-		var thetaMagSq = vec3.squaredLength( _vec ),
-			thetaMag,
-			s;
-
-		if ( thetaMagSq * thetaMagSq / 24 < Goblin.EPSILON ) {
-			_quat[3] = 1 - thetaMagSq / 2;
-			s = 1 - thetaMagSq / 6;
-		} else {
-			thetaMag = Math.sqrt( thetaMagSq );
-			_quat[3] = Math.cos( thetaMag );
-			s = Math.sin( thetaMag ) / thetaMag;
-		}
-
-		_quat[0] = _vec[0] * s;
-		_quat[1] = _vec[1] * s;
-		_quat[2] = _vec[2] * s;
-
-		quat4.multiply( _quat, quat, dest );*/
-
 		return dest;
-	}
+	};
 })();
 
 /**
-* Goblin physics module
+* Goblin Physics
 *
 * @module Goblin
 */
@@ -2076,8 +2053,7 @@ Goblin.ConstraintRow = function() {
 
 	this.bias = 0;
 	this.multiplier = 0;
-	this.multiplier_cache = 0;
-	this.eta = 0; // The amount of work required of the constraint
+	this.eta = 0;
 	this.eta_row = new Float64Array( 12 );
 
 	this.applied_push_impulse = 0;
@@ -2124,61 +2100,57 @@ Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
 	}
 };
 
-Goblin.ConstraintRow.prototype.computeD = function( constraint ) {
-	this.D = 0;
-
-	if ( constraint.object_a != null ) {
-		this.D += this.jacobian[0] * this.jacobian[0] +
-			this.jacobian[1] * this.B[1] +
-			this.jacobian[2] * this.B[2] +
-			this.jacobian[3] * this.B[3] +
-			this.jacobian[4] * this.B[4] +
-			this.jacobian[5] * this.B[5];
-	}
-
-	if ( constraint.object_b != null ) {
-		this.D += this.jacobian[6] * this.jacobian[6] +
-			this.jacobian[7] * this.B[7] +
-			this.jacobian[8] * this.B[8] +
-			this.jacobian[9] * this.B[9] +
-			this.jacobian[10] * this.B[10] +
-			this.jacobian[11] * this.B[11];
-	}
+Goblin.ConstraintRow.prototype.computeD = function() {
+	this.D = (
+		this.jacobian[0] * this.B[0] +
+		this.jacobian[1] * this.B[1] +
+		this.jacobian[2] * this.B[2] +
+		this.jacobian[3] * this.B[3] +
+		this.jacobian[4] * this.B[4] +
+		this.jacobian[5] * this.B[5] +
+		this.jacobian[6] * this.B[6] +
+		this.jacobian[7] * this.B[7] +
+		this.jacobian[8] * this.B[8] +
+		this.jacobian[9] * this.B[9] +
+		this.jacobian[10] * this.B[10] +
+		this.jacobian[11] * this.B[11]
+	);
 };
 
-Goblin.ConstraintRow.prototype.computeEta = function( constraint ) {
-	var invmass;
+Goblin.ConstraintRow.prototype.computeEta = function( constraint, time_delta ) {
+	var invmass,
+		inverse_time_delta = 1 / time_delta;
 
-	if ( constraint.object_a != null ) {
-		// Compute linear distance traveling this tick
+	if ( constraint.object_a == null || constraint.object_a.mass === Infinity ) {
+		this.eta_row[0] = this.eta_row[1] = this.eta_row[2] = this.eta_row[3] = this.eta_row[4] = this.eta_row[5] = 0;
+	} else {
 		invmass = 1 / constraint.object_a.mass;
-		this.eta_row[0] = ( constraint.object_a.linear_velocity[0] + ( invmass * constraint.object_a.accumulated_force[0] ) );
-		this.eta_row[1] = ( constraint.object_a.linear_velocity[1] + ( invmass * constraint.object_a.accumulated_force[1] ) );
-		this.eta_row[2] = ( constraint.object_a.linear_velocity[2] + ( invmass * constraint.object_a.accumulated_force[2] ) );
 
-		// Compute angular distance traveling this tick
+		this.eta_row[0] = ( constraint.object_a.linear_velocity[0] + ( invmass * constraint.object_a.accumulated_force[0] ) ) * inverse_time_delta;
+		this.eta_row[1] = ( constraint.object_a.linear_velocity[1] + ( invmass * constraint.object_a.accumulated_force[1] ) ) * inverse_time_delta;
+		this.eta_row[2] = ( constraint.object_a.linear_velocity[2] + ( invmass * constraint.object_a.accumulated_force[2] ) ) * inverse_time_delta;
+
 		vec3.set( constraint.object_a.accumulated_torque, _tmp_vec3_1 );
 		mat3.multiplyVec3( constraint.object_a.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
-		this.eta_row[3] = ( constraint.object_a.angular_velocity[0] + ( _tmp_vec3_1[0] ) );
-		this.eta_row[4] = ( constraint.object_a.angular_velocity[1] + ( _tmp_vec3_1[1] ) );
-		this.eta_row[5] = ( constraint.object_a.angular_velocity[2] + ( _tmp_vec3_1[2] ) );
-	} else {
-		this.eta_row[0] = this.eta_row[1] = this.eta_row[2] = this.eta_row[3] = this.eta_row[4] = this.eta_row[5] = 0;
+		this.eta_row[3] = ( constraint.object_a.angular_velocity[0] + _tmp_vec3_1[0] ) * inverse_time_delta;
+		this.eta_row[4] = ( constraint.object_a.angular_velocity[1] + _tmp_vec3_1[1] ) * inverse_time_delta;
+		this.eta_row[5] = ( constraint.object_a.angular_velocity[2] + _tmp_vec3_1[2] ) * inverse_time_delta;
 	}
-	if ( constraint.object_b != null ) {
-		invmass = 1 / constraint.object_b.mass;
-		this.eta_row[6] = ( constraint.object_b.linear_velocity[0] + ( invmass * constraint.object_b.accumulated_force[0] ) );
-		this.eta_row[7] = ( constraint.object_b.linear_velocity[1] + ( invmass * constraint.object_b.accumulated_force[1] ) );
-		this.eta_row[8] = ( constraint.object_b.linear_velocity[2] + ( invmass * constraint.object_b.accumulated_force[2] ) );
 
-		// Compute angular distance traveling this tick
+	if ( constraint.object_b == null || constraint.object_b.mass === Infinity ) {
+		this.eta_row[6] = this.eta_row[7] = this.eta_row[8] = this.eta_row[9] = this.eta_row[10] = this.eta_row[11] = 0;
+	} else {
+		invmass = 1 / constraint.object_b.mass;
+
+		this.eta_row[6] = ( constraint.object_b.linear_velocity[0] + ( invmass * constraint.object_b.accumulated_force[0] ) ) * inverse_time_delta;
+		this.eta_row[7] = ( constraint.object_b.linear_velocity[1] + ( invmass * constraint.object_b.accumulated_force[1] ) ) * inverse_time_delta;
+		this.eta_row[8] = ( constraint.object_b.linear_velocity[2] + ( invmass * constraint.object_b.accumulated_force[2] ) ) * inverse_time_delta;
+
 		vec3.set( constraint.object_b.accumulated_torque, _tmp_vec3_1 );
 		mat3.multiplyVec3( constraint.object_b.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
-		this.eta_row[9] = ( constraint.object_b.angular_velocity[0] + ( _tmp_vec3_1[0] ) );
-		this.eta_row[10] = ( constraint.object_b.angular_velocity[1] + ( _tmp_vec3_1[1] ) );
-		this.eta_row[11] = ( constraint.object_b.angular_velocity[2] + ( _tmp_vec3_1[2] ) );
-	} else {
-		this.eta_row[6] = this.eta_row[7] = this.eta_row[8] = this.eta_row[9] = this.eta_row[10] = this.eta_row[11] = 0;
+		this.eta_row[9] = ( constraint.object_b.angular_velocity[0] + _tmp_vec3_1[0] ) * inverse_time_delta;
+		this.eta_row[10] = ( constraint.object_b.angular_velocity[1] + _tmp_vec3_1[1] ) * inverse_time_delta;
+		this.eta_row[11] = ( constraint.object_b.angular_velocity[2] + _tmp_vec3_1[2] ) * inverse_time_delta;
 	}
 
 	var jdotv = this.jacobian[0] * this.eta_row[0] +
@@ -2194,10 +2166,12 @@ Goblin.ConstraintRow.prototype.computeEta = function( constraint ) {
 		this.jacobian[10] * this.eta_row[10] +
 		this.jacobian[11] * this.eta_row[11];
 
-	this.eta = this.bias - jdotv;
+	this.eta = ( this.bias * inverse_time_delta ) - jdotv;
 };
 Goblin.ContactConstraint = function() {
 	Goblin.Constraint.call( this );
+
+	this.contact = null;
 };
 
 Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
@@ -2219,7 +2193,6 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[2] = -contact.contact_normal[2];
 
 		vec3.subtract( contact.contact_point, contact.object_a.position, _tmp_vec3_1 );
-		//vec3.set( contact.contact_point_in_a, _tmp_vec3_1 );
 		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[3] = -_tmp_vec3_1[0];
 		row.jacobian[4] = -_tmp_vec3_1[1];
@@ -2235,7 +2208,6 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[8] = contact.contact_normal[2];
 
 		vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_1 );
-		//vec3.set( contact.contact_point_in_b, _tmp_vec3_1 );
 		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[9] = _tmp_vec3_1[0];
 		row.jacobian[10] = _tmp_vec3_1[1];
@@ -2243,14 +2215,23 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	// Pre-calc error
-	row.bias = contact.penetration_depth; //0;
+	row.bias = contact.penetration_depth;
 
 	// Apply restitution
-    var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
-    velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
+    //var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
+    //velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
+	var velocity_along_normal = 0;
+	if ( this.object_a.mass !== Infinity ) {
+		this.object_a.getVelocityInLocalPoint( contact.contact_point_in_a, _tmp_vec3_1 );
+		velocity_along_normal += vec3.dot( _tmp_vec3_1, contact.contact_normal );
+	}
+	if ( this.object_b.mass !== Infinity ) {
+		this.object_b.getVelocityInLocalPoint( contact.contact_point_in_b, _tmp_vec3_1 );
+		velocity_along_normal -= vec3.dot( _tmp_vec3_1, contact.contact_normal );
+	}
 
 	// Add restitution to bias
-	row.bias += velocity * contact.restitution;
+	row.bias += velocity_along_normal * contact.restitution;
 
 	this.rows[0] = row;
 };
@@ -2259,7 +2240,8 @@ Goblin.FrictionConstraint = function() {
 };
 
 Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
-	var row = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	var row_1 = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' ),
+		row_2 = this.rows[1] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
 
 	this.object_a = contact.object_a;
 	this.object_b = contact.object_b;
@@ -2270,7 +2252,118 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	vec3.subtract( contact.contact_point, contact.object_a.position, rel_a );
 	vec3.subtract( contact.contact_point, contact.object_b.position, rel_b );
 
-	// Find the relative velocity at the contact point
+	var u1 = vec3.create(),
+		u2 = vec3.create();
+
+	u1[0] = 1 - Math.abs( contact.contact_normal[0] );
+	u1[1] = 1 - Math.abs( contact.contact_normal[1] );
+	u1[2] = 1 - Math.abs( contact.contact_normal[2] );
+	vec3.normalize( u1 );
+
+	vec3.cross( contact.contact_normal, u1, u2 );
+
+	/*if ( Math.abs( contact.contact_normal[2] ) > 0.7071067811865475 ) {
+		// choose p in y-z plane
+		var a = -contact.contact_normal[1] * contact.contact_normal[1] + contact.contact_normal[2] * contact.contact_normal[2];
+		var k = 1 / Math.sqrt( a );
+		u1[0] = 0;
+		u1[1] = -contact.contact_normal[2] * k;
+		u1[2] = contact.contact_normal[1] * k;
+		// set q = n x p
+		u2[0] = a * k;
+		u2[1] = -contact.contact_normal[0] * u1[2];
+		u2[2] = contact.contact_normal[0] * u1[1];
+	}
+	else {
+		// choose p in x-y plane
+		var a = contact.contact_normal[0] * contact.contact_normal[0] + contact.contact_normal[1] * contact.contact_normal[1];
+		var k = 1 / Math.sqrt( a );
+		u1[0] = -contact.contact_normal[1] * k;
+		u1[1] = contact.contact_normal[0] * k;
+		u1[2] = 0;
+		// set q = n x p
+		u2[0] = -contact.contact_normal[2] * u1[1];
+		u2[1] = contact.contact_normal[2] * u1[0];
+		u2[2] = a*k;
+	}*/
+
+	if ( this.object_a == null || this.object_a.mass === Infinity ) {
+		row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
+		row_1.jacobian[3] = row_1.jacobian[4] = row_1.jacobian[5] = 0;
+		row_2.jacobian[0] = row_2.jacobian[1] = row_2.jacobian[2] = 0;
+		row_2.jacobian[3] = row_2.jacobian[4] = row_2.jacobian[5] = 0;
+	} else {
+		row_1.jacobian[0] = -u1[0];
+		row_1.jacobian[1] = -u1[1];
+		row_1.jacobian[2] = -u1[2];
+
+		vec3.cross( rel_a, u1, _tmp_vec3_1 );
+		row_1.jacobian[3] = -_tmp_vec3_1[0];
+		row_1.jacobian[4] = -_tmp_vec3_1[1];
+		row_1.jacobian[5] = -_tmp_vec3_1[2];
+
+		row_2.jacobian[0] = -u2[0];
+		row_2.jacobian[1] = -u2[1];
+		row_2.jacobian[2] = -u2[2];
+
+		vec3.cross( rel_a, u2, _tmp_vec3_1 );
+		row_2.jacobian[3] = -_tmp_vec3_1[0];
+		row_2.jacobian[4] = -_tmp_vec3_1[1];
+		row_2.jacobian[5] = -_tmp_vec3_1[2];
+	}
+
+	if ( this.object_b == null || this.object_b.mass === Infinity ) {
+		row_1.jacobian[6] = row_1.jacobian[7] = row_1.jacobian[8] = 0;
+		row_1.jacobian[9] = row_1.jacobian[10] = row_1.jacobian[11] = 0;
+		row_2.jacobian[6] = row_2.jacobian[7] = row_2.jacobian[8] = 0;
+		row_2.jacobian[9] = row_2.jacobian[10] = row_2.jacobian[11] = 0;
+	} else {
+		row_1.jacobian[6] = u1[0];
+		row_1.jacobian[7] = u1[1];
+		row_1.jacobian[8] = u1[2];
+
+		vec3.cross( rel_b, u1, _tmp_vec3_1 );
+		row_1.jacobian[9] = _tmp_vec3_1[0];
+		row_1.jacobian[10] = _tmp_vec3_1[1];
+		row_1.jacobian[11] = _tmp_vec3_1[2];
+
+		row_2.jacobian[6] = u2[0];
+		row_2.jacobian[7] = u2[1];
+		row_2.jacobian[8] = u2[2];
+
+		vec3.cross( rel_b, u2, _tmp_vec3_1 );
+		row_2.jacobian[9] = _tmp_vec3_1[0];
+		row_2.jacobian[10] = _tmp_vec3_1[1];
+		row_2.jacobian[11] = _tmp_vec3_1[2];
+	}
+
+	// Find total velocity between the two bodies along the contact normal
+	var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
+	velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
+
+	var avg_mass = 0;
+	if ( this.object_a == null || this.object_a.mass === Infinity ) {
+		avg_mass = this.object_b.mass;
+	} else if ( this.object_b == null || this.object_b.mass === Infinity ) {
+		avg_mass = this.object_a.mass;
+	} else {
+		avg_mass = ( this.object_a.mass + this.object_b.mass ) / 2;
+	}
+
+	velocity = 1; // @TODO velocity calculation above needs to be total external forces, not the velocity
+	var limit = contact.friction * velocity * avg_mass;
+	if ( limit < 0 ) {
+		limit = 0;
+	}
+	row_1.lower_limit = row_2.lower_limit = -limit;
+	row_1.upper_limit = row_2.upper_limit = limit;
+
+	row_1.bias = row_2.bias = 0;
+
+	this.rows[0] = row_1;
+	this.rows[1] = row_2;
+
+	/*// Find the relative velocity at the contact point
 	var velocity_a = vec3.create(),
 		velocity_b = vec3.create();
 
@@ -2318,7 +2411,7 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	row.upper_limit = limit;
 	row.bias = 0;
 
-	this.rows.push( row );
+	this.rows.push( row );*/
 };
 /**
  * Structure which holds information about a contact between two objects
@@ -3123,7 +3216,7 @@ Goblin.NearPhase.prototype.getContact = function( object_a, object_b ) {
 	} else if (
 		object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.BoxShape ||
 		object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.SphereShape
-		) {
+	) {
 		// Sphere - Box contact check
 		contact = Goblin.BoxSphere( object_a, object_b );
 	} else {
@@ -3349,31 +3442,13 @@ Goblin.RigidBody = (function() {
 		this.acceleration = vec3.create();
 
 		/**
-		 * amount of linear damping to apply to the rigid body's velocity
-		 *
-		 * @property linear_damping
-		 * @type {vec3}
-		 * @default [ 0, 0, 0 ]
-		 */
-		this.linear_damping = vec3.createFrom( 0, 0, 0 );
-
-		/**
-		 * amount of angular damping to apply to the rigid body's rotation
-		 *
-		 * @property angular_damping
-		 * @type {vec3}
-		 * @default [ 0, 0, 0 ]
-		 */
-		this.angular_damping = vec3.createFrom( 0, 0, 0 );
-
-		/**
 		 * amount of restitution this object has
 		 *
 		 * @property restitution
 		 * @type {Number}
-		 * @default 0.05
+		 * @default 0.1
 		 */
-		this.restitution = 0.05;
+		this.restitution = 0.2;
 
 		/**
 		 * amount of friction this object has
@@ -3517,30 +3592,21 @@ Goblin.RigidBody.prototype.integrate = function( timestep ) {
 
 	// Add accumulated angular force
 	mat3.multiplyVec3 ( this.inverseInertiaTensorWorldFrame, this.accumulated_torque, _tmp_vec3_1 );
-	vec3.scale( _tmp_vec3_1, timestep );
 	vec3.add( this.angular_velocity, _tmp_vec3_1 );
-
-	// Apply damping
-	this.linear_velocity[0] *= 1 / ( 1 + timestep * this.linear_damping[0] );
-	this.linear_velocity[1] *= 1 / ( 1 + timestep * this.linear_damping[1] );
-	this.linear_velocity[2] *= 1 / ( 1 + timestep * this.linear_damping[2] );
-	this.angular_velocity[0] *= 1 / ( 1 + timestep * this.angular_damping[0] );
-	this.angular_velocity[1] *= 1 / ( 1 + timestep * this.angular_damping[1] );
-	this.angular_velocity[2] *= 1 / ( 1 + timestep * this.angular_damping[2] );
 
 	// Update position
 	vec3.scale( this.linear_velocity, timestep, _tmp_vec3_1 );
 	vec3.add( this.position, _tmp_vec3_1 );
 
 	// Update rotation
-	_tmp_quat4_1[0] = this.angular_velocity[0];
-	_tmp_quat4_1[1] = this.angular_velocity[1];
-	_tmp_quat4_1[2] = this.angular_velocity[2];
+	_tmp_quat4_1[0] = this.angular_velocity[0] * timestep;
+	_tmp_quat4_1[1] = this.angular_velocity[1] * timestep;
+	_tmp_quat4_1[2] = this.angular_velocity[2] * timestep;
 	_tmp_quat4_1[3] = 0;
 
 	quat4.multiply( _tmp_quat4_1, this.rotation );
 
-	var half_dt = timestep * 0.5;
+	var half_dt = 0.5;
 	this.rotation[0] += half_dt * _tmp_quat4_1[0];
 	this.rotation[1] += half_dt * _tmp_quat4_1[1];
 	this.rotation[2] += half_dt * _tmp_quat4_1[2];
@@ -3621,6 +3687,12 @@ Goblin.RigidBody.prototype.applyForceAtLocalPoint = function( force, point ) {
 	var _vec3 = _tmp_vec3_1;
 	mat4.multiplyVec3( this.transform, point, _vec3 );
 	this.applyForceAtWorldPoint( force, _vec3 );
+};
+
+Goblin.RigidBody.prototype.getVelocityInLocalPoint = function( point, out ) {
+	vec3.set( this.angular_velocity, out );
+	vec3.cross( out, point );
+	vec3.add( out, this.linear_velocity );
 };
 
 /**
@@ -3769,7 +3841,7 @@ Goblin.SequentialImpulseSolver = function() {
 	/**
 	 * Holds contact constraints generated from contact manifolds
 	 *
-	 * @param contact_constraints
+	 * @property contact_constraints
 	 * @type {Array}
 	 */
 	this.contact_constraints = [];
@@ -3777,13 +3849,14 @@ Goblin.SequentialImpulseSolver = function() {
 	/**
 	 * Holds friction constraints generated from contact manifolds
 	 *
-	 * @param friction_constraints
+	 * @property friction_constraints
 	 * @type {Array}
 	 */
 	this.friction_constraints = [];
 
 	/**
 	 * array of all constraints being solved
+	 * @property constraints
 	 * @type {Array}
 	 */
 	this.constraints = [];
@@ -3791,12 +3864,14 @@ Goblin.SequentialImpulseSolver = function() {
 	// Maximum solver iterations per time step
 	/**
 	 * maximum solver iterations to perforrm
+	 * @property max_iterations
 	 * @type {number}
 	 */
 	this.max_iterations = 10;
 
 	/**
 	 * used to relax the contact position solver, 0 is no position correction and 1 is full correction
+	 * @property relaxation
 	 * @type {Number}
 	 */
 	this.relaxation = 1;
@@ -3850,7 +3925,7 @@ Goblin.SequentialImpulseSolver.prototype.processContactManifolds = function( con
 	Array.prototype.push.apply( this.constraints, this.friction_constraints );
 };
 
-Goblin.SequentialImpulseSolver.prototype.prepareConstraints = function() {
+Goblin.SequentialImpulseSolver.prototype.prepareConstraints = function( time_delta ) {
 	var num_constraints = this.constraints.length,
 		num_rows,
 		constraint,
@@ -3864,15 +3939,14 @@ Goblin.SequentialImpulseSolver.prototype.prepareConstraints = function() {
 		for ( j = 0; j < num_rows; j++ ) {
 			row = constraint.rows[j];
 			row.multiplier = 0;
-
-			row.computeB( constraint ); // Jacobian * objects' inverted mass & inertia tensors
-			row.computeD( constraint ); // Length of Jacobian
-			row.computeEta( constraint ); // Amount of work needed to be done by this constraint
+			row.computeB( constraint ); // Objects' inverted mass & inertia tensors & Jacobian
+			row.computeD();
+			row.computeEta( constraint, time_delta ); // Amount of work needed for the constraint
 		}
 	}
 };
 
-Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_step ) {
+Goblin.SequentialImpulseSolver.prototype.resolveContacts = function() {
 	var iteration, constraint, row,
 		i, delta_impulse, max_impulse = 0;
 
@@ -3884,22 +3958,22 @@ Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_step )
 			row = constraint.rows[0];
 
 			var push_dot_n_a =
-				row.jacobian[0] * constraint.object_a.push_velocity[0] +
-				row.jacobian[1] * constraint.object_a.push_velocity[1] +
-				row.jacobian[2] * constraint.object_a.push_velocity[2] +
-				row.jacobian[4] * constraint.object_a.turn_velocity[1] +
-				row.jacobian[3] * constraint.object_a.turn_velocity[0] +
-				row.jacobian[5] * constraint.object_a.turn_velocity[2];
+				row.B[0] * constraint.object_a.push_velocity[0] +
+				row.B[1] * constraint.object_a.push_velocity[1] +
+				row.B[2] * constraint.object_a.push_velocity[2] +
+				row.B[4] * constraint.object_a.turn_velocity[1] +
+				row.B[3] * constraint.object_a.turn_velocity[0] +
+				row.B[5] * constraint.object_a.turn_velocity[2];
 
 			var push_dot_n_b =
-				row.jacobian[6] * constraint.object_b.push_velocity[0] +
-				row.jacobian[7] * constraint.object_b.push_velocity[1] +
-				row.jacobian[8] * constraint.object_b.push_velocity[2] +
-				row.jacobian[9] * constraint.object_b.turn_velocity[0] +
-				row.jacobian[10] * constraint.object_b.turn_velocity[1] +
-				row.jacobian[11] * constraint.object_b.turn_velocity[2];
+				row.B[6] * constraint.object_b.push_velocity[0] +
+				row.B[7] * constraint.object_b.push_velocity[1] +
+				row.B[8] * constraint.object_b.push_velocity[2] +
+				row.B[9] * constraint.object_b.turn_velocity[0] +
+				row.B[10] * constraint.object_b.turn_velocity[1] +
+				row.B[11] * constraint.object_b.turn_velocity[2];
 
-			delta_impulse = ( constraint.contact.penetration_depth - ( push_dot_n_a + push_dot_n_b ) ) / row.D;
+			delta_impulse = constraint.contact.penetration_depth - ( ( push_dot_n_a + push_dot_n_b ) / row.D );
 
 			var cache = row.applied_push_impulse;
 			row.applied_push_impulse = Math.max(
@@ -3912,19 +3986,23 @@ Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_step )
 			delta_impulse = row.applied_push_impulse - cache;
 			max_impulse = Math.max( max_impulse, delta_impulse );
 
-			constraint.object_a.push_velocity[0] += row.B[0] * delta_impulse;
-			constraint.object_a.push_velocity[1] += row.B[1] * delta_impulse;
-			constraint.object_a.push_velocity[2] += row.B[2] * delta_impulse;
-			constraint.object_a.turn_velocity[0] += row.B[3] * delta_impulse;
-			constraint.object_a.turn_velocity[1] += row.B[4] * delta_impulse;
-			constraint.object_a.turn_velocity[2] += row.B[5] * delta_impulse;
-
-			constraint.object_b.push_velocity[0] += row.B[6] * delta_impulse;
-			constraint.object_b.push_velocity[1] += row.B[7] * delta_impulse;
-			constraint.object_b.push_velocity[2] += row.B[8] * delta_impulse;
-			constraint.object_b.turn_velocity[0] += row.B[9] * delta_impulse;
-			constraint.object_b.turn_velocity[1] += row.B[10] * delta_impulse;
-			constraint.object_b.turn_velocity[2] += row.B[11] * delta_impulse;
+			delta_impulse /= row.D;
+			if ( constraint.object_a && constraint.object_a.mass !== Infinity ) {
+				constraint.object_a.push_velocity[0] += row.B[0] * delta_impulse;
+				constraint.object_a.push_velocity[1] += row.B[1] * delta_impulse;
+				constraint.object_a.push_velocity[2] += row.B[2] * delta_impulse;
+				constraint.object_a.turn_velocity[0] += row.B[3] * delta_impulse;
+				constraint.object_a.turn_velocity[1] += row.B[4] * delta_impulse;
+				constraint.object_a.turn_velocity[2] += row.B[5] * delta_impulse;
+			}
+			if ( constraint.object_b && constraint.object_b.mass !== Infinity ) {
+				constraint.object_b.push_velocity[0] += row.B[6] * delta_impulse;
+				constraint.object_b.push_velocity[1] += row.B[7] * delta_impulse;
+				constraint.object_b.push_velocity[2] += row.B[8] * delta_impulse;
+				constraint.object_b.turn_velocity[0] += row.B[9] * delta_impulse;
+				constraint.object_b.turn_velocity[1] += row.B[10] * delta_impulse;
+				constraint.object_b.turn_velocity[2] += row.B[11] * delta_impulse;
+			}
 		}
 
 		if ( max_impulse >= -Goblin.EPSILON && max_impulse <= Goblin.EPSILON ) {
@@ -3933,8 +4011,17 @@ Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_step )
 	}
 
 	// Apply position/rotation solver
-	var half_dt = time_step * 0.5;
-	for ( i = 0; i < this.contact_constraints.length; i++ ) {
+	var half_dt = 0.5;
+
+	for ( i = 0; i < this.world.rigid_bodies.length; i++ ) {
+		var body = this.world.rigid_bodies[i];
+
+		if ( body.mass !== Infinity ) {
+			vec3.add( body.position, body.push_velocity );
+		}
+	}
+
+	/*for ( i = 0; i < this.contact_constraints.length; i++ ) {
 		constraint = this.contact_constraints[i];
 		row = constraint.rows[0];
 
@@ -3951,7 +4038,7 @@ Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_step )
 			_tmp_vec3_1[0] = row.B[3] * multiplier;
 			_tmp_vec3_1[1] = row.B[4] * multiplier;
 			_tmp_vec3_1[2] = row.B[5] * multiplier;
-			//vec3.add( constraint.object_a.angular_velocity, _tmp_vec3_1 );
+			vec3.add( constraint.object_a.angular_velocity, _tmp_vec3_1 );
 
 			// Update rotation
 			_tmp_quat4_1[0] = _tmp_vec3_1[0];
@@ -3978,7 +4065,7 @@ Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_step )
 			_tmp_vec3_1[0] = row.B[9] * multiplier;
 			_tmp_vec3_1[1] = row.B[10] * multiplier;
 			_tmp_vec3_1[2] = row.B[11] * multiplier;
-			//vec3.add( constraint.object_b.angular_velocity, _tmp_vec3_1 );
+			vec3.add( constraint.object_b.angular_velocity, _tmp_vec3_1 );
 
 			// Update rotation
 			_tmp_quat4_1[0] = _tmp_vec3_1[0];
@@ -3993,7 +4080,7 @@ Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_step )
 			constraint.object_b.rotation[3] += half_dt * _tmp_quat4_1[3];
 			quat4.normalize( constraint.object_b.rotation );
 		}
-	}
+	}*/
 };
 
 Goblin.SequentialImpulseSolver.prototype.solveConstraints = function() {
@@ -4012,34 +4099,34 @@ Goblin.SequentialImpulseSolver.prototype.solveConstraints = function() {
 		max_impulse = 0;
 		for ( i = 0; i < num_constraints; i++ ) {
 			constraint = this.constraints[i];
-
 			num_rows = constraint.rows.length;
-			for ( j = 0; j < num_rows; j++ ) {
 
+			for ( j = 0; j < num_rows; j++ ) {
 				row = constraint.rows[j];
 
-				// How much does the current solver impulse match this constraint
 				jdot = 0;
-				if ( constraint.object_a && constraint.object_a.mass !== Infinity ) {
-					jdot +=
+				if ( constraint.object_a != null && constraint.object_a.mass !== Infinity ) {
+					jdot += (
 						row.jacobian[0] * constraint.object_a.solver_impulse[0] +
 						row.jacobian[1] * constraint.object_a.solver_impulse[1] +
 						row.jacobian[2] * constraint.object_a.solver_impulse[2] +
 						row.jacobian[3] * constraint.object_a.solver_impulse[3] +
 						row.jacobian[4] * constraint.object_a.solver_impulse[4] +
-						row.jacobian[5] * constraint.object_a.solver_impulse[5];
+						row.jacobian[5] * constraint.object_a.solver_impulse[5]
+						);
 				}
-				if ( constraint.object_b && constraint.object_b.mass !== Infinity ) {
-					jdot +=
+				if ( constraint.object_b != null && constraint.object_b.mass !== Infinity ) {
+					jdot += (
 						row.jacobian[6] * constraint.object_b.solver_impulse[0] +
 						row.jacobian[7] * constraint.object_b.solver_impulse[1] +
 						row.jacobian[8] * constraint.object_b.solver_impulse[2] +
 						row.jacobian[9] * constraint.object_b.solver_impulse[3] +
 						row.jacobian[10] * constraint.object_b.solver_impulse[4] +
-						row.jacobian[11] * constraint.object_b.solver_impulse[5];
+						row.jacobian[11] * constraint.object_b.solver_impulse[5]
+					);
 				}
-				delta_lambda = ( row.eta - jdot ) / row.D;
 
+				delta_lambda = ( row.eta - jdot ) / row.D;
 				var cache = row.multiplier;
 				row.multiplier = Math.max(
 					row.lower_limit,
@@ -4055,6 +4142,7 @@ Goblin.SequentialImpulseSolver.prototype.solveConstraints = function() {
 					constraint.object_a.solver_impulse[0] += delta_lambda * row.B[0];
 					constraint.object_a.solver_impulse[1] += delta_lambda * row.B[1];
 					constraint.object_a.solver_impulse[2] += delta_lambda * row.B[2];
+
 					constraint.object_a.solver_impulse[3] += delta_lambda * row.B[3];
 					constraint.object_a.solver_impulse[4] += delta_lambda * row.B[4];
 					constraint.object_a.solver_impulse[5] += delta_lambda * row.B[5];
@@ -4063,6 +4151,7 @@ Goblin.SequentialImpulseSolver.prototype.solveConstraints = function() {
 					constraint.object_b.solver_impulse[0] += delta_lambda * row.B[6];
 					constraint.object_b.solver_impulse[1] += delta_lambda * row.B[7];
 					constraint.object_b.solver_impulse[2] += delta_lambda * row.B[8];
+
 					constraint.object_b.solver_impulse[3] += delta_lambda * row.B[9];
 					constraint.object_b.solver_impulse[4] += delta_lambda * row.B[10];
 					constraint.object_b.solver_impulse[5] += delta_lambda * row.B[11];
@@ -4076,13 +4165,13 @@ Goblin.SequentialImpulseSolver.prototype.solveConstraints = function() {
 	}
 };
 
-Goblin.SequentialImpulseSolver.prototype.applyConstraints = function() {
+Goblin.SequentialImpulseSolver.prototype.applyConstraints = function( time_delta ) {
 	var num_constraints = this.constraints.length,
 		constraint,
 		num_rows,
 		row,
 		i, j,
-		multiplier;
+		invmass;
 
 	for ( i = 0; i < num_constraints; i++ ) {
 		constraint = this.constraints[i];
@@ -4090,30 +4179,35 @@ Goblin.SequentialImpulseSolver.prototype.applyConstraints = function() {
 
 		for ( j = 0; j < num_rows; j++ ) {
 			row = constraint.rows[j];
-			multiplier = row.multiplier;
 
-			if ( constraint.object_a.mass !== Infinity ) {
-				_tmp_vec3_1[0] = row.B[0] * multiplier;
-				_tmp_vec3_1[1] = row.B[1] * multiplier;
-				_tmp_vec3_1[2] = row.B[2] * multiplier;
-				vec3.add( constraint.object_a.linear_velocity, _tmp_vec3_1 );
+			if ( constraint.object_a != null && constraint.object_a.mass !== Infinity ) {
+				invmass = 1 / constraint.object_a.mass;
+				constraint.object_a.linear_velocity[0] += invmass * time_delta * row.jacobian[0] * row.multiplier;
+				constraint.object_a.linear_velocity[1] += invmass * time_delta * row.jacobian[1] * row.multiplier;
+				constraint.object_a.linear_velocity[2] += invmass * time_delta * row.jacobian[2] * row.multiplier;
 
-				_tmp_vec3_1[0] = row.B[3] * multiplier;
-				_tmp_vec3_1[1] = row.B[4] * multiplier;
-				_tmp_vec3_1[2] = row.B[5] * multiplier;
-				vec3.add( constraint.object_a.angular_velocity, _tmp_vec3_1 );
+				_tmp_vec3_1[0] = time_delta * row.jacobian[3] * row.multiplier;
+				_tmp_vec3_1[1] = time_delta * row.jacobian[4] * row.multiplier;
+				_tmp_vec3_1[2] = time_delta * row.jacobian[5] * row.multiplier;
+				mat3.multiplyVec3( constraint.object_a.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
+				constraint.object_a.angular_velocity[0] += _tmp_vec3_1[0];
+				constraint.object_a.angular_velocity[1] += _tmp_vec3_1[1];
+				constraint.object_a.angular_velocity[2] += _tmp_vec3_1[2];
 			}
 
-			if ( constraint.object_b.mass !== Infinity ) {
-				_tmp_vec3_1[0] = row.B[6] * multiplier;
-				_tmp_vec3_1[1] = row.B[7] * multiplier;
-				_tmp_vec3_1[2] = row.B[8] * multiplier;
-				vec3.add( constraint.object_b.linear_velocity, _tmp_vec3_1 );
+			if ( constraint.object_b != null && constraint.object_b.mass !== Infinity ) {
+				invmass = 1 / constraint.object_b.mass;
+				constraint.object_b.linear_velocity[0] += invmass * time_delta * row.jacobian[6] * row.multiplier;
+				constraint.object_b.linear_velocity[1] += invmass * time_delta * row.jacobian[7] * row.multiplier;
+				constraint.object_b.linear_velocity[2] += invmass * time_delta * row.jacobian[8] * row.multiplier;
 
-				_tmp_vec3_1[0] = row.B[9] * multiplier;
-				_tmp_vec3_1[1] = row.B[10] * multiplier;
-				_tmp_vec3_1[2] = row.B[11] * multiplier;
-				vec3.add( constraint.object_b.angular_velocity, _tmp_vec3_1 );
+				_tmp_vec3_1[0] = time_delta * row.jacobian[9] * row.multiplier;
+				_tmp_vec3_1[1] = time_delta * row.jacobian[10] * row.multiplier;
+				_tmp_vec3_1[2] = time_delta * row.jacobian[11] * row.multiplier;
+				mat3.multiplyVec3( constraint.object_b.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
+				constraint.object_b.angular_velocity[0] += _tmp_vec3_1[0];
+				constraint.object_b.angular_velocity[1] += _tmp_vec3_1[1];
+				constraint.object_b.angular_velocity[2] += _tmp_vec3_1[2];
 			}
 		}
 	}
@@ -5209,6 +5303,7 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @property solver
 	 */
 	this.solver = solver;
+	solver.world = this;
 
 	/**
 	 * Array of mass_points in the world
@@ -5308,16 +5403,16 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         this.solver.processContactManifolds( this.nearphase.contact_manifolds );
 
         // Prepare the constraints by precomputing some values
-        this.solver.prepareConstraints();
+        this.solver.prepareConstraints( delta );
 
         // Resolve contacts
-        this.solver.resolveContacts( delta );
+        //this.solver.resolveContacts( delta );
 
         // Run the constraint solver
         this.solver.solveConstraints();
 
         // Apply the constraints
-        this.solver.applyConstraints();
+        this.solver.applyConstraints( delta );
 
         // Integrate rigid bodies
         for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {

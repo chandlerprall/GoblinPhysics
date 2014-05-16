@@ -124,7 +124,7 @@ Goblin.NearPhase.prototype.getContact = function( object_a, object_b ) {
 	} else if (
 		object_a.shape instanceof Goblin.SphereShape && object_b.shape instanceof Goblin.BoxShape ||
 		object_a.shape instanceof Goblin.BoxShape && object_b.shape instanceof Goblin.SphereShape
-		) {
+	) {
 		// Sphere - Box contact check
 		contact = Goblin.BoxSphere( object_a, object_b );
 	} else {

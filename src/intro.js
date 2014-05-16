@@ -2,8 +2,7 @@
  * Extensions to gl-matrix quat4
  */
 (function() {
-	var _quat = quat4.create(),
-		_vec = vec3.create();
+	var _quat = quat4.create();
 
 	/**
 	 * @method rotateByVector
@@ -48,34 +47,12 @@
 
 		quat4.multiply( quat, _quat );
 
-		/*vec3.scale( vec, scale, _vec );
-		vec3.scale( _vec, 0.5 );
-
-		var thetaMagSq = vec3.squaredLength( _vec ),
-			thetaMag,
-			s;
-
-		if ( thetaMagSq * thetaMagSq / 24 < Goblin.EPSILON ) {
-			_quat[3] = 1 - thetaMagSq / 2;
-			s = 1 - thetaMagSq / 6;
-		} else {
-			thetaMag = Math.sqrt( thetaMagSq );
-			_quat[3] = Math.cos( thetaMag );
-			s = Math.sin( thetaMag ) / thetaMag;
-		}
-
-		_quat[0] = _vec[0] * s;
-		_quat[1] = _vec[1] * s;
-		_quat[2] = _vec[2] * s;
-
-		quat4.multiply( _quat, quat, dest );*/
-
 		return dest;
-	}
+	};
 })();
 
 /**
-* Goblin physics module
+* Goblin Physics
 *
 * @module Goblin
 */

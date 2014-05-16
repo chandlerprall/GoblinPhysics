@@ -110,6 +110,7 @@ window.exampleUtils = (function(){
 
 		run: function() {
 			requestAnimationFrame( exampleUtils.run );
+			//setTimeout( exampleUtils.run, 50 );
 
 			controls.update();
 			world.step( 1 / 60 );

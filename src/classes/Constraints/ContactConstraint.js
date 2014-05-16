@@ -1,5 +1,7 @@
 Goblin.ContactConstraint = function() {
 	Goblin.Constraint.call( this );
+
+	this.contact = null;
 };
 
 Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
@@ -21,7 +23,6 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[2] = -contact.contact_normal[2];
 
 		vec3.subtract( contact.contact_point, contact.object_a.position, _tmp_vec3_1 );
-		//vec3.set( contact.contact_point_in_a, _tmp_vec3_1 );
 		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[3] = -_tmp_vec3_1[0];
 		row.jacobian[4] = -_tmp_vec3_1[1];
@@ -37,7 +38,6 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[8] = contact.contact_normal[2];
 
 		vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_1 );
-		//vec3.set( contact.contact_point_in_b, _tmp_vec3_1 );
 		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[9] = _tmp_vec3_1[0];
 		row.jacobian[10] = _tmp_vec3_1[1];
@@ -45,14 +45,23 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	// Pre-calc error
-	row.bias = contact.penetration_depth; //0;
+	row.bias = contact.penetration_depth;
 
 	// Apply restitution
-    var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
-    velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
+    //var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
+    //velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
+	var velocity_along_normal = 0;
+	if ( this.object_a.mass !== Infinity ) {
+		this.object_a.getVelocityInLocalPoint( contact.contact_point_in_a, _tmp_vec3_1 );
+		velocity_along_normal += vec3.dot( _tmp_vec3_1, contact.contact_normal );
+	}
+	if ( this.object_b.mass !== Infinity ) {
+		this.object_b.getVelocityInLocalPoint( contact.contact_point_in_b, _tmp_vec3_1 );
+		velocity_along_normal -= vec3.dot( _tmp_vec3_1, contact.contact_normal );
+	}
 
 	// Add restitution to bias
-	row.bias += velocity * contact.restitution;
+	row.bias += velocity_along_normal * contact.restitution;
 
 	this.rows[0] = row;
 };

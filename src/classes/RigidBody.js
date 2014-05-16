@@ -110,31 +110,13 @@ Goblin.RigidBody = (function() {
 		this.acceleration = vec3.create();
 
 		/**
-		 * amount of linear damping to apply to the rigid body's velocity
-		 *
-		 * @property linear_damping
-		 * @type {vec3}
-		 * @default [ 0, 0, 0 ]
-		 */
-		this.linear_damping = vec3.createFrom( 0, 0, 0 );
-
-		/**
-		 * amount of angular damping to apply to the rigid body's rotation
-		 *
-		 * @property angular_damping
-		 * @type {vec3}
-		 * @default [ 0, 0, 0 ]
-		 */
-		this.angular_damping = vec3.createFrom( 0, 0, 0 );
-
-		/**
 		 * amount of restitution this object has
 		 *
 		 * @property restitution
 		 * @type {Number}
-		 * @default 0.05
+		 * @default 0.1
 		 */
-		this.restitution = 0.05;
+		this.restitution = 0.2;
 
 		/**
 		 * amount of friction this object has
@@ -278,30 +260,21 @@ Goblin.RigidBody.prototype.integrate = function( timestep ) {
 
 	// Add accumulated angular force
 	mat3.multiplyVec3 ( this.inverseInertiaTensorWorldFrame, this.accumulated_torque, _tmp_vec3_1 );
-	vec3.scale( _tmp_vec3_1, timestep );
 	vec3.add( this.angular_velocity, _tmp_vec3_1 );
-
-	// Apply damping
-	this.linear_velocity[0] *= 1 / ( 1 + timestep * this.linear_damping[0] );
-	this.linear_velocity[1] *= 1 / ( 1 + timestep * this.linear_damping[1] );
-	this.linear_velocity[2] *= 1 / ( 1 + timestep * this.linear_damping[2] );
-	this.angular_velocity[0] *= 1 / ( 1 + timestep * this.angular_damping[0] );
-	this.angular_velocity[1] *= 1 / ( 1 + timestep * this.angular_damping[1] );
-	this.angular_velocity[2] *= 1 / ( 1 + timestep * this.angular_damping[2] );
 
 	// Update position
 	vec3.scale( this.linear_velocity, timestep, _tmp_vec3_1 );
 	vec3.add( this.position, _tmp_vec3_1 );
 
 	// Update rotation
-	_tmp_quat4_1[0] = this.angular_velocity[0];
-	_tmp_quat4_1[1] = this.angular_velocity[1];
-	_tmp_quat4_1[2] = this.angular_velocity[2];
+	_tmp_quat4_1[0] = this.angular_velocity[0] * timestep;
+	_tmp_quat4_1[1] = this.angular_velocity[1] * timestep;
+	_tmp_quat4_1[2] = this.angular_velocity[2] * timestep;
 	_tmp_quat4_1[3] = 0;
 
 	quat4.multiply( _tmp_quat4_1, this.rotation );
 
-	var half_dt = timestep * 0.5;
+	var half_dt = 0.5;
 	this.rotation[0] += half_dt * _tmp_quat4_1[0];
 	this.rotation[1] += half_dt * _tmp_quat4_1[1];
 	this.rotation[2] += half_dt * _tmp_quat4_1[2];
@@ -382,6 +355,12 @@ Goblin.RigidBody.prototype.applyForceAtLocalPoint = function( force, point ) {
 	var _vec3 = _tmp_vec3_1;
 	mat4.multiplyVec3( this.transform, point, _vec3 );
 	this.applyForceAtWorldPoint( force, _vec3 );
+};
+
+Goblin.RigidBody.prototype.getVelocityInLocalPoint = function( point, out ) {
+	vec3.set( this.angular_velocity, out );
+	vec3.cross( out, point );
+	vec3.add( out, this.linear_velocity );
 };
 
 /**

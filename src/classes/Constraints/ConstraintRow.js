@@ -8,8 +8,7 @@ Goblin.ConstraintRow = function() {
 
 	this.bias = 0;
 	this.multiplier = 0;
-	this.multiplier_cache = 0;
-	this.eta = 0; // The amount of work required of the constraint
+	this.eta = 0;
 	this.eta_row = new Float64Array( 12 );
 
 	this.applied_push_impulse = 0;
@@ -56,61 +55,57 @@ Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
 	}
 };
 
-Goblin.ConstraintRow.prototype.computeD = function( constraint ) {
-	this.D = 0;
-
-	if ( constraint.object_a != null ) {
-		this.D += this.jacobian[0] * this.jacobian[0] +
-			this.jacobian[1] * this.B[1] +
-			this.jacobian[2] * this.B[2] +
-			this.jacobian[3] * this.B[3] +
-			this.jacobian[4] * this.B[4] +
-			this.jacobian[5] * this.B[5];
-	}
-
-	if ( constraint.object_b != null ) {
-		this.D += this.jacobian[6] * this.jacobian[6] +
-			this.jacobian[7] * this.B[7] +
-			this.jacobian[8] * this.B[8] +
-			this.jacobian[9] * this.B[9] +
-			this.jacobian[10] * this.B[10] +
-			this.jacobian[11] * this.B[11];
-	}
+Goblin.ConstraintRow.prototype.computeD = function() {
+	this.D = (
+		this.jacobian[0] * this.B[0] +
+		this.jacobian[1] * this.B[1] +
+		this.jacobian[2] * this.B[2] +
+		this.jacobian[3] * this.B[3] +
+		this.jacobian[4] * this.B[4] +
+		this.jacobian[5] * this.B[5] +
+		this.jacobian[6] * this.B[6] +
+		this.jacobian[7] * this.B[7] +
+		this.jacobian[8] * this.B[8] +
+		this.jacobian[9] * this.B[9] +
+		this.jacobian[10] * this.B[10] +
+		this.jacobian[11] * this.B[11]
+	);
 };
 
-Goblin.ConstraintRow.prototype.computeEta = function( constraint ) {
-	var invmass;
+Goblin.ConstraintRow.prototype.computeEta = function( constraint, time_delta ) {
+	var invmass,
+		inverse_time_delta = 1 / time_delta;
 
-	if ( constraint.object_a != null ) {
-		// Compute linear distance traveling this tick
+	if ( constraint.object_a == null || constraint.object_a.mass === Infinity ) {
+		this.eta_row[0] = this.eta_row[1] = this.eta_row[2] = this.eta_row[3] = this.eta_row[4] = this.eta_row[5] = 0;
+	} else {
 		invmass = 1 / constraint.object_a.mass;
-		this.eta_row[0] = ( constraint.object_a.linear_velocity[0] + ( invmass * constraint.object_a.accumulated_force[0] ) );
-		this.eta_row[1] = ( constraint.object_a.linear_velocity[1] + ( invmass * constraint.object_a.accumulated_force[1] ) );
-		this.eta_row[2] = ( constraint.object_a.linear_velocity[2] + ( invmass * constraint.object_a.accumulated_force[2] ) );
 
-		// Compute angular distance traveling this tick
+		this.eta_row[0] = ( constraint.object_a.linear_velocity[0] + ( invmass * constraint.object_a.accumulated_force[0] ) ) * inverse_time_delta;
+		this.eta_row[1] = ( constraint.object_a.linear_velocity[1] + ( invmass * constraint.object_a.accumulated_force[1] ) ) * inverse_time_delta;
+		this.eta_row[2] = ( constraint.object_a.linear_velocity[2] + ( invmass * constraint.object_a.accumulated_force[2] ) ) * inverse_time_delta;
+
 		vec3.set( constraint.object_a.accumulated_torque, _tmp_vec3_1 );
 		mat3.multiplyVec3( constraint.object_a.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
-		this.eta_row[3] = ( constraint.object_a.angular_velocity[0] + ( _tmp_vec3_1[0] ) );
-		this.eta_row[4] = ( constraint.object_a.angular_velocity[1] + ( _tmp_vec3_1[1] ) );
-		this.eta_row[5] = ( constraint.object_a.angular_velocity[2] + ( _tmp_vec3_1[2] ) );
-	} else {
-		this.eta_row[0] = this.eta_row[1] = this.eta_row[2] = this.eta_row[3] = this.eta_row[4] = this.eta_row[5] = 0;
+		this.eta_row[3] = ( constraint.object_a.angular_velocity[0] + _tmp_vec3_1[0] ) * inverse_time_delta;
+		this.eta_row[4] = ( constraint.object_a.angular_velocity[1] + _tmp_vec3_1[1] ) * inverse_time_delta;
+		this.eta_row[5] = ( constraint.object_a.angular_velocity[2] + _tmp_vec3_1[2] ) * inverse_time_delta;
 	}
-	if ( constraint.object_b != null ) {
-		invmass = 1 / constraint.object_b.mass;
-		this.eta_row[6] = ( constraint.object_b.linear_velocity[0] + ( invmass * constraint.object_b.accumulated_force[0] ) );
-		this.eta_row[7] = ( constraint.object_b.linear_velocity[1] + ( invmass * constraint.object_b.accumulated_force[1] ) );
-		this.eta_row[8] = ( constraint.object_b.linear_velocity[2] + ( invmass * constraint.object_b.accumulated_force[2] ) );
 
-		// Compute angular distance traveling this tick
+	if ( constraint.object_b == null || constraint.object_b.mass === Infinity ) {
+		this.eta_row[6] = this.eta_row[7] = this.eta_row[8] = this.eta_row[9] = this.eta_row[10] = this.eta_row[11] = 0;
+	} else {
+		invmass = 1 / constraint.object_b.mass;
+
+		this.eta_row[6] = ( constraint.object_b.linear_velocity[0] + ( invmass * constraint.object_b.accumulated_force[0] ) ) * inverse_time_delta;
+		this.eta_row[7] = ( constraint.object_b.linear_velocity[1] + ( invmass * constraint.object_b.accumulated_force[1] ) ) * inverse_time_delta;
+		this.eta_row[8] = ( constraint.object_b.linear_velocity[2] + ( invmass * constraint.object_b.accumulated_force[2] ) ) * inverse_time_delta;
+
 		vec3.set( constraint.object_b.accumulated_torque, _tmp_vec3_1 );
 		mat3.multiplyVec3( constraint.object_b.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
-		this.eta_row[9] = ( constraint.object_b.angular_velocity[0] + ( _tmp_vec3_1[0] ) );
-		this.eta_row[10] = ( constraint.object_b.angular_velocity[1] + ( _tmp_vec3_1[1] ) );
-		this.eta_row[11] = ( constraint.object_b.angular_velocity[2] + ( _tmp_vec3_1[2] ) );
-	} else {
-		this.eta_row[6] = this.eta_row[7] = this.eta_row[8] = this.eta_row[9] = this.eta_row[10] = this.eta_row[11] = 0;
+		this.eta_row[9] = ( constraint.object_b.angular_velocity[0] + _tmp_vec3_1[0] ) * inverse_time_delta;
+		this.eta_row[10] = ( constraint.object_b.angular_velocity[1] + _tmp_vec3_1[1] ) * inverse_time_delta;
+		this.eta_row[11] = ( constraint.object_b.angular_velocity[2] + _tmp_vec3_1[2] ) * inverse_time_delta;
 	}
 
 	var jdotv = this.jacobian[0] * this.eta_row[0] +
@@ -126,5 +121,5 @@ Goblin.ConstraintRow.prototype.computeEta = function( constraint ) {
 		this.jacobian[10] * this.eta_row[10] +
 		this.jacobian[11] * this.eta_row[11];
 
-	this.eta = this.bias - jdotv;
+	this.eta = ( this.bias * inverse_time_delta ) - jdotv;
 };

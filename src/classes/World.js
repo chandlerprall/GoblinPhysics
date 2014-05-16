@@ -37,6 +37,7 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @property solver
 	 */
 	this.solver = solver;
+	solver.world = this;
 
 	/**
 	 * Array of mass_points in the world
@@ -136,16 +137,16 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         this.solver.processContactManifolds( this.nearphase.contact_manifolds );
 
         // Prepare the constraints by precomputing some values
-        this.solver.prepareConstraints();
+        this.solver.prepareConstraints( delta );
 
         // Resolve contacts
-        this.solver.resolveContacts( delta );
+        //this.solver.resolveContacts( delta );
 
         // Run the constraint solver
         this.solver.solveConstraints();
 
         // Apply the constraints
-        this.solver.applyConstraints();
+        this.solver.applyConstraints( delta );
 
         // Integrate rigid bodies
         for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
