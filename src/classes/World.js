@@ -140,7 +140,7 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         this.solver.prepareConstraints( delta );
 
         // Resolve contacts
-        //this.solver.resolveContacts( delta );
+        this.solver.resolveContacts( delta );
 
         // Run the constraint solver
         this.solver.solveConstraints();

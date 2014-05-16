@@ -60,9 +60,9 @@
 			// 5th level
 			for ( i = 0; i < 1; i++ ) {
 				for ( j = 0; j < 1; j++ ) {
-					sphere = exampleUtils.createSphere( 1.5, 100, sphere_material_1 );
+					sphere = exampleUtils.createSphere( 1.5, 300, sphere_material_1 );
 					sphere.goblin.position[0] = i * 2 + 1.5;
-					sphere.goblin.position[1] = 30;
+					sphere.goblin.position[1] = 20;
 					sphere.goblin.position[2] = j * 2 + 1.5;
 					sphere.goblin.applyImpulse( vec3.createFrom( 0, -10, 0 ) );
 				}
