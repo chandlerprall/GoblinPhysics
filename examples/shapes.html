@@ -32,7 +32,7 @@
 
 			var controls = new THREE.TrackballControls( camera, renderer.domElement );
             
-            var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.SequentialImpulseSolver );
+            var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.IterativeSolver );
 			world.solver.relaxation = 0.2; // This example looks better with softer relaxation
 			window.world = world;
 

@@ -1,10 +1,10 @@
 /**
- * Adapted from BulletPhysics's btSequentialImpulseSolver
+ * Adapted from BulletPhysics's btIterativeSolver
  *
- * @class SequentialImpulseSolver
+ * @class IterativeSolver
  * @constructor
  */
-Goblin.SequentialImpulseSolver = function() {
+Goblin.IterativeSolver = function() {
 	/**
 	 * Holds contact constraints generated from contact manifolds
 	 *
@@ -57,7 +57,7 @@ Goblin.SequentialImpulseSolver = function() {
  * @method processContactManifolds
  * @param contact_manifolds {Array} contact manifolds to process
  */
-Goblin.SequentialImpulseSolver.prototype.processContactManifolds = function( contact_manifolds ) {
+Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_manifolds ) {
 	var i, j,
 		manifold,
 		contacts_length,
@@ -99,7 +99,7 @@ Goblin.SequentialImpulseSolver.prototype.processContactManifolds = function( con
 	Array.prototype.push.apply( this.constraints, this.friction_constraints );
 };
 
-Goblin.SequentialImpulseSolver.prototype.prepareConstraints = function( time_delta ) {
+Goblin.IterativeSolver.prototype.prepareConstraints = function( time_delta ) {
 	var num_constraints = this.constraints.length,
 		num_rows,
 		constraint,
@@ -120,7 +120,7 @@ Goblin.SequentialImpulseSolver.prototype.prepareConstraints = function( time_del
 	}
 };
 
-Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_delta ) {
+Goblin.IterativeSolver.prototype.resolveContacts = function( time_delta ) {
 	var iteration,
 		constraint,
 		jdot, row, i,
@@ -249,7 +249,7 @@ Goblin.SequentialImpulseSolver.prototype.resolveContacts = function( time_delta 
 	}
 };
 
-Goblin.SequentialImpulseSolver.prototype.solveConstraints = function() {
+Goblin.IterativeSolver.prototype.solveConstraints = function() {
 	var num_constraints = this.constraints.length,
 		constraint,
 		num_rows,
@@ -331,7 +331,7 @@ Goblin.SequentialImpulseSolver.prototype.solveConstraints = function() {
 	}
 };
 
-Goblin.SequentialImpulseSolver.prototype.applyConstraints = function( time_delta ) {
+Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
 	var num_constraints = this.constraints.length,
 		constraint,
 		num_rows,

@@ -37,7 +37,7 @@ window.exampleUtils = (function(){
 	};
 
 	var startGoblin = function() {
-		exampleUtils.world = world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NearPhase(), new Goblin.SequentialImpulseSolver() );
+		exampleUtils.world = world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NearPhase(), new Goblin.IterativeSolver() );
 	};
 
 	return {

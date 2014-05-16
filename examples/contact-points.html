@@ -33,7 +33,7 @@
 
 			var controls = new THREE.TrackballControls( camera, renderer.domElement );
             
-            var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.SequentialImpulseSolver );
+            var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.IterativeSolver );
 			window.world = world;
 			//world.gravity[1] = -20;
 
