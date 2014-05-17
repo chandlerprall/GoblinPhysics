@@ -108,7 +108,7 @@
 
 							it('Separating Velocity', function(){
 								var separating_velocity = vec3.length( sphere1.goblin.linear_velocity ) + vec3.length( sphere2.goblin.linear_velocity );
-								return assert( testUtils.withinEpsilon( separating_velocity, 2.06666 ) );
+								return assert( testUtils.withinEpsilon( separating_velocity, 2.00056 ) );
 							});
 
 						});
@@ -123,7 +123,6 @@
 			 */
 			(function(){
 				var sphere1 = new testUtils.createSphere( 1, 1 );
-				sphere1.goblin.restitution = 1;
 				sphere1.goblin.position[0] = 9;
 
 				var sphere2 = new testUtils.createSphere( 1, 1 );
