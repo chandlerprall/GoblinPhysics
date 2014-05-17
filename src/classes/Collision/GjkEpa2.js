@@ -62,12 +62,38 @@ Goblin.GjkEpa2 = {
 
             // If last_point is false then there is no collision
             if ( last_point === false ) {
+				Goblin.GjkEpa2.freeSimplex( simplex );
                 return null;
             }
 
             return simplex;
         };
     })(),
+
+	freeSimplex: function( simplex ) {
+		// Free the support points used by this simplex
+		for ( var i = 0, points_length = simplex.points.length; i < points_length; i++ ) {
+			Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', simplex.points[i] );
+		}
+	},
+
+	freePolyhedron: function( polyhedron ) {
+		// Free the support points used by the polyhedron (includes the points from the simplex used to create the polyhedron
+		var pool = Goblin.ObjectPool.pools['GJK2SupportPoint'];
+
+		for ( var i = 0, faces_length = polyhedron.faces.length; i < faces_length; i++ ) {
+			// The indexOf checking is required because vertices are shared between faces
+			if ( pool.indexOf( polyhedron.faces[i].a ) === -1 ) {
+				Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', polyhedron.faces[i].a );
+			}
+			if ( pool.indexOf( polyhedron.faces[i].b ) === -1 ) {
+				Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', polyhedron.faces[i].b );
+			}
+			if ( pool.indexOf( polyhedron.faces[i].c ) === -1 ) {
+				Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', polyhedron.faces[i].c );
+			}
+		}
+	},
 
     /**
      * Performs the Expanding Polytope Algorithm a GJK simplex
@@ -82,8 +108,7 @@ Goblin.GjkEpa2 = {
             // @TODO this should be a priority queue where the position in the queue is ordered by distance from face to origin
 			var polyhedron = new Goblin.GjkEpa2.Polyhedron( simplex );
 
-			var i = 0,
-                edges;
+			var i = 0;
 
             // Expand the polyhedron until it doesn't expand any more
 			while ( ++i ) {
@@ -104,7 +129,6 @@ Goblin.GjkEpa2 = {
                 var gap = vec3.squaredLength( _tmp_vec3_1 );
 
 				if ( i === Goblin.GjkEpa2.max_iterations || ( gap < Goblin.GjkEpa2.epa_condition && polyhedron.closest_face_distance > Goblin.EPSILON ) ) {
-					//renderPolyhedron( polyhedron, edges );
 
 					// Get a ContactDetails object and fill out its details
 					var contact = Goblin.ObjectPool.getObject( 'ContactDetails' );
@@ -123,6 +147,8 @@ Goblin.GjkEpa2 = {
 					if ( isNaN( barycentric[0] ) ) {
                         // @TODO: Avoid this degenerate case
 						//console.log( 'Point not in triangle' );
+						Goblin.GjkEpa2.freeSimplex( simplex );
+						Goblin.GjkEpa2.freePolyhedron( polyhedron );
 						return null;
 					}
 
@@ -154,33 +180,22 @@ Goblin.GjkEpa2 = {
 					mat4.multiplyVec3( contact.object_a.transform_inverse, contact.contact_point_in_a );
 					mat4.multiplyVec3( contact.object_b.transform_inverse, contact.contact_point_in_b );
 
-					// Set objects' local points
-					//mat4.multiplyVec3( contact.object_a.transform_inverse, support_point.witness_a, contact.contact_point_in_a );
-					//mat4.multiplyVec3( contact.object_b.transform_inverse, support_point.witness_b, contact.contact_point_in_b );
-
 					// Calculate penetration depth
 					contact.penetration_depth = vec3.length( polyhedron.closest_point );
 
 					contact.restitution = ( simplex.object_a.restitution + simplex.object_b.restitution ) / 2;
 					contact.friction = ( simplex.object_a.friction + simplex.object_b.friction ) / 2;
 
+					Goblin.GjkEpa2.freeSimplex( simplex );
+					Goblin.GjkEpa2.freePolyhedron( polyhedron );
 					return contact;
 				}
 
-                edges = polyhedron.addVertex( support_point );
-
-				/*if ( i === 19 ) {
-					renderPolyhedron( polyhedron, edges );
-					var sp = new THREE.Mesh(
-						new THREE.SphereGeometry( 0.1 ),
-						new THREE.MeshBasicMaterial({ color: 0x0000FF })
-					);
-					sp.position.set( support_point.point[0], support_point.point[1], support_point.point[2] );
-					testUtils.scene.add( sp );
-					return null;
-				}*/
+                polyhedron.addVertex( support_point );
 			}
 
+			Goblin.GjkEpa2.freeSimplex( simplex );
+			Goblin.GjkEpa2.freePolyhedron( polyhedron );
             return null;
         };
     })(),
@@ -396,7 +411,8 @@ Goblin.GjkEpa2.Face.prototype = {
                 // Origin is on the opposite side of A from B
                 vec3.set( ao, this.next_direction );
                 this.points.length = 1; // Remove second point
-            } else {
+				Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', this.points[1] );
+			} else {
                 // Origin lies between A and B, move on to a 2-simplex
                 vec3.cross( ab, ao, this.next_direction );
                 vec3.cross( this.next_direction, ab );
@@ -439,6 +455,7 @@ Goblin.GjkEpa2.Face.prototype = {
                     // 1-simplex (line) with points A and C, leaving B behind
                     this.points.length = 0;
                     this.points.push( c, a );
+					Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', b );
 
                     // New search direction is from ac towards the origin
                     vec3.cross( ac, ao, this.next_direction );
@@ -450,6 +467,7 @@ Goblin.GjkEpa2.Face.prototype = {
                         // 1-simplex (line) with points A and B, leaving C behind
                         this.points.length = 0;
                         this.points.push( b, a );
+						Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', c );
 
                         // New search direction is from ac towards the origin
                         vec3.cross( ab, ao, this.next_direction );
@@ -458,6 +476,8 @@ Goblin.GjkEpa2.Face.prototype = {
                         // only A gives us a good reference point, start over with a 0-simplex
                         this.points.length = 0;
                         this.points.push( a );
+						Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', b );
+						Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', c );
                     }
                     // *
                 }
@@ -474,6 +494,7 @@ Goblin.GjkEpa2.Face.prototype = {
                         // 1-simplex (line) with points A and B, leaving C behind
                         this.points.length = 0;
                         this.points.push( b, a );
+						Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', c );
 
                         // New search direction is from ac towards the origin
                         vec3.cross( ab, ao, this.next_direction );
@@ -482,6 +503,8 @@ Goblin.GjkEpa2.Face.prototype = {
                         // only A gives us a good reference point, start over with a 0-simplex
                         this.points.length = 0;
                         this.points.push( a );
+						Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', b );
+						Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', c );
                     }
                     // *
 
@@ -545,6 +568,8 @@ Goblin.GjkEpa2.Face.prototype = {
             // @TODO this line, repeated four times below, may not be needed:
             // if ( vec3.squaredLength( _tmp_vec3_2 ) < Goblin.EPSILON ) return true;
 
+			var forgotten_point = null;
+
             // Face 1, DCA
             Goblin.GeometryMethods.findClosestPointInTriangle( origin, d.point, c.point, a.point, _tmp_vec3_2 );
             vec3.subtract( d.point, a.point, ab );
@@ -557,6 +582,7 @@ Goblin.GjkEpa2.Face.prototype = {
                 vec3.set( _tmp_vec3_1, this.next_direction );
                 this.points.length = 0;
                 this.points.push( a, c, d );
+				forgotten_point = b;
             }
 
             // Face 2, CBA
@@ -571,6 +597,7 @@ Goblin.GjkEpa2.Face.prototype = {
                 vec3.set( _tmp_vec3_1, this.next_direction );
                 this.points.length = 0;
                 this.points.push( a, b, c );
+				forgotten_point = d;
             }
 
             // Face 3, ADB
@@ -585,6 +612,7 @@ Goblin.GjkEpa2.Face.prototype = {
                 vec3.set( _tmp_vec3_1, this.next_direction );
                 this.points.length = 0;
                 this.points.push( b, d, a );
+				forgotten_point = c;
             }
 
             // Face 4, DCB
@@ -599,7 +627,10 @@ Goblin.GjkEpa2.Face.prototype = {
                 vec3.set( _tmp_vec3_1, this.next_direction );
                 this.points.length = 0;
                 this.points.push( c, b, d );
+				forgotten_point = a;
             }
+
+			Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', forgotten_point );
 
             /*// Check each of the four sides to see which one is facing the origin.
             // Then keep the three points for that triangle and use its normal as the search direction

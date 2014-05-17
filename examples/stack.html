@@ -19,9 +19,9 @@
 			var i, j, k,
 				box_material = exampleUtils.createMaterial( 'cement', 1, 1 ),
 				box;
-			for ( i = 0; i < 6; i++ ) {
-				for ( j = 0; j < 6 - i; j++ ) {
-					for ( k = 0; k < 6 - i; k++ ) {
+			for ( i = 0; i < 7; i++ ) {
+				for ( j = 0; j < 7 - i; j++ ) {
+					for ( k = 0; k < 7 - i; k++ ) {
 
 						box = exampleUtils.createBox( 1, 1, 1, 1, box_material );
 						box.goblin.position[0] = 2 * j * 1.2 - 8 + i;

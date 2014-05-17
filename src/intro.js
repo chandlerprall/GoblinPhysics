@@ -57,8 +57,6 @@
 * @module Goblin
 */
 window.Goblin = (function() {
-	'use strict';
-
 	var Goblin = {},
 		_tmp_vec3_1 = vec3.create(),
 		_tmp_vec3_2 = vec3.create(),

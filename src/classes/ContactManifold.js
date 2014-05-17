@@ -120,9 +120,6 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		}
 	}
 
-	this.points.push( contact );
-	return;
-	/*@TODO: The findWeakestContact logic is broken
 	// Add contact if we don't have enough points yet
 	if ( this.points.length < 4 ) {
 		this.points.push( contact );
@@ -130,7 +127,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		var replace_index = this.findWeakestContact( contact );
 		//@TODO give the contact back to the object pool
 		this.points[replace_index] = contact;
-	}*/
+	}
 };
 
 /**
