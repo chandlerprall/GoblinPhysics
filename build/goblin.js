@@ -4472,13 +4472,45 @@ Goblin.CompoundShape.prototype.getInertiaTensor = function( mass ) {
  * Checks if a ray segment intersects with the shape
  *
  * @method rayIntersect
- * @property start {vec3} start point of the segment
- * @property end {vec3{ end point of the segment
+ * @property ray_start {vec3} start point of the segment
+ * @property ray_end {vec3} end point of the segment
  * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
  */
-Goblin.CompoundShape.prototype.rayIntersect = function( start, end ) {
+Goblin.CompoundShape.prototype.rayIntersect = (function(){
+	var tSort = function( a, b ) {
+		if ( a.t < b.t ) {
+			return -1;
+		} else if ( a.t > b.t ) {
+			return 1;
+		} else {
+			return 0;
+		}
+	};
+	return function( ray_start, ray_end ) {
+		var intersections = [],
+			local_start = vec3.create(),
+			local_end = vec3.create(),
+			intersection,
+			i, child;
 
-};
+		for ( i = 0; i < this.child_shapes.length; i++ ) {
+			child = this.child_shapes[i];
+
+			mat4.multiplyVec3( child.transform_inverse, ray_start, local_start );
+			mat4.multiplyVec3( child.transform_inverse, ray_end, local_end );
+
+			intersection = child.shape.rayIntersect( local_start, local_end );
+			if ( intersection != null ) {
+				intersection.object = this; // change from the shape to the body
+				mat4.multiplyVec3( child.transform, intersection.point ); // transform child's local coordinates to the compound's coordinates
+				intersections.push( intersection );
+			}
+		}
+
+		intersections.sort( tSort );
+		return intersections[0] || null;
+	};
+})();
 /**
  * @class CompoundShapeChild
  * @constructor

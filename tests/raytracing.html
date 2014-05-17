@@ -23,13 +23,19 @@
 			(function(){
 				Goblin.EPSILON = 0.01;
 
-				var sphere = testUtils.createSphere( 2, 0 ); // radius, mass
+				var sphere = testUtils.createSphere( 2, 0 ), // radius, mass
 					box = testUtils.createBox( 3, 4, 5, 1 ), // half width (x), half height (y), half length (z), mass
 					cylinder = testUtils.createCylinder( 3, 2.5, 1 ), // radius, half height, mass
 					cone = testUtils.createCone( 3, 2.5, 1 ), // radius, half height, mass
-					plane_x = testUtils.createPlane( 0, 5, 10, 1 ), // orientation, half_width, half_length, mass
-					plane_y = testUtils.createPlane( 1, 5, 10, 1 ), // orientation, half_width, half_length, mass
-					plane_z = testUtils.createPlane( 2, 5, 10, 1 ); // orientation, half_width, half_length, mass
+					plane_x = testUtils.createPlane( 0, 5, 10, 1 );
+
+				var compound_shape = new Goblin.CompoundShape();
+				compound_shape.addChildShape(
+					new Goblin.SphereShape( 2 ),
+					vec3.createFrom( 0, 2, -1 ),
+					quat4.normalize( quat4.createFrom( 0, 0, 1, 1 ) )
+				);
+				var compound_body = new Goblin.RigidBody( compound_shape, 1 );
 
 				describe('Sphere', function(){
 
@@ -366,19 +372,19 @@
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-                        return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Base Cone 2', function(){
-                        var start = vec3.createFrom( 2.12, -10, -2.12 ),
-                            stop = vec3.createFrom( 2.12, 0, -2.12 ),
-                            expected = vec3.createFrom( 2.12, -2.5, -2.12 ),
-                            intersection_list = [];
+						var start = vec3.createFrom( 2.12, -10, -2.12 ),
+							stop = vec3.createFrom( 2.12, 0, -2.12 ),
+							expected = vec3.createFrom( 2.12, -2.5, -2.12 ),
+							intersection_list = [];
 
-                        cone.goblin.updateDerived();
-                        cone.goblin.rayIntersect( start, stop, intersection_list );
+						cone.goblin.updateDerived();
+						cone.goblin.rayIntersect( start, stop, intersection_list );
 
-                        return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 
 					it('Base Cone 3', function(){
@@ -444,6 +450,73 @@
 						cone.goblin.rotation = quat4.createFrom( 1, 0, 0, 1 );
 						cone.goblin.updateDerived();
 						cone.goblin.rayIntersect( start, stop, intersection_list );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
+					});
+				});
+
+				describe('Compound', function(){
+					it('Base Compound 1', function(){
+						var start = vec3.createFrom( 0, 10, 0 ),
+							stop = vec3.createFrom( 0, -10, 0 ),
+							expected = vec3.createFrom( 0, 3.73, 0 ),
+							intersection_list = [];
+
+						compound_body.updateDerived();
+						compound_body.rayIntersect( start, stop, intersection_list );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
+					});
+
+					it('Base Compound 2', function(){
+						var start = vec3.createFrom( 0, 10, -1.5 ),
+							stop = vec3.createFrom( 0, -10, -1.5 ),
+							expected = vec3.createFrom( 0, 3.93, -1.5 ),
+							intersection_list = [];
+
+						compound_body.updateDerived();
+						compound_body.rayIntersect( start, stop, intersection_list );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
+					});
+
+					it('Translated Compound 1', function(){
+						var start = vec3.createFrom( 0, 10, -1.5 ),
+							stop = vec3.createFrom( 0, -10, -1.5 ),
+							expected = vec3.createFrom( 0, 4.66, -1.5 ),
+							intersection_list = [];
+
+						compound_body.position = vec3.createFrom( 1, 1, -1 );
+						compound_body.updateDerived();
+						compound_body.rayIntersect( start, stop, intersection_list );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
+					});
+
+					it('Rotated Compound 1', function(){
+						var start = vec3.createFrom( 0, 10, 1 ),
+							stop = vec3.createFrom( 0, -10, 1 ),
+							expected = vec3.createFrom( 0, 4, 1 ),
+							intersection_list = [];
+
+						compound_body.position = vec3.create();
+						compound_body.rotation = quat4.createFrom( 0, 1, 0, 0 ); // Rotated 180 degrees around Y axis
+						compound_body.updateDerived();
+						compound_body.rayIntersect( start, stop, intersection_list );
+
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
+					});
+
+					it('Translated & Rotated Compound 1', function(){
+						var start = vec3.createFrom( 0, 10, 0 ),
+							stop = vec3.createFrom( 0, -10, 0 ),
+							expected = vec3.createFrom( 0, 2, 0 ),
+							intersection_list = [];
+
+						compound_body.position = vec3.createFrom( 1, -2, 0 );
+						compound_body.rotation = quat4.normalize( quat4.createFrom( 0, 1, 0, 1) ); // Rotated 90 degrees around Y axis
+						compound_body.updateDerived();
+						compound_body.rayIntersect( start, stop, intersection_list );
 
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});

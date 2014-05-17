@@ -25,31 +25,6 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 
 	vec3.cross( contact.contact_normal, u1, u2 );
 
-	/*if ( Math.abs( contact.contact_normal[2] ) > 0.7071067811865475 ) {
-		// choose p in y-z plane
-		var a = -contact.contact_normal[1] * contact.contact_normal[1] + contact.contact_normal[2] * contact.contact_normal[2];
-		var k = 1 / Math.sqrt( a );
-		u1[0] = 0;
-		u1[1] = -contact.contact_normal[2] * k;
-		u1[2] = contact.contact_normal[1] * k;
-		// set q = n x p
-		u2[0] = a * k;
-		u2[1] = -contact.contact_normal[0] * u1[2];
-		u2[2] = contact.contact_normal[0] * u1[1];
-	}
-	else {
-		// choose p in x-y plane
-		var a = contact.contact_normal[0] * contact.contact_normal[0] + contact.contact_normal[1] * contact.contact_normal[1];
-		var k = 1 / Math.sqrt( a );
-		u1[0] = -contact.contact_normal[1] * k;
-		u1[1] = contact.contact_normal[0] * k;
-		u1[2] = 0;
-		// set q = n x p
-		u2[0] = -contact.contact_normal[2] * u1[1];
-		u2[1] = contact.contact_normal[2] * u1[0];
-		u2[2] = a*k;
-	}*/
-
 	if ( this.object_a == null || this.object_a.mass === Infinity ) {
 		row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
 		row_1.jacobian[3] = row_1.jacobian[4] = row_1.jacobian[5] = 0;
@@ -125,54 +100,4 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 
 	this.rows[0] = row_1;
 	this.rows[1] = row_2;
-
-	/*// Find the relative velocity at the contact point
-	var velocity_a = vec3.create(),
-		velocity_b = vec3.create();
-
-	vec3.cross( contact.object_a.angular_velocity, rel_a, velocity_a );
-	vec3.add( velocity_a, contact.object_a.linear_velocity );
-
-	vec3.cross( contact.object_b.angular_velocity, rel_b, velocity_b );
-	vec3.add( velocity_b, contact.object_b.linear_velocity );
-
-	var relative_velocity = vec3.create();
-	vec3.subtract( velocity_a, velocity_b, relative_velocity );
-
-	// Remove velocity along contact normal
-	var normal_velocity = vec3.dot( contact.contact_normal, relative_velocity );
-	relative_velocity[0] -= normal_velocity * contact.contact_normal[0];
-	relative_velocity[1] -= normal_velocity * contact.contact_normal[1];
-	relative_velocity[2] -= normal_velocity * contact.contact_normal[2];
-
-	var length = vec3.squaredLength( relative_velocity );
-	if ( length >= Goblin.EPSILON ) {
-		length = Math.sqrt( length );
-		row.jacobian[0] = relative_velocity[0] / length;
-		row.jacobian[1] = relative_velocity[1] / length;
-		row.jacobian[2] = relative_velocity[2] / length;
-		row.jacobian[6] = relative_velocity[0] / -length;
-		row.jacobian[7] = relative_velocity[1] / -length;
-		row.jacobian[8] = relative_velocity[2] / -length;
-	} else {
-		this.rows.length = 0;
-		return;
-	}
-
-	// rel_a X N
-	row.jacobian[3] = rel_a[1] * row.jacobian[2] - rel_a[2] * row.jacobian[1];
-	row.jacobian[4] = rel_a[2] * row.jacobian[0] - rel_a[0] * row.jacobian[2];
-	row.jacobian[5] = rel_a[0] * row.jacobian[1] - rel_a[1] * row.jacobian[0];
-
-	// N X rel_b
-	row.jacobian[9] = row.jacobian[1] * rel_b[2] - row.jacobian[2] * rel_b[1];
-	row.jacobian[10] = row.jacobian[2] * rel_b[0] - row.jacobian[0] * rel_b[2];
-	row.jacobian[11] = row.jacobian[0] * rel_b[1] - row.jacobian[1] * rel_b[0];
-
-	var limit = contact.friction * 0.1;
-	row.lower_limit = -limit;
-	row.upper_limit = limit;
-	row.bias = 0;
-
-	this.rows.push( row );*/
 };
