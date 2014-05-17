@@ -1,75 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Goblin Testbed</title>
-
-	<style type="text/css">
-		html, body {
-			margin: 0;
-			padding: 0;
-			overflow: hidden;
-		}
-	</style>
-
+	<title>Shapes | Goblin Physics</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
 	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/exampleUtils.js"></script>
 
 	<script type="text/javascript">
 		window.onload = function() {
-			var renderer = new THREE.WebGLRenderer({ antialias: true });
-			//var renderer = new THREE.CanvasRenderer({ antialias: true });
-			renderer.setSize( window.innerWidth, window.innerHeight );
-			document.body.appendChild( renderer.domElement );
-
-			var scene = new THREE.Scene;
-			window.scene = scene;
-
-			var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .01, 1000 );
-			camera.position.set( 0, 9, 21 );
-			camera.lookAt( scene.position );
-
-			var controls = new THREE.TrackballControls( camera, renderer.domElement );
-            
-            var world = new Goblin.World( new Goblin.BasicBroadphase, new Goblin.NearPhase, new Goblin.IterativeSolver );
-			world.solver.relaxation = 0.2; // This example looks better with softer relaxation
-			window.world = world;
-
-			var i, particles, particles = [];
+			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
 
 			// Ground object
-			particle = new THREE.Mesh(
-				new THREE.BoxGeometry( 20, 2, 20 ),
-				new THREE.MeshNormalMaterial({ polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 10 })
-			);
-			particle.goblin = new Goblin.RigidBody(
-				new Goblin.BoxShape( 10, 1, 10 ),
-				Infinity
-			);
-			particle.goblin.rotation[2] = -0.03;
+			var ground = exampleUtils.createBox( 20, 0.25, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
+			ground.castShadow = false;
+			ground.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 0, -0.02, 1 ) );
 
-			particle.position.set( 0, -6, 0 );
-
-			particle.goblin.position[0] = particle.position.x;
-			particle.goblin.position[1] = particle.position.y;
-			particle.goblin.position[2] = particle.position.z;
-			scene.add( particle );
-			particles.push( particle );
-			world.addRigidBody( particle.goblin );
+			// Materials
+			var wood_material = exampleUtils.createMaterial( 'wood', 1, 1 ),
+				rust_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 ),
+				scratched_material = exampleUtils.createMaterial( 'scratched_metal', 3, 2 );
 
 			var boxshape = new Goblin.BoxShape( 1, 0.125, 0.5 ),
-				sphereshape = new Goblin.SphereShape( 0.5 );
+				sphereshape = new Goblin.SphereShape( 0.8 );
 
 			var compoundspheres = new Goblin.CompoundShape();
 			compoundspheres.addChildShape(
 				sphereshape,
-				vec3.createFrom( 0, -0.3, 0 ),
+				vec3.createFrom( 0, -0.5, 0 ),
 				quat4.createFrom( 0, 0, 0, 1 )
 			);
 			compoundspheres.addChildShape(
 				sphereshape,
-				vec3.createFrom( 0, 0.3, 0 ),
+				vec3.createFrom( 0, 0.5, 0 ),
 				quat4.createFrom( 0, 0, 0, 1 )
 			);
 
@@ -85,154 +50,87 @@
 				quat4.normalize( quat4.createFrom( 0, 0, 1, 1 ) )
 			);
 
-			function spawn() {
-				var type = Math.random();
+			function spawnObject() {
+				var type = Math.random(),
+					object;
 
 				if ( type < 0.14 ) {
-					particle = new THREE.Mesh(
-						new THREE.BoxGeometry( 1.5, 1.5, 1.5 ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.BoxShape( 0.75, 0.75, 0.75 ),
-						1
-					);
+					object = exampleUtils.createBox( 0.75, 0.75, 0.75, 1, wood_material );
+					object.goblin.restitution = 0.5;
 				} else if ( type < 0.28 ) {
 					var radius = Math.random() / 2 + 0.5;
-					particle = new THREE.Mesh(
-						new THREE.SphereGeometry( radius ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.SphereShape( radius ),
-						1
-					);
+					object = exampleUtils.createSphere( radius, 1, scratched_material );
 				} else if ( type < 0.42 ) {
 					var radius = Math.random() / 2 + 0.5,
-						height = Math.random() * 2 + 1;
-					particle = new THREE.Mesh(
-						new THREE.CylinderGeometry( radius, radius, height ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.CylinderShape( radius, height / 2 ),
-						1
-					);
+						half_height = Math.random() + 0.5;
+					object = exampleUtils.createCylinder( radius, half_height, 1, rust_material );
 				} else if ( type < 0.57 ) {
-					var radius = Math.random() / 2 + 0.5,
-						height = Math.random() * 2 + 1;
-					particle = new THREE.Mesh(
-						new THREE.CylinderGeometry( 0, radius, height ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.ConeShape( radius, height / 2 ),
-						1
-					);
+					var radius = Math.random() / 3 + 0.8,
+						half_height = Math.random() * 1.5 + 0.8;
+					object = exampleUtils.createCone( radius, half_height, 1, scratched_material );
 				} else if ( type < 0.71 ) {
-					var width = Math.random() * 2 + 1,
-						length = Math.random() * 2 + 1,
+					var half_width = Math.random() * 2 + 1,
+						half_length = Math.random() * 2 + 1,
 						orientation = Math.round( Math.random() * 3 );
-					particle = new THREE.Mesh(
-						new THREE.BoxGeometry(
-							orientation === 1 || orientation === 2 ? width : 0,
-							orientation === 0 ? width : ( orientation === 2 ? length : 0 ),
-							orientation === 0 || orientation === 1 ? length : 0
-						),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
-					);
-					particle.goblin = new Goblin.RigidBody(
-						new Goblin.PlaneShape( orientation, width / 2, length / 2 ),
-						0.1
-					);
+					object = exampleUtils.createPlane( 2, half_width, half_length, 0.1, rust_material )
 				} else if ( type < 0.85 ) {
-					particle = new THREE.Object3D();
+					object = new THREE.Object3D();
 
 					var sphere1 = new THREE.Mesh(
-						new THREE.SphereGeometry( 0.5 ),
-						new THREE.MeshNormalMaterial()
+						new THREE.SphereGeometry( 0.8 ),
+						wood_material
 					);
+					sphere1.castShadow = sphere1.receiveShadow = true;
 					sphere1.position.x = 0;
-					sphere1.position.y = -0.3;
-					particle.add( sphere1 );
+					sphere1.position.y = -0.5;
+					object.add( sphere1 );
 
 					var sphere2 = new THREE.Mesh(
-						new THREE.SphereGeometry( 0.5 ),
-						new THREE.MeshNormalMaterial()
+						new THREE.SphereGeometry( 0.8 ),
+						wood_material
 					);
-					sphere2.position.y = 0.3;
-					particle.add( sphere2 );
+					sphere2.castShadow = sphere2.receiveShadow = true;
+					sphere2.position.y = 0.5;
+					object.add( sphere2 );
 
-					particle.goblin = new Goblin.RigidBody( compoundspheres, 1 );
+					object.goblin = new Goblin.RigidBody( compoundspheres, 1 );
+
+					exampleUtils.scene.add( object );
+					exampleUtils.world.addRigidBody( object.goblin );
+					exampleUtils.objects.push( object );
 				} else {
-					particle = new THREE.Object3D();
+					object = new THREE.Object3D();
 
 					var box1 = new THREE.Mesh(
 						new THREE.BoxGeometry( 2, 0.25, 1 ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
+						scratched_material
 					);
-					particle.add( box1 );
+					box1.castShadow = box1.receiveShadow = true;
+					object.add( box1 );
 
 					var box2 = new THREE.Mesh(
 						new THREE.BoxGeometry( 2, 0.25, 1 ),
-						new THREE.MeshNormalMaterial({ opacity: 1 })
+						scratched_material
 					);
+					box2.castShadow = box2.receiveShadow = true;
 					box2.rotation.z = Math.PI / -2;
-					particle.add( box2 );
+					object.add( box2 );
 
-					particle.goblin = new Goblin.RigidBody( compoundboxes, 2 );
+					object.goblin = new Goblin.RigidBody( compoundboxes, 2 )
+
+					exampleUtils.scene.add( object );
+					exampleUtils.world.addRigidBody( object.goblin );
+					exampleUtils.objects.push( object );
 				}
 
-				particle.position.set( Math.random() * 3, 10, Math.random() * 3 );
-
-				particle.goblin.position[0] = particle.position.x;
-				particle.goblin.position[1] = particle.position.y;
-				particle.goblin.position[2] = particle.position.z;
-				particle.goblin.restitution = 0.05;
-				scene.add( particle );
-				particles.push( particle );
-				world.addRigidBody( particle.goblin );
-
-				setTimeout( spawn, 500 );
+				object.goblin.position[0] = Math.random() * 3;
+				object.goblin.position[1] = 10;
+				object.goblin.position[2] = Math.random() * 3;
 			}
-			window.spawn = spawn;
-			spawn();
+			setInterval( spawnObject, 500 );
+			spawnObject();
 
-			window.particles = particles;
-
-			var render = function() {
-				controls.update();
-
-				try {
-                    world.step( 1 / 60 );
-				}
-				catch(e){
-					window.stop = true;
-					throw e;
-				}
-				if ( window.stop !== true ) {
-					requestAnimationFrame( render );
-				}
-
-				var i, particle;
-				for ( i = 0; i < particles.length; i++ ) {
-					particle = particles[i];
-					particle.position.set(
-						particle.goblin.position[0],
-						particle.goblin.position[1],
-						particle.goblin.position[2]
-					);
-					particle.quaternion.set(
-						particle.goblin.rotation[0],
-						particle.goblin.rotation[1],
-						particle.goblin.rotation[2],
-						particle.goblin.rotation[3]
-					);
-				}
-				renderer.render( scene, camera );
-			};
-			window.render = render;
-			render();
+			exampleUtils.run();
 		};
 	</script>
 </head>

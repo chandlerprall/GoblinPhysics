@@ -10,7 +10,6 @@
 	<script type="text/javascript" src="js/exampleUtils.js"></script>
 
 	<script type="text/javascript">
-		setMatrixArrayType( Array );
 		window.onload = function() {
 			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
 
@@ -20,11 +19,11 @@
 			var box_material = exampleUtils.createMaterial( 'wood', 1, 1 );
 
 			var spawnBox = function() {
-				box = exampleUtils.createBox( 2, 2, 2, 1, box_material );
-				box.goblin.position[1] = 20;
-				box.goblin.applyImpulse( vec3.createFrom( 0, -20, 2 ) );
+				box = exampleUtils.createBox( 1, 1, 1, 1, box_material );
+				box.goblin.restitution = 0.5;
+				box.goblin.position[1] = 6;
 			};
-			setInterval( spawnBox, 1000 );
+			setInterval( spawnBox, 200 );
 			spawnBox();
 
 			exampleUtils.run();

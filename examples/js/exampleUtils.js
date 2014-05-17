@@ -164,8 +164,10 @@ window.exampleUtils = (function(){
 		createCylinder: function( radius, half_height, mass, material ) {
 			var cylinder = new THREE.Mesh(
 				new THREE.CylinderGeometry( radius, radius, half_height * 2 ),
-				new THREE.MeshNormalMaterial({ opacity: 1 })
+				material
 			);
+			cylinder.castShadow = true;
+			cylinder.receiveShadow = true;
 			cylinder.goblin = new Goblin.RigidBody(
 				new Goblin.CylinderShape( radius, half_height ),
 				mass
@@ -181,8 +183,10 @@ window.exampleUtils = (function(){
 		createCone: function( radius, half_height, mass, material ) {
 			var cone = new THREE.Mesh(
 				new THREE.CylinderGeometry( 0, radius, half_height * 2 ),
-				new THREE.MeshNormalMaterial({ opacity: 1 })
+				material
 			);
+			cone.castShadow = true;
+			cone.receiveShadow = true;
 			cone.goblin = new Goblin.RigidBody(
 				new Goblin.ConeShape( radius, half_height ),
 				mass
