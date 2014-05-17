@@ -7,9 +7,9 @@ Examples
 --------
 * [Box Stack](http://www.goblinphysics.com/examples/stack.html)
 * [Sphere Stack](http://www.goblinphysics.com/examples/spheres.html)
-* [Box Columns](http://www.goblinphysics.com/examples/boxes.html)
 * [Shapes](http://www.goblinphysics.com/examples/shapes.html)
-* [Contact Points](http://www.goblinphysics.com/examples/contact-points.html)
+* [Compound Shapes](http://www.goblinphysics.com/examples/compound-shapes.html)
+* [Infinite Boxes](http://www.goblinphysics.com/examples/boxes.html)
 
 Features
 --------
@@ -25,20 +25,13 @@ See `Building` below for how to generate documentation. Hosted version available
 
 Roadmap
 -------
-**Planned for v0.4**
-* Optimizations
-* Code cleanup
-* Examples cleanup
-
 **Planned for v0.5**
 * Event/callback system
-* Revolute constraints
+* Constraints
 
 **Non-exhaustive list of planned features**
 * Convex hull shape
-* Compound objects
 * Sweep & Prune broad phase
-* Ray casting
 * Event callbacks (for collisions, etc)
 * Constraints (hinge, point-to-point, etc)
 * Internal object re-use (framework for this is in place, need to actually use it)
