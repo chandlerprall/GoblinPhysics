@@ -619,7 +619,6 @@ Goblin.GjkEpa2 = {
 					if ( isNaN( barycentric[0] ) ) {
                         // @TODO: Avoid this degenerate case
 						//console.log( 'Point not in triangle' );
-						Goblin.GjkEpa2.freeSimplex( simplex );
 						Goblin.GjkEpa2.freePolyhedron( polyhedron );
 						return null;
 					}
@@ -658,7 +657,6 @@ Goblin.GjkEpa2 = {
 					contact.restitution = ( simplex.object_a.restitution + simplex.object_b.restitution ) / 2;
 					contact.friction = ( simplex.object_a.friction + simplex.object_b.friction ) / 2;
 
-					Goblin.GjkEpa2.freeSimplex( simplex );
 					Goblin.GjkEpa2.freePolyhedron( polyhedron );
 					return contact;
 				}
@@ -666,7 +664,6 @@ Goblin.GjkEpa2 = {
                 polyhedron.addVertex( support_point );
 			}
 
-			Goblin.GjkEpa2.freeSimplex( simplex );
 			Goblin.GjkEpa2.freePolyhedron( polyhedron );
             return null;
         };
@@ -882,8 +879,8 @@ Goblin.GjkEpa2.Face.prototype = {
             if ( vec3.dot( ab, ao ) < 0 ) {
                 // Origin is on the opposite side of A from B
                 vec3.set( ao, this.next_direction );
-                this.points.length = 1; // Remove second point
 				Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', this.points[1] );
+                this.points.length = 1; // Remove second point
 			} else {
                 // Origin lies between A and B, move on to a 2-simplex
                 vec3.cross( ab, ao, this.next_direction );
