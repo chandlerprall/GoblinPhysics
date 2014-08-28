@@ -5,16 +5,23 @@ GoblinPhysics is an open source physics engine written from the ground up in Jav
 
 Examples
 --------
+* [Boxes](http://www.goblinphysics.com/examples/boxes.html)
 * [Box Stack](http://www.goblinphysics.com/examples/stack.html)
 * [Sphere Stack](http://www.goblinphysics.com/examples/spheres.html)
 * [Shapes](http://www.goblinphysics.com/examples/shapes.html)
 * [Compound Shapes](http://www.goblinphysics.com/examples/compound-shapes.html)
 * [Infinite Boxes](http://www.goblinphysics.com/examples/boxes.html)
+* [Revolute Constraint](http://www.goblinphysics.com/examples/constraint-revolute.html)
+* [Slider Constraint](http://www.goblinphysics.com/examples/constraint-slider.html)
+* [Weld Constraint](http://www.goblinphysics.com/examples/constraint-weld.html)
+* [Ray Traycer](http://www.goblinphysics.com/examples/raytracer.html)
 
 Features
 --------
 * Rigid body simulation
 * Sphere, Box, Cone, Cylinder, Plane, and Compound shapes
+* Weld, Slider, and Revolute constraints
+* Basic event callback system
 * Ray tracing
 * Example scripts
 * Test suite
@@ -25,15 +32,16 @@ See `Building` below for how to generate documentation. Hosted version available
 
 Roadmap
 -------
-**Planned for v0.5**
-* Event/callback system
-* Constraints
+**Planned for v0.6**
+* node.js compatibilty + npm module
+* velocity damping / factors
+* convex hulls
 
 **Non-exhaustive list of planned features**
 * Convex hull shape
 * Sweep & Prune broad phase
-* Event callbacks (for collisions, etc)
-* Constraints (hinge, point-to-point, etc)
+* More event callbacks
+* More constraints
 * Internal object re-use (framework for this is in place, need to actually use it)
 * Island solver
 * Box-Box detection for better performance and stability
@@ -46,6 +54,7 @@ Tests
 * [GJK-Boxes](http://www.goblinphysics.com/tests/gjk_boxes.html)
 * [GJK-Spheres](http://www.goblinphysics.com/tests/gjk_spheres.html)
 * [Gravity](http://www.goblinphysics.com/tests/gravity.html)
+* [Ray Tracing](http://www.goblinphysics.com/tests/raytracing.html)
 * [Restitution](http://www.goblinphysics.com/tests/restitution.html)
 * [Sphere-Sphere](http://www.goblinphysics.com/tests/sphere-sphere.html)
 * [Support Points](http://www.goblinphysics.com/tests/support-points.html)
