@@ -127,8 +127,15 @@
 				object.goblin.position[1] = 10;
 				object.goblin.position[2] = Math.random() * 3;
 			}
-			setInterval( spawnObject, 500 );
-			spawnObject();
+
+			exampleUtils.world.addListener(
+				'stepStart',
+				function( tick ) {
+					if ( tick % 30 === 1 ) {
+						spawnObject();
+					}
+				}
+			);
 
 			exampleUtils.run();
 		};

@@ -102,7 +102,6 @@ Goblin.BasicBroadphase.prototype.rayIntersect = function( start, end ) {
 	var bodies_count = this.bodies.length,
 		i, body,
 		intersections = [];
-
 	for ( i = 0; i < bodies_count; i++ ) {
 		body = this.bodies[i];
 		if ( body.aabb.testRayIntersect( start, end ) ) {

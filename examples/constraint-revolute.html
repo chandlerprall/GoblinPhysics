@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Revolute Constraint | Goblin Physics</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/exampleUtils.js"></script>
+
+	<script type="text/javascript">
+		window.onload = function() {
+			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			var sphere_material = exampleUtils.createMaterial( 'scratched_metal', 1, 1 ),
+				plank_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 );
+
+			var ground = exampleUtils.createPlane( 1, 20, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
+			ground.goblin.position[1] = -5;
+			ground.castShadow = false;
+
+			// Build the bridge
+			var previous_plank = null,
+				plank_count = 11,
+				plank_separation = 0.2,
+				plank_width = 2,
+				plank_height = 0.4,
+				plank_length = 6,
+				plank_mass = 1,
+				plank_space = plank_width + plank_separation,
+				i, constraint,
+				right_point_front = vec3.createFrom( plank_space / 2, 0, plank_length / -6 ),
+				left_point_front = vec3.createFrom( plank_space / -2, 0, plank_length / -6 ),
+				right_point_back = vec3.createFrom( plank_space / 2, 0, plank_length / 6 ),
+				left_point_back = vec3.createFrom( plank_space / -2, 0, plank_length / 6 );
+
+			for ( i = 0; i < plank_count; i++ ) {
+				var plank = exampleUtils.createBox(
+					plank_width / 2,
+					plank_height / 2,
+					plank_length / 2,
+					i === 0 || i + 1 === plank_count ? 0 : plank_mass,
+					plank_material
+				);
+
+				plank.goblin.position[0] = i * plank_space - ( plank_count / 2 * plank_space ) + plank_width / 2;
+				plank.goblin.position[1] = 3;
+
+				if ( previous_plank ) {
+					// Create two constraints per plank pair for a sturdy bridge
+					
+					constraint = new Goblin.RevoluteConstraint(
+						previous_plank.goblin,
+						right_point_back,
+						plank.goblin,
+						left_point_back
+					);
+					constraint.breaking_threshold = 8;
+					exampleUtils.world.addConstraint( constraint );
+
+					constraint = new Goblin.RevoluteConstraint(
+						previous_plank.goblin,
+						right_point_front,
+						plank.goblin,
+						left_point_front
+					);
+					constraint.breaking_threshold = 8;
+					exampleUtils.world.addConstraint( constraint );
+				}
+
+				previous_plank = plank;
+			}
+
+			var spawnSphere = function() {
+				var sphere = exampleUtils.createSphere( 1, 1, sphere_material );
+				sphere.goblin.position[0] = Math.random() * 4 - 2;
+				sphere.goblin.position[1] = 8;
+			};
+
+			exampleUtils.world.addListener(
+				'stepStart',
+				function( tick ) {
+					if ( tick % 60 === 1 ) {
+						spawnSphere();
+					}
+				}
+			);
+
+			exampleUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+
+</body>
+</html>

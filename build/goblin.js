@@ -63,13 +63,14 @@ window.Goblin = (function() {
 		_tmp_vec3_3 = vec3.create(),
 
 		_tmp_quat4_1 = quat4.create(),
+		_tmp_quat4_2 = quat4.create(),
 
 		_tmp_mat3_1 = mat3.create(),
 		_tmp_mat3_2 = mat3.create(),
 
 		_tmp_mat4_1 = mat4.create();
 
-    Goblin.EPSILON = 0.000001;
+	Goblin.EPSILON = 0.000001;
 /**
  * @class AABB
  * @param [min] {vec3}
@@ -174,17 +175,18 @@ Goblin.AABB.prototype.testRayIntersect = (function(){
 		vec3.scale( direction, 1 / tmax ); // normalize direction
 
 		for ( var i = 0; i < 3; i++ ) {
-			var extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+			var extent_min = ( i === 0 ? this.min[0] : (  i === 1 ? this.min[1] : this.min[2] ) ),
+				extent_max = ( i === 0 ? this.max[0] : (  i === 1 ? this.max[1] : this.max[2] ) );
 
 			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
 				// Ray is parallel to axis
-				if ( start[i] < -extent || start[i] > extent ) {
+				if ( start[i] < extent_min || start[i] > extent_max ) {
 					return false;
 				}
 			} else {
 				ood = 1 / direction[i];
-				t1 = ( -extent - start[i] ) * ood;
-				t2 = ( extent - start[i] ) * ood;
+				t1 = ( extent_min - start[i] ) * ood;
+				t2 = ( extent_max - start[i] ) * ood;
 				if ( t1 > t2 ) {
 					ood = t1; // ood is a convenient temp variable as it's not used again
 					t1 = t2;
@@ -308,7 +310,6 @@ Goblin.BasicBroadphase.prototype.rayIntersect = function( start, end ) {
 	var bodies_count = this.bodies.length,
 		i, body,
 		intersections = [];
-
 	for ( i = 0; i < bodies_count; i++ ) {
 		body = this.bodies[i];
 		if ( body.aabb.testRayIntersect( start, end ) ) {
@@ -691,16 +692,22 @@ Goblin.GjkEpa2.Polyhedron = function( simplex ) {
 	this.closest_point = vec3.create();
 
 	this.faces = [
-		new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[2], simplex.points[3] ), // ACD
+		//BCD, ACB, CAD, DAB
+		new Goblin.GjkEpa2.Face( this, simplex.points[2], simplex.points[1], simplex.points[0] ),
+		new Goblin.GjkEpa2.Face( this, simplex.points[3], simplex.points[1], simplex.points[2] ),
+		new Goblin.GjkEpa2.Face( this, simplex.points[1], simplex.points[3], simplex.points[0] ),
+		new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[3], simplex.points[2] )
+
+		/*new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[2], simplex.points[3] ), // ACD
 		new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[1], simplex.points[2] ), // ABC
 		new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[3], simplex.points[1] ), // ADB
-		new Goblin.GjkEpa2.Face( this, simplex.points[3], simplex.points[2], simplex.points[1] ) // DCB
+		new Goblin.GjkEpa2.Face( this, simplex.points[3], simplex.points[2], simplex.points[1] ) // DCB*/
 	];
 
-	this.faces[0].neighbors.push( this.faces[1], this.faces[3], this.faces[2] );
-	this.faces[1].neighbors.push( this.faces[2], this.faces[3], this.faces[0] );
-	this.faces[2].neighbors.push( this.faces[0], this.faces[3], this.faces[1] );
-	this.faces[3].neighbors.push( this.faces[0], this.faces[1], this.faces[2] );
+	this.faces[0].neighbors.push( this.faces[1], this.faces[2], this.faces[3] );
+	this.faces[1].neighbors.push( this.faces[2], this.faces[0], this.faces[3] );
+	this.faces[2].neighbors.push( this.faces[1], this.faces[3], this.faces[0] );
+	this.faces[3].neighbors.push( this.faces[2], this.faces[1], this.faces[0] );
 };
 Goblin.GjkEpa2.Polyhedron.prototype = {
     addVertex: function( vertex )
@@ -983,12 +990,12 @@ Goblin.GjkEpa2.Face.prototype = {
                     if ( vec3.dot( _tmp_vec3_1, ao ) >= 0 ) {
                         // Origin is on the front side of the triangle
                         vec3.set( _tmp_vec3_1, this.next_direction );
+						this.points.length = 0;
+						this.points.push( a, b, c );
                     } else {
                         // Origin is on the back side of the triangle
                         vec3.set( _tmp_vec3_1, this.next_direction );
                         vec3.negate( this.next_direction );
-                        this.points.length = 0;
-                        this.points.push( a, b, c );
                     }
 
                 }
@@ -997,9 +1004,9 @@ Goblin.GjkEpa2.Face.prototype = {
         },
 
         getFaceNormal: function( a, b, c, destination ) {
-            vec3.subtract( c.point, a.point, ac );
             vec3.subtract( b.point, a.point, ab );
-            vec3.cross( ac, ab, destination );
+            vec3.subtract( c.point, a.point, ac );
+            vec3.cross( ab, ac, destination );
             vec3.normalize( destination );
         },
 
@@ -1010,7 +1017,7 @@ Goblin.GjkEpa2.Face.prototype = {
             // Find direction of origin from center of face
             vec3.add( a.point, b.point, _tmp_vec3_2 );
             vec3.add( _tmp_vec3_2, c.point );
-            vec3.negate( _tmp_vec3_2 );
+			vec3.scale( _tmp_vec3_2, -3 );
             vec3.normalize( _tmp_vec3_2 );
 
             return vec3.dot( _tmp_vec3_1, _tmp_vec3_2 );
@@ -1022,139 +1029,75 @@ Goblin.GjkEpa2.Face.prototype = {
                 c = this.points[1],
                 d = this.points[0];
 
-            if ( this.containsOrigin() ) {
-                // We have a collision, ready for EPA
-                return true;
-            }
+			// Check each of the four sides to see which one is facing the origin.
+			// Then keep the three points for that triangle and use its normal as the search direction
+			// The four faces are BCD, ACB, CAD, DAB
+			var closest_face = null,
+				closest_dot = Goblin.EPSILON,
+				face_dot;
 
+			// @TODO we end up calculating the "winning" face normal twice, don't do that
 
-            var origin = vec3.create();
+			face_dot = this.faceNormalDotOrigin( b, c, d );
+			if ( face_dot > closest_dot ) {
+				closest_face = 1;
+				closest_dot = face_dot;
+			}
 
-            // Tetrahedron doesn't contain the origin, bail
-            // Find which face normal of the tetrahedron aligns best to AO
-            var best = 0, dot = 0, shortest = Infinity, distance = 0;
+			face_dot = this.faceNormalDotOrigin( a, c, b );
+			if ( face_dot > closest_dot ) {
+				closest_face = 2;
+				closest_dot = face_dot;
+			}
 
-            // @TODO this line, repeated four times below, may not be needed:
-            // if ( vec3.squaredLength( _tmp_vec3_2 ) < Goblin.EPSILON ) return true;
+			face_dot = this.faceNormalDotOrigin( c, a, d );
+			if ( face_dot > closest_dot ) {
+				closest_face = 3;
+				closest_dot = face_dot;
+			}
 
-			var forgotten_point = null;
+			face_dot = this.faceNormalDotOrigin( d, a, b );
+			if ( face_dot > closest_dot ) {
+				closest_face = 4;
+				closest_dot = face_dot;
+			}
 
-            // Face 1, DCA
-            Goblin.GeometryMethods.findClosestPointInTriangle( origin, d.point, c.point, a.point, _tmp_vec3_2 );
-            vec3.subtract( d.point, a.point, ab );
-            vec3.subtract( c.point, a.point, ad );
-            vec3.cross( ab, ad, _tmp_vec3_1 );
-            //vec3.normalize( _tmp_vec3_1 );
-            distance = vec3.length( _tmp_vec3_2 );
-            if ( distance < shortest ) {
-                shortest = distance;
-                vec3.set( _tmp_vec3_1, this.next_direction );
-                this.points.length = 0;
-                this.points.push( a, c, d );
-				forgotten_point = b;
-            }
+			if ( closest_face === null ) {
+				// We have a collision, ready for EPA
+				//console.log( 'zomg collision found!' );
+				return true;
+			} else if ( closest_face === 1 ) {
+				// BCD
+				this.points.length = 0;
+				this.points.push( b, c, d );
+				this.getFaceNormal( b, c, d, _tmp_vec3_1 );
+				vec3.set( _tmp_vec3_1, this.next_direction );
+			} else if ( closest_face === 2 ) {
+				// ACB
+				this.points.length = 0;
+				this.points.push( a, c, b );
+				this.getFaceNormal( a, c, b, _tmp_vec3_1 );
+				vec3.set( _tmp_vec3_1, this.next_direction );
+			} else if ( closest_face === 3 ) {
+				// CAD
+				this.points.length = 0;
+				this.points.push( c, a, d );
+				this.getFaceNormal( c, a, d, _tmp_vec3_1 );
+				vec3.set( _tmp_vec3_1, this.next_direction );
+			} else if ( closest_face === 4 ) {
+				// DAB
+				this.points.length = 0;
+				this.points.push( d, a, b );
+				this.getFaceNormal( d, a, b, _tmp_vec3_1 );
+				vec3.set( _tmp_vec3_1, this.next_direction );
+			}
 
-            // Face 2, CBA
-            Goblin.GeometryMethods.findClosestPointInTriangle( origin, c.point, b.point, a.point, _tmp_vec3_2 );
-            vec3.subtract( c.point, a.point, ab );
-            vec3.subtract( b.point, a.point, ad );
-            vec3.cross( ab, ad, _tmp_vec3_1 );
-            //vec3.normalize( _tmp_vec3_1 );
-            distance = vec3.length( _tmp_vec3_2 );
-            if ( distance < shortest ) {
-                shortest = distance;
-                vec3.set( _tmp_vec3_1, this.next_direction );
-                this.points.length = 0;
-                this.points.push( a, b, c );
-				forgotten_point = d;
-            }
-
-            // Face 3, ADB
-            Goblin.GeometryMethods.findClosestPointInTriangle( origin, b.point, d.point, a.point, _tmp_vec3_2 );
-            vec3.subtract( b.point, a.point, ab );
-            vec3.subtract( d.point, a.point, ad );
-            vec3.cross( ab, ad, _tmp_vec3_1 );
-            //vec3.normalize( _tmp_vec3_1 );
-            distance = vec3.length( _tmp_vec3_2 );
-            if ( distance < shortest ) {
-                shortest = distance;
-                vec3.set( _tmp_vec3_1, this.next_direction );
-                this.points.length = 0;
-                this.points.push( b, d, a );
-				forgotten_point = c;
-            }
-
-            // Face 4, DCB
-            Goblin.GeometryMethods.findClosestPointInTriangle( origin, d.point, b.point, c.point, _tmp_vec3_2 );
-            vec3.subtract( d.point, c.point, ab );
-            vec3.subtract( b.point, c.point, ad );
-            vec3.cross( ab, ad, _tmp_vec3_1 );
-            //vec3.normalize( _tmp_vec3_1 );
-            distance = vec3.length( _tmp_vec3_2 );
-            if ( distance < shortest ) {
-                shortest = distance;
-                vec3.set( _tmp_vec3_1, this.next_direction );
-                this.points.length = 0;
-                this.points.push( c, b, d );
-				forgotten_point = a;
-            }
-
-			Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', forgotten_point );
-
-            /*// Check each of the four sides to see which one is facing the origin.
-            // Then keep the three points for that triangle and use its normal as the search direction
-            var best_a, best_b, best_c,
-                reason = -Infinity,
-                current = 0;
-
-            // Face 1, DCA
-            current = this.faceNormalDotOrigin( d, c, a );
-            if ( current > reason ) {
-                console.log( 'DCA' );
-                best_a = d;
-                best_b = c;
-                best_c = a;
-                reason = current;
-            }
-
-            // Face 2, CBA
-            current = this.faceNormalDotOrigin( c, b, a );
-            if ( current > reason ) {
-                console.log( 'CBA' );
-                best_a = c;
-                best_b = b;
-                best_c = a;
-                reason = current;
-            }
-
-            // Face 3, ADB
-            current = this.faceNormalDotOrigin( a, d, b );
-            if ( current > reason ) {
-                console.log( 'ADB' );
-                best_a = a;
-                best_b = d;
-                best_c = b;
-                reason = current;
-            }
-
-            // Face 4, DCB
-            current = this.faceNormalDotOrigin( d, c, b );
-            if ( current > reason ) {
-                console.log( 'DCB' );
-                best_a = d;
-                best_b = c;
-                best_c = b;
-            }
-
-            // Update simplex & direction
-            this.getFaceNormal( best_a, best_b, best_c, _tmp_vec3_1 );
-            vec3.set( _tmp_vec3_1, this.next_direction );
-            this.points.length = 0;
-            this.points.push( best_c, best_b, best_a );*/
+			// @TODO re-enable this based on above results
+			//Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', forgotten_point );
         },
 
         containsOrigin: function() {
-            var a = this.points[3],
+			var a = this.points[3],
                 b = this.points[2],
                 c = this.points[1],
                 d = this.points[0];
@@ -1184,8 +1127,8 @@ Goblin.GjkEpa2.Face.prototype = {
             }
 
             // Check DCB
-            vec3.subtract( b.point, d.point, ab );
-            vec3.subtract( c.point, d.point, ad );
+            vec3.subtract( d.point, c.point, ab );
+            vec3.subtract( b.point, c.point, ad );
             vec3.cross( ab, ad, _tmp_vec3_1 );
             if ( vec3.dot( _tmp_vec3_1, d.point ) > 0 ) {
                 return false;
@@ -1271,12 +1214,22 @@ Goblin.SphereSphere = function( object_a, object_b ) {
 	return contact;
 };
 Goblin.Constraint = function() {
+	this.active = true;
+
 	this.object_a = null;
 
 	this.object_b = null;
 
 	this.rows = [];
+
+	this.factor = 1;
+
+	this.last_impulse = vec3.create();
+
+	this.breaking_threshold = 0;
 };
+
+Goblin.Constraint.prototype.update = function(){};
 Goblin.ConstraintRow = function() {
 	this.jacobian = new Float64Array( 12 );
 	this.B = new Float64Array( 12 ); // `B` is the jacobian multiplied by the objects' inverted mass & inertia tensors
@@ -1289,8 +1242,6 @@ Goblin.ConstraintRow = function() {
 	this.multiplier = 0;
 	this.eta = 0;
 	this.eta_row = new Float64Array( 12 );
-
-	this.applied_push_impulse = 0;
 };
 
 Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
@@ -1407,6 +1358,7 @@ Goblin.ContactConstraint = function() {
 
 	this.contact = null;
 };
+Goblin.ContactConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
 Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	var row = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
@@ -1449,7 +1401,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	// Pre-calc error
-	row.bias = 0;//contact.penetration_depth;
+	row.bias = 0;
 
 	// Apply restitution
     //var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
@@ -1472,6 +1424,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 Goblin.FrictionConstraint = function() {
 	Goblin.Constraint.call( this );
 };
+Goblin.FrictionConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
 Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	var row_1 = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' ),
@@ -1489,12 +1442,31 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	var u1 = vec3.create(),
 		u2 = vec3.create();
 
-	u1[0] = 1 - Math.abs( contact.contact_normal[0] );
-	u1[1] = 1 - Math.abs( contact.contact_normal[1] );
-	u1[2] = 1 - Math.abs( contact.contact_normal[2] );
-	vec3.normalize( u1 );
-
-	vec3.cross( contact.contact_normal, u1, u2 );
+	var a, k;
+	if ( Math.abs( contact.contact_normal[2] ) > 0.7071067811865475 ) {
+		// choose p in y-z plane
+		a = -contact.contact_normal[1] * contact.contact_normal[1] + contact.contact_normal[2] * contact.contact_normal[2];
+		k = 1 / Math.sqrt( a );
+		u1[0] = 0;
+		u1[1] = -contact.contact_normal[2] * k;
+		u1[2] = contact.contact_normal[1] * k;
+		// set q = n x p
+		u2[0] = a * k;
+		u2[1] = -contact.contact_normal[0] * u1[2];
+		u2[2] = contact.contact_normal[0] * u1[1];
+	}
+	else {
+		// choose p in x-y plane
+		a = contact.contact_normal[0] * contact.contact_normal[0] + contact.contact_normal[1] * contact.contact_normal[1];
+		k = 1 / Math.sqrt( a );
+		u1[0] = -contact.contact_normal[1] * k;
+		u1[1] = contact.contact_normal[0] * k;
+		u1[2] = 0;
+		// set q = n x p
+		u2[0] = -contact.contact_normal[2] * u1[1];
+		u2[1] = contact.contact_normal[2] * u1[0];
+		u2[2] = a*k;
+	}
 
 	if ( this.object_a == null || this.object_a.mass === Infinity ) {
 		row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
@@ -1572,6 +1544,375 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	this.rows[0] = row_1;
 	this.rows[1] = row_2;
 };
+Goblin.RevoluteConstraint = function( object_a, point_a, object_b, point_b ) {
+	Goblin.Constraint.call( this );
+
+	this.object_a = object_a;
+	this.point_a = point_a;
+
+	this.object_b = object_b || null;
+	if ( this.object_b != null ) {
+		this.point_b = point_b;
+	} else {
+		this.point_b = vec3.create();
+		this.object_a.updateDerived(); // Ensure the body's transform is correct
+		mat4.multiplyVec3( this.object_a.transform, this.point_a, this.point_b );
+	}
+
+	this.erp = 0.1;
+
+	// Create rows
+	for ( var i = 0; i < 3; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] =
+			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
+	}
+};
+Goblin.RevoluteConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.RevoluteConstraint.prototype.update = (function(){
+	var r1 = vec3.create(),
+		r2 = vec3.create();
+
+	return function( time_delta ) {
+		mat4.multiplyVec3( this.object_a.transform, this.point_a, _tmp_vec3_1 );
+		vec3.subtract( _tmp_vec3_1, this.object_a.position, r1 );
+
+		this.rows[0].jacobian[0] = -1;
+		this.rows[0].jacobian[1] = 0;
+		this.rows[0].jacobian[2] = 0;
+		this.rows[0].jacobian[3] = 0;
+		this.rows[0].jacobian[4] = -r1[2];
+		this.rows[0].jacobian[5] = r1[1];
+
+		this.rows[1].jacobian[0] = 0;
+		this.rows[1].jacobian[1] = -1;
+		this.rows[1].jacobian[2] = 0;
+		this.rows[1].jacobian[3] = r1[2];
+		this.rows[1].jacobian[4] = 0;
+		this.rows[1].jacobian[5] = -r1[0];
+
+		this.rows[2].jacobian[0] = 0;
+		this.rows[2].jacobian[1] = 0;
+		this.rows[2].jacobian[2] = -1;
+		this.rows[2].jacobian[3] = -r1[1];
+		this.rows[2].jacobian[4] = r1[0];
+		this.rows[2].jacobian[5] = 0;
+
+		if ( this.object_b != null ) {
+			mat4.multiplyVec3( this.object_b.transform, this.point_b, _tmp_vec3_2 );
+			vec3.subtract( _tmp_vec3_2, this.object_b.position, r2 );
+
+			this.rows[0].jacobian[6] = 1;
+			this.rows[0].jacobian[7] = 0;
+			this.rows[0].jacobian[8] = 0;
+			this.rows[0].jacobian[9] = 0;
+			this.rows[0].jacobian[10] = r2[2];
+			this.rows[0].jacobian[11] = -r2[1];
+
+			this.rows[1].jacobian[6] = 0;
+			this.rows[1].jacobian[7] = 1;
+			this.rows[1].jacobian[8] = 0;
+			this.rows[1].jacobian[9] = -r2[2];
+			this.rows[1].jacobian[10] = 0;
+			this.rows[1].jacobian[11] = r2[0];
+
+			this.rows[2].jacobian[6] = 0;
+			this.rows[2].jacobian[7] = 0;
+			this.rows[2].jacobian[8] = 1;
+			this.rows[2].jacobian[9] = r2[1];
+			this.rows[2].jacobian[10] = -r2[0];
+			this.rows[2].jacobian[11] = 0;
+		} else {
+			vec3.set( this.point_b, _tmp_vec3_2 );
+		}
+
+		vec3.subtract( _tmp_vec3_1, _tmp_vec3_2, _tmp_vec3_3 );
+		vec3.scale( _tmp_vec3_3, this.erp / time_delta );
+		this.rows[0].bias = _tmp_vec3_3[0];
+		this.rows[1].bias = _tmp_vec3_3[1];
+		this.rows[2].bias = _tmp_vec3_3[2];
+	};
+})();
+Goblin.SliderConstraint = function( object_a, axis, object_b ) {
+	Goblin.Constraint.call( this );
+
+	this.object_a = object_a;
+	this.axis = axis;
+	this.object_b = object_b;
+
+	// Find the initial distance between the two objects in object_a's local frame
+	this.position_error = vec3.create();
+	vec3.subtract( this.object_b.position, this.object_a.position, this.position_error );
+	quat4.inverse( this.object_a.rotation, _tmp_quat4_1 );
+	quat4.multiplyVec3( _tmp_quat4_1, this.position_error );
+
+	this.rotation_difference = quat4.create();
+	if ( this.object_b != null ) {
+		quat4.inverse( this.object_b.rotation, _tmp_quat4_1 );
+		quat4.multiply( _tmp_quat4_1, this.object_a.rotation, this.rotation_difference );
+	}
+
+	this.erp = 0.1;
+
+	// First two rows constrain the linear velocities orthogonal to `axis`
+	// Rows three through five constrain angular velocities
+	for ( var i = 0; i < 5; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
+			this.rows[i].jacobian[3] = this.rows[i].jacobian[4] = this.rows[i].jacobian[5] =
+			this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] =
+			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
+	}
+};
+Goblin.SliderConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.SliderConstraint.prototype.update = (function(){
+	var _axis = vec3.create(),
+		n1 = vec3.create(),
+		n2 = vec3.create();
+
+	return function( time_delta ) {
+		// `axis` is in object_a's local frame, convert to world
+		quat4.multiplyVec3( this.object_a.rotation, this.axis, _axis );
+
+		// Find two vectors that are orthogonal to `axis`
+		n1[0] = _axis[1];
+		n1[1] = -_axis[0];
+		n1[2] = 0;
+		vec3.normalize( n1 );
+		vec3.cross( _axis, n1, n2 );
+
+		this._updateLinearConstraints( time_delta, n1, n2 );
+		this._updateAngularConstraints( time_delta, n1, n2 );
+	};
+})();
+
+Goblin.SliderConstraint.prototype._updateLinearConstraints = function( time_delta, n1, n2 ) {
+	var c = vec3.create();
+	vec3.subtract( this.object_b.position, this.object_a.position, c );
+	//vec3.scale( c, 0.5 );
+
+	var cx = vec3.create();
+
+	// first linear constraint
+	vec3.cross( c, n1, cx );
+	this.rows[0].jacobian[0] = -n1[0];
+	this.rows[0].jacobian[1] = -n1[1];
+	this.rows[0].jacobian[2] = -n1[2];
+	//this.rows[0].jacobian[3] = -cx[0];
+	//this.rows[0].jacobian[4] = -cx[1];
+	//this.rows[0].jacobian[5] = -cx[2];
+
+	this.rows[0].jacobian[6] = n1[0];
+	this.rows[0].jacobian[7] = n1[1];
+	this.rows[0].jacobian[8] = n1[2];
+	this.rows[0].jacobian[9] = 0;
+	this.rows[0].jacobian[10] = 0;
+	this.rows[0].jacobian[11] = 0;
+
+	// second linear constraint
+	vec3.cross( c, n2, cx );
+	this.rows[1].jacobian[0] = -n2[0];
+	this.rows[1].jacobian[1] = -n2[1];
+	this.rows[1].jacobian[2] = -n2[2];
+	//this.rows[1].jacobian[3] = -cx[0];
+	//this.rows[1].jacobian[4] = -cx[1];
+	//this.rows[1].jacobian[5] = -cx[2];
+
+	this.rows[1].jacobian[6] = n2[0];
+	this.rows[1].jacobian[7] = n2[1];
+	this.rows[1].jacobian[8] = n2[2];
+	this.rows[1].jacobian[9] = 0;
+	this.rows[1].jacobian[10] = 0;
+	this.rows[1].jacobian[11] = 0;
+
+	// linear constraint error
+	//vec3.scale( c, 2 );
+	quat4.multiplyVec3( this.object_a.rotation, this.position_error, _tmp_vec3_1 );
+	vec3.subtract( c, _tmp_vec3_1, _tmp_vec3_2 );
+	vec3.scale( _tmp_vec3_2, this.erp / time_delta );
+	this.rows[0].bias = -vec3.dot( n1, _tmp_vec3_2 );
+	this.rows[1].bias = -vec3.dot( n2, _tmp_vec3_2 );
+};
+
+Goblin.SliderConstraint.prototype._updateAngularConstraints = function( time_delta, n1, n2, axis ) {
+	this.rows[2].jacobian[3] = this.rows[3].jacobian[4] = this.rows[4].jacobian[5] = -1;
+	this.rows[2].jacobian[9] = this.rows[3].jacobian[10] = this.rows[4].jacobian[11] = 1;
+
+	quat4.inverse( this.object_b.rotation, _tmp_quat4_1 );
+	quat4.multiply( _tmp_quat4_1, this.object_a.rotation );
+
+	quat4.inverse( this.rotation_difference, _tmp_quat4_2 );
+	quat4.multiply( _tmp_quat4_2, _tmp_quat4_1 );
+	// _tmp_quat4_2 is now the rotational error that needs to be corrected
+
+	var error = vec3.create();
+	error[0] = _tmp_quat4_2[0];
+	error[1] = _tmp_quat4_2[1];
+	error[2] = _tmp_quat4_2[2];
+	vec3.scale( error, this.erp / time_delta );
+
+	//this.rows[2].bias = error[0];
+	//this.rows[3].bias = error[1];
+	//this.rows[4].bias = error[2];
+};
+Goblin.WeldConstraint = function( object_a, point_a, object_b, point_b ) {
+	Goblin.Constraint.call( this );
+
+	this.object_a = object_a;
+	this.point_a = point_a;
+
+	this.object_b = object_b || null;
+	this.point_b = point_b || null;
+
+	this.rotation_difference = quat4.create();
+	if ( this.object_b != null ) {
+		quat4.inverse( this.object_b.rotation, _tmp_quat4_1 );
+		quat4.multiply( _tmp_quat4_1, this.object_a.rotation, this.rotation_difference );
+	}
+
+	this.erp = 0.1;
+
+	// Create translation constraint rows
+	for ( var i = 0; i < 3; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		if ( this.object_b == null ) {
+			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
+				this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = this.rows[i].jacobian[6] =
+				this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = this.rows[i].jacobian[9] =
+				this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = this.rows[i].jacobian[12] = 0;
+			this.rows[i].jacobian[i] = 1;
+		}
+	}
+
+	// Create rotation constraint rows
+	for ( i = 3; i < 6; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		if ( this.object_b == null ) {
+			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
+				this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = this.rows[i].jacobian[6] =
+				this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = this.rows[i].jacobian[9] =
+				this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = this.rows[i].jacobian[12] = 0;
+			this.rows[i].jacobian[i] = 1;
+		} else {
+			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] = 0;
+			this.rows[i].jacobian[3] = this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = 0;
+			this.rows[i].jacobian[ i ] = -1;
+
+			this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = 0;
+			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
+			this.rows[i].jacobian[ i + 6 ] = 1;
+		}
+	}
+};
+Goblin.WeldConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.WeldConstraint.prototype.update = (function(){
+	var r1 = vec3.create(),
+		r2 = vec3.create();
+
+	return function( time_delta ) {
+		if ( this.object_b == null ) {
+			// No need to update the constraint, all motion is already constrained
+			return;
+		}
+
+		mat4.multiplyVec3( this.object_a.transform, this.point_a, _tmp_vec3_1 );
+		vec3.subtract( _tmp_vec3_1, this.object_a.position, r1 );
+
+		this.rows[0].jacobian[0] = -1;
+		this.rows[0].jacobian[1] = 0;
+		this.rows[0].jacobian[2] = 0;
+		this.rows[0].jacobian[3] = 0;
+		this.rows[0].jacobian[4] = -r1[2];
+		this.rows[0].jacobian[5] = r1[1];
+
+		this.rows[1].jacobian[0] = 0;
+		this.rows[1].jacobian[1] = -1;
+		this.rows[1].jacobian[2] = 0;
+		this.rows[1].jacobian[3] = r1[2];
+		this.rows[1].jacobian[4] = 0;
+		this.rows[1].jacobian[5] = -r1[0];
+
+		this.rows[2].jacobian[0] = 0;
+		this.rows[2].jacobian[1] = 0;
+		this.rows[2].jacobian[2] = -1;
+		this.rows[2].jacobian[3] = -r1[1];
+		this.rows[2].jacobian[4] = r1[0];
+		this.rows[2].jacobian[5] = 0;
+
+		if ( this.object_b != null ) {
+			mat4.multiplyVec3( this.object_b.transform, this.point_b, _tmp_vec3_2 );
+			vec3.subtract( _tmp_vec3_2, this.object_b.position, r2 );
+
+			this.rows[0].jacobian[6] = 1;
+			this.rows[0].jacobian[7] = 0;
+			this.rows[0].jacobian[8] = 0;
+			this.rows[0].jacobian[9] = 0;
+			this.rows[0].jacobian[10] = r2[2];
+			this.rows[0].jacobian[11] = -r2[1];
+
+			this.rows[1].jacobian[6] = 0;
+			this.rows[1].jacobian[7] = 1;
+			this.rows[1].jacobian[8] = 0;
+			this.rows[1].jacobian[9] = -r2[2];
+			this.rows[1].jacobian[10] = 0;
+			this.rows[1].jacobian[11] = r2[0];
+
+			this.rows[2].jacobian[6] = 0;
+			this.rows[2].jacobian[7] = 0;
+			this.rows[2].jacobian[8] = 1;
+			this.rows[2].jacobian[9] = r2[1];
+			this.rows[2].jacobian[10] = -r2[0];
+			this.rows[2].jacobian[11] = 0;
+		} else {
+			vec3.set( this.point_b, _tmp_vec3_2 );
+		}
+
+		var error = vec3.create();
+
+		// Linear correction
+		vec3.subtract( _tmp_vec3_1, _tmp_vec3_2, error );
+		vec3.scale( error, this.erp / time_delta );
+		this.rows[0].bias = error[0];
+		this.rows[1].bias = error[1];
+		this.rows[2].bias = error[2];
+
+		// Rotation correction
+		quat4.inverse( this.object_b.rotation, _tmp_quat4_1 );
+		quat4.multiply( _tmp_quat4_1, this.object_a.rotation );
+
+		quat4.inverse( this.rotation_difference, _tmp_quat4_2 );
+		quat4.multiply( _tmp_quat4_2, _tmp_quat4_1 );
+		// _tmp_quat4_2 is now the rotational error that needs to be corrected
+
+		error[0] = _tmp_quat4_2[0];
+		error[1] = _tmp_quat4_2[1];
+		error[2] = _tmp_quat4_2[2];
+		vec3.scale( error, 1 * this.erp / time_delta );
+
+		this.rows[3].bias = error[0];
+		this.rows[4].bias = error[1];
+		this.rows[5].bias = error[2];
+	};
+})();
 /**
  * Structure which holds information about a contact between two objects
  *
@@ -1773,6 +2114,19 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		}
 	}
 
+	var use_contact = false;
+	if ( contact != null ) {
+		use_contact = contact.object_a.emit( 'newContact', contact.object_b, contact );
+		if ( use_contact !== false ) {
+			use_contact = contact.object_b.emit( 'newContact', contact.object_a, contact );
+		}
+
+		if ( use_contact === false ) {
+			Goblin.ObjectPool.freeObject( 'ContactDetails', contact );
+			return;
+		}
+	}
+
 	// Add contact if we don't have enough points yet
 	if ( this.points.length < 4 ) {
 		this.points.push( contact );
@@ -1898,6 +2252,44 @@ Goblin.ContactManifoldList.prototype.getManifoldForObjects = function( object_a,
 	}
 
 	return manifold;
+};
+Goblin.EventEmitter = function() {
+	this.events = {};
+};
+
+Goblin.EventEmitter.prototype.addListener = function( event, listener ) {
+	if ( this.events[event] === undefined ) {
+		this.events[event] = [];
+	}
+
+	if ( this.events[event].indexOf( listener ) === -1 ) {
+		this.events[event].push( listener );
+	}
+};
+
+Goblin.EventEmitter.prototype.removeListener = function( event, listener ) {
+	if ( this.events[event] === undefined ) {
+		this.events[event] = [];
+	}
+
+	var index = this.events[event].indexOf( listener );
+	if ( index !== -1 ) {
+		this.events[event].splice( index, 1 );
+	}
+};
+
+Goblin.EventEmitter.prototype.emit = function( event ) {
+	var event_arguments = Array.prototype.slice.call( arguments, 1 ),
+		ret_value;
+
+	if ( this.events[event] !== undefined ) {
+		for ( var i = 0; i < this.events[event].length; i++ ) {
+			ret_value = this.events[event][i].apply( this, event_arguments );
+			if ( ret_value === false ) {
+				return false;
+			}
+		}
+	}
 };
 /**
  * adds a constant force to associated objects
@@ -2100,6 +2492,13 @@ Goblin.IterativeSolver = function() {
 
 	/**
 	 * array of all constraints being solved
+	 * @property all_constraints
+	 * @type {Array}
+	 */
+	this.all_constraints = [];
+
+	/**
+	 * array of constraints on the system, excluding contact & friction
 	 * @property constraints
 	 * @type {Array}
 	 */
@@ -2123,9 +2522,34 @@ Goblin.IterativeSolver = function() {
 	 * used to relax the contact position solver, 0 is no position correction and 1 is full correction
 	 * @property relaxation
 	 * @type {Number}
-	 * @default 0.5
+	 * @default 0.1
 	 */
-	this.relaxation = 0.5;
+	this.relaxation = 0.1;
+};
+
+/**
+ * adds a constraint to the solver
+ *
+ * @method addConstraint
+ * @param constraint {Goblin.Constraint} constraint to be added
+ */
+Goblin.IterativeSolver.prototype.addConstraint = function( constraint ) {
+	if ( this.constraints.indexOf( constraint ) === -1 ) {
+		this.constraints.push( constraint );
+	}
+};
+
+/**
+ * removes a constraint from the solver
+ *
+ * @method removeConstraint
+ * @param constraint {Goblin.Constraint} constraint to be removed
+ */
+Goblin.IterativeSolver.prototype.removeConstraint = function( constraint ) {
+	var idx = this.constraints.indexOf( constraint );
+	if ( idx !== -1 ) {
+		this.constraints.splice( idx, 1 );
+	}
 };
 
 /**
@@ -2171,22 +2595,27 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 	}
 
 	// @TODO just for now
-	this.constraints = [];
-	Array.prototype.push.apply( this.constraints, this.contact_constraints );
-	Array.prototype.push.apply( this.constraints, this.friction_constraints );
+	this.all_constraints.length = 0;
+	Array.prototype.push.apply( this.all_constraints, this.friction_constraints );
+	Array.prototype.push.apply( this.all_constraints, this.constraints );
+	Array.prototype.push.apply( this.all_constraints, this.contact_constraints );
 };
 
 Goblin.IterativeSolver.prototype.prepareConstraints = function( time_delta ) {
-	var num_constraints = this.constraints.length,
+	var num_constraints = this.all_constraints.length,
 		num_rows,
 		constraint,
 		row,
 		i, j;
 
 	for ( i = 0; i < num_constraints; i++ ) {
-		constraint = this.constraints[i];
+		constraint = this.all_constraints[i];
+		if ( constraint.active === false ) {
+			continue;
+		}
 		num_rows = constraint.rows.length;
 
+		constraint.update( time_delta );
 		for ( j = 0; j < num_rows; j++ ) {
 			row = constraint.rows[j];
 			row.multiplier = 0;
@@ -2327,7 +2756,7 @@ Goblin.IterativeSolver.prototype.resolveContacts = function( time_delta ) {
 };
 
 Goblin.IterativeSolver.prototype.solveConstraints = function() {
-	var num_constraints = this.constraints.length,
+	var num_constraints = this.all_constraints.length,
 		constraint,
 		num_rows,
 		row,
@@ -2341,7 +2770,10 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 	for ( iteration = 0; iteration < this.max_iterations; iteration++ ) {
 		max_impulse = 0;
 		for ( i = 0; i < num_constraints; i++ ) {
-			constraint = this.constraints[i];
+			constraint = this.all_constraints[i];
+			if ( constraint.active === false ) {
+				continue;
+			}
 			num_rows = constraint.rows.length;
 
 			for ( j = 0; j < num_rows; j++ ) {
@@ -2369,7 +2801,7 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 					);
 				}
 
-				delta_lambda = ( row.eta - jdot ) / row.D;
+				delta_lambda = ( row.eta - jdot ) / row.D * constraint.factor;
 				var cache = row.multiplier;
 				row.multiplier = Math.max(
 					row.lower_limit,
@@ -2409,7 +2841,7 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 };
 
 Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
-	var num_constraints = this.constraints.length,
+	var num_constraints = this.all_constraints.length,
 		constraint,
 		num_rows,
 		row,
@@ -2417,17 +2849,27 @@ Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
 		invmass;
 
 	for ( i = 0; i < num_constraints; i++ ) {
-		constraint = this.constraints[i];
+		constraint = this.all_constraints[i];
+		if ( constraint.active === false ) {
+			continue;
+		}
 		num_rows = constraint.rows.length;
+
+		constraint.last_impulse[0] = constraint.last_impulse[1] = constraint.last_impulse[2] = 0;
 
 		for ( j = 0; j < num_rows; j++ ) {
 			row = constraint.rows[j];
 
 			if ( constraint.object_a != null && constraint.object_a.mass !== Infinity ) {
 				invmass = 1 / constraint.object_a.mass;
-				constraint.object_a.linear_velocity[0] += invmass * time_delta * row.jacobian[0] * row.multiplier;
-				constraint.object_a.linear_velocity[1] += invmass * time_delta * row.jacobian[1] * row.multiplier;
-				constraint.object_a.linear_velocity[2] += invmass * time_delta * row.jacobian[2] * row.multiplier;
+				_tmp_vec3_2[0] = invmass * time_delta * row.jacobian[0] * row.multiplier;
+				_tmp_vec3_2[1] = invmass * time_delta * row.jacobian[1] * row.multiplier;
+				_tmp_vec3_2[2] = invmass * time_delta * row.jacobian[2] * row.multiplier;
+				constraint.object_a.linear_velocity[0] += _tmp_vec3_2[0];
+				constraint.object_a.linear_velocity[1] += _tmp_vec3_2[1];
+				constraint.object_a.linear_velocity[2] += _tmp_vec3_2[2];
+
+				vec3.add( constraint.last_impulse, _tmp_vec3_2 );
 
 				_tmp_vec3_1[0] = time_delta * row.jacobian[3] * row.multiplier;
 				_tmp_vec3_1[1] = time_delta * row.jacobian[4] * row.multiplier;
@@ -2436,13 +2878,20 @@ Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
 				constraint.object_a.angular_velocity[0] += _tmp_vec3_1[0];
 				constraint.object_a.angular_velocity[1] += _tmp_vec3_1[1];
 				constraint.object_a.angular_velocity[2] += _tmp_vec3_1[2];
+
+				vec3.add( constraint.last_impulse, _tmp_vec3_1 );
 			}
 
 			if ( constraint.object_b != null && constraint.object_b.mass !== Infinity ) {
 				invmass = 1 / constraint.object_b.mass;
-				constraint.object_b.linear_velocity[0] += invmass * time_delta * row.jacobian[6] * row.multiplier;
-				constraint.object_b.linear_velocity[1] += invmass * time_delta * row.jacobian[7] * row.multiplier;
-				constraint.object_b.linear_velocity[2] += invmass * time_delta * row.jacobian[8] * row.multiplier;
+				_tmp_vec3_2[0] = invmass * time_delta * row.jacobian[6] * row.multiplier;
+				_tmp_vec3_2[1] = invmass * time_delta * row.jacobian[7] * row.multiplier;
+				_tmp_vec3_2[2] = invmass * time_delta * row.jacobian[8] * row.multiplier;
+				constraint.object_b.linear_velocity[0] += _tmp_vec3_2[0];
+				constraint.object_b.linear_velocity[1] += _tmp_vec3_2[1];
+				constraint.object_b.linear_velocity[2] += _tmp_vec3_2[2];
+
+				vec3.add( constraint.last_impulse, _tmp_vec3_2 );
 
 				_tmp_vec3_1[0] = time_delta * row.jacobian[9] * row.multiplier;
 				_tmp_vec3_1[1] = time_delta * row.jacobian[10] * row.multiplier;
@@ -2451,6 +2900,14 @@ Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
 				constraint.object_b.angular_velocity[0] += _tmp_vec3_1[0];
 				constraint.object_b.angular_velocity[1] += _tmp_vec3_1[1];
 				constraint.object_b.angular_velocity[2] += _tmp_vec3_1[2];
+
+				vec3.add( constraint.last_impulse, _tmp_vec3_1 );
+			}
+		}
+
+		if ( constraint.breaking_threshold > 0 ) {
+			if ( vec3.squaredLength( constraint.last_impulse ) >= constraint.breaking_threshold * constraint.breaking_threshold ) {
+				constraint.active = false;
 			}
 		}
 	}
@@ -2864,6 +3321,7 @@ Goblin.RayIntersection = function() {
 	this.object = null;
 	this.point = vec3.create();
 	this.t = null;
+    this.normal = vec3.create();
 };
 /**
  * Represents a rigid body
@@ -2877,6 +3335,8 @@ Goblin.RigidBody = (function() {
 	var body_count = 0;
 
 	return function( shape, mass ) {
+		Goblin.EventEmitter.call( this );
+
 		/**
 		 * goblin ID of the body
 		 *
@@ -3045,6 +3505,7 @@ Goblin.RigidBody = (function() {
 		this.updateDerived();
 	};
 })();
+Goblin.RigidBody.prototype = Object.create( Goblin.EventEmitter.prototype );
 
 /**
  * Given `direction`, find the point in this body which is the most extreme in that direction.
@@ -3103,6 +3564,11 @@ Goblin.RigidBody.prototype.rayIntersect = (function(){
 		if ( intersection != null ) {
 			intersection.object = this; // change from the shape to the body
 			mat4.multiplyVec3( this.transform, intersection.point ); // transform shape's local coordinates to the body's world coordinates
+
+            // Rotate intersection normal
+            mat4.toMat3( this.transform, _tmp_mat3_1 );
+            mat3.multiplyVec3( _tmp_mat3_1, intersection.normal );
+
 			intersection_list.push( intersection );
 		}
 	};
@@ -3478,7 +3944,7 @@ Goblin.BoxShape.prototype.findSupportPoint = function( direction, support_point 
 Goblin.BoxShape.prototype.rayIntersect = (function(){
 	var direction = vec3.create(),
 		tmin, tmax,
-		ood, t1, t2;
+		ood, t1, t2, extent;
 
 	return function( start, end ) {
 		tmin = 0;
@@ -3488,31 +3954,31 @@ Goblin.BoxShape.prototype.rayIntersect = (function(){
 		vec3.scale( direction, 1 / tmax ); // normalize direction
 
 		for ( var i = 0; i < 3; i++ ) {
-			var extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+			extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
 
 			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
 				// Ray is parallel to axis
 				if ( start[i] < -extent || start[i] > extent ) {
 					return null;
 				}
-			} else {
-				ood = 1 / direction[i];
-				t1 = ( -extent - start[i] ) * ood;
-				t2 = ( extent - start[i] ) * ood;
-				if ( t1 > t2 ) {
-					ood = t1; // ood is a convenient temp variable as it's not used again
-					t1 = t2;
-					t2 = ood;
-				}
-
-				// Find intersection intervals
-				tmin = Math.max( tmin, t1 );
-				tmax = Math.min( tmax, t2 );
-
-				if ( tmin > tmax ) {
-					return null;
-				}
 			}
+
+            ood = 1 / direction[i];
+            t1 = ( -extent - start[i] ) * ood;
+            t2 = ( extent - start[i] ) * ood;
+            if ( t1 > t2 ) {
+                ood = t1; // ood is a convenient temp variable as it's not used again
+                t1 = t2;
+                t2 = ood;
+            }
+
+            // Find intersection intervals
+            tmin = Math.max( tmin, t1 );
+            tmax = Math.min( tmax, t2 );
+
+            if ( tmin > tmax ) {
+                return null;
+            }
 		}
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
@@ -3520,6 +3986,17 @@ Goblin.BoxShape.prototype.rayIntersect = (function(){
 		intersection.t = tmin;
 		vec3.scale( direction, tmin, intersection.point );
 		vec3.add( intersection.point, start );
+
+		// Find face normal
+        var max = Infinity;
+		for ( i = 0; i < 3; i++ ) {
+			extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+			if ( extent - Math.abs( intersection.point[i] ) < max ) {
+				intersection.normal[0] = intersection.normal[1] = intersection.normal[2] = 0;
+				intersection.normal[i] = intersection.point[i] < 0 ? -1 : 1;
+				max = extent - Math.abs( intersection.point[i] );
+			}
+		}
 
 		return intersection;
 	};
@@ -3762,12 +4239,6 @@ Goblin.ConeShape.prototype.getInertiaTensor = function( mass ) {
  * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
  */
 Goblin.ConeShape.prototype.findSupportPoint = function( direction, support_point ) {
-	/*
-	 support_point = [
-
-	 ]
-	 */
-
 	// Calculate the support point in the local frame
 	//var w = direction - ( direction[1] )
 	var sigma = Math.sqrt( direction[0] * direction[0] + direction[2] * direction[2] );
@@ -3798,7 +4269,9 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
     var direction = vec3.create(),
         length,
         p1 = vec3.create(),
-        p2 = vec3.create();
+        p2 = vec3.create(),
+		normal1 = vec3.create(),
+		normal2 = vec3.create();
 
     return function( start, end ) {
         vec3.subtract( end, start, direction );
@@ -3809,11 +4282,11 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 
         // Check for intersection with cone base
 		p1[0] = p1[1] = p1[2] = 0;
-        t1 = this._rayIntersectBase( start, end, p1 );
+        t1 = this._rayIntersectBase( start, end, p1, normal1 );
 
         // Check for intersection with cone shape
 		p2[0] = p2[1] = p2[2] = 0;
-        t2 = this._rayIntersectCone( start, direction, length, p2 );
+        t2 = this._rayIntersectCone( start, direction, length, p2, normal2 );
 
         var intersection;
 
@@ -3824,12 +4297,14 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
             intersection.object = this;
 			intersection.t = t1;
             vec3.set( p1, intersection.point );
+			vec3.set( normal1, intersection.normal );
             return intersection;
         } else if ( !t1 || ( t2 && t2 < t1 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
 			intersection.t = t2;
             vec3.set( p2, intersection.point );
+			vec3.set( normal2, intersection.normal );
             return intersection;
         }
 
@@ -3838,13 +4313,13 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 })();
 
 Goblin.ConeShape.prototype._rayIntersectBase = (function(){
-    var normal = vec3.createFrom( 0, -1, 0 ),
+    var _normal = vec3.createFrom( 0, -1, 0 ),
         ab = vec3.create(),
         _start = vec3.create(),
         _end = vec3.create(),
         t;
 
-    return function( start, end, point ) {
+    return function( start, end, point, normal ) {
         _start[0] = start[0];
         _start[1] = start[1] + this.half_height;
         _start[2] = start[2];
@@ -3854,7 +4329,7 @@ Goblin.ConeShape.prototype._rayIntersectBase = (function(){
         _end[2] = end[2];
 
         vec3.subtract( _end, _start, ab );
-        t = -vec3.dot( normal, _start ) / vec3.dot( normal, ab );
+        t = -vec3.dot( _normal, _start ) / vec3.dot( _normal, ab );
 
         if ( t < 0 || t > 1 ) {
             return null;
@@ -3867,7 +4342,10 @@ Goblin.ConeShape.prototype._rayIntersectBase = (function(){
             return null;
         }
 
-        return t;
+		normal[0] = normal[2] = 0;
+		normal[1] = -1;
+
+        return t * vec3.length( ab );
     };
 })();
 
@@ -3885,7 +4363,7 @@ Goblin.ConeShape.prototype._rayIntersectBase = (function(){
 Goblin.ConeShape.prototype._rayIntersectCone = (function(){
     var _point = vec3.create();
 
-    return function( start, direction, length, point ) {
+    return function( start, direction, length, point, normal ) {
         var A = vec3.createFrom( 0, -1, 0 );
 
         var AdD = vec3.dot( A, direction ),
@@ -3980,7 +4458,18 @@ Goblin.ConeShape.prototype._rayIntersectCone = (function(){
             return null;
         }
 
-        return tmin;
+		// Compute normal
+		normal[0] = point[0];
+		normal[1] = 0;
+		normal[2] = point[2];
+		vec3.normalize( normal );
+
+		normal[0] *= ( this.half_height * 2 ) / this.radius;
+		normal[1] = this.radius / ( this.half_height * 2 );
+		normal[2] *= ( this.half_height * 2 ) / this.radius;
+		vec3.normalize( normal );
+
+        return tmin * length;
     };
 })();
 /**
@@ -4137,6 +4626,8 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 				// Keep intersection if Dot(S(t) - p, S(t) - p) <= r^2
 				if ( k + t * ( 2 * mn + t * nn ) <= 0 ) {
 					t0 = t;
+				} else {
+					return null;
 				}
 			} else if ( md + t * nd > dd ) {
 				// Intersection outside cylinder on 'q' side
@@ -4147,6 +4638,8 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 				// Keep intersection if Dot(S(t) - q, S(t) - q) <= r^2
 				if ( k + dd - 2 * md + t * ( 2 * ( mn - nd ) + t * nn ) <= 0 ) {
 					t0 = t;
+				} else {
+					return null;
 				}
 			}
 			t = t0;
@@ -4160,9 +4653,19 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 		// Segment intersects cylinder between the endcaps; t is correct
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
-		intersection.t = t;
+		intersection.t = t * vec3.length( n );
 		vec3.scale( n, t, intersection.point );
 		vec3.add( intersection.point, start );
+
+		if ( Math.abs( intersection.point[1] - this.half_height ) <= Goblin.EPSILON ) {
+			intersection.normal[0] = intersection.normal[2] = 0;
+			intersection.normal[1] = intersection.point[1] < 0 ? -1 : 1;
+		} else {
+			intersection.normal[1] = 0;
+			intersection.normal[0] = intersection.point[0];
+			intersection.normal[2] = intersection.point[2];
+			vec3.scale( intersection.normal, 1 / this.radius );
+		}
 
 		return intersection;
 	};
@@ -4384,8 +4887,9 @@ Goblin.PlaneShape.prototype.rayIntersect = (function(){
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
-		intersection.t = t;
+		intersection.t = t * vec3.length( ab );
 		vec3.set( point, intersection.point );
+		vec3.set( normal, intersection.normal );
 
 		return intersection;
 	};
@@ -4488,6 +4992,8 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
 		intersection.t = t;
 		vec3.add( intersection.point, start );
 
+        vec3.normalize( intersection.point, intersection.normal );
+
 		return intersection;
 	};
 })();
@@ -4500,6 +5006,7 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
  * @constructor
  */
 Goblin.World = function( broadphase, nearphase, solver ) {
+	Goblin.EventEmitter.call( this );
 	/**
 	 * How many time steps have been simulated. If the steps are always the same length then total simulation time = world.ticks * time_step
 	 *
@@ -4570,17 +5077,9 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @private
 	 */
 	this.force_generators = [];
-
-	/**
-	 * array of constraints in the world
-	 *
-	 * @property constraints
-	 * @type {Array}
-	 * @default []
-	 * @private
-	 */
-	this.constraints = [];
 };
+Goblin.World.prototype = Object.create( Goblin.EventEmitter.prototype );
+
 /**
 * Steps the physics simulation according to the time delta
 *
@@ -4599,6 +5098,8 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
 		this.ticks++;
         delta = Math.min( max_step, time_delta );
         time_delta -= max_step;
+
+		this.emit( 'stepStart', this.ticks, delta );
 
         for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
             this.rigid_bodies[i].updateDerived();
@@ -4646,6 +5147,8 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
             body = this.rigid_bodies[i];
             body.integrate( delta );
         }
+
+		this.emit( 'stepEnd', this.ticks, delta );
     }
 };
 
@@ -4657,6 +5160,7 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
  */
 Goblin.World.prototype.addRigidBody = function( rigid_body ) {
 	rigid_body.world = this;
+	rigid_body.updateDerived();
 	this.rigid_bodies.push( rigid_body );
 	this.broadphase.addBody( rigid_body );
 };
@@ -4718,35 +5222,20 @@ Goblin.World.prototype.removeForceGenerator = function( force_generator ) {
  * adds a constraint to the world
  *
  * @method addConstraint
- * @param constraint {Goblin.Constraint} constraint object to be added
+ * @param constraint {Goblin.Constraint} constraint to be added
  */
 Goblin.World.prototype.addConstraint = function( constraint ) {
-	var i, constraints_count;
-	// Make sure this constraint isn't already in the world
-	for ( i = 0, constraints_count = this.constraints.length; i < constraints_count; i++ ) {
-		if ( this.constraints[i] === constraint ) {
-			return;
-		}
-	}
-
-	constraint.world = this;
-	this.constraints.push( constraint );
+	this.solver.addConstraint( constraint );
 };
 
 /**
  * removes a constraint from the world
  *
  * @method removeConstraint
- * @param constraint {Goblin.Constraint} constraint object to be removed
+ * @param constraint {Goblin.Constraint} constraint to be removed
  */
 Goblin.World.prototype.removeConstraint = function( constraint ) {
-	var i, constraints_count;
-	for ( i = 0, constraints_count = this.constraints.length; i < constraints_count; i++ ) {
-		if ( this.constraints[i] === constraint ) {
-			this.constraints.splice( i, 1 );
-			return;
-		}
-	}
+	this.solver.removeConstraint( constraint );
 };
 
 /**

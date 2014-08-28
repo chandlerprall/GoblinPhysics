@@ -7,6 +7,7 @@
  * @constructor
  */
 Goblin.World = function( broadphase, nearphase, solver ) {
+	Goblin.EventEmitter.call( this );
 	/**
 	 * How many time steps have been simulated. If the steps are always the same length then total simulation time = world.ticks * time_step
 	 *
@@ -77,17 +78,9 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @private
 	 */
 	this.force_generators = [];
-
-	/**
-	 * array of constraints in the world
-	 *
-	 * @property constraints
-	 * @type {Array}
-	 * @default []
-	 * @private
-	 */
-	this.constraints = [];
 };
+Goblin.World.prototype = Object.create( Goblin.EventEmitter.prototype );
+
 /**
 * Steps the physics simulation according to the time delta
 *
@@ -106,6 +99,8 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
 		this.ticks++;
         delta = Math.min( max_step, time_delta );
         time_delta -= max_step;
+
+		this.emit( 'stepStart', this.ticks, delta );
 
         for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
             this.rigid_bodies[i].updateDerived();
@@ -153,6 +148,8 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
             body = this.rigid_bodies[i];
             body.integrate( delta );
         }
+
+		this.emit( 'stepEnd', this.ticks, delta );
     }
 };
 
@@ -164,6 +161,7 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
  */
 Goblin.World.prototype.addRigidBody = function( rigid_body ) {
 	rigid_body.world = this;
+	rigid_body.updateDerived();
 	this.rigid_bodies.push( rigid_body );
 	this.broadphase.addBody( rigid_body );
 };
@@ -225,35 +223,20 @@ Goblin.World.prototype.removeForceGenerator = function( force_generator ) {
  * adds a constraint to the world
  *
  * @method addConstraint
- * @param constraint {Goblin.Constraint} constraint object to be added
+ * @param constraint {Goblin.Constraint} constraint to be added
  */
 Goblin.World.prototype.addConstraint = function( constraint ) {
-	var i, constraints_count;
-	// Make sure this constraint isn't already in the world
-	for ( i = 0, constraints_count = this.constraints.length; i < constraints_count; i++ ) {
-		if ( this.constraints[i] === constraint ) {
-			return;
-		}
-	}
-
-	constraint.world = this;
-	this.constraints.push( constraint );
+	this.solver.addConstraint( constraint );
 };
 
 /**
  * removes a constraint from the world
  *
  * @method removeConstraint
- * @param constraint {Goblin.Constraint} constraint object to be removed
+ * @param constraint {Goblin.Constraint} constraint to be removed
  */
 Goblin.World.prototype.removeConstraint = function( constraint ) {
-	var i, constraints_count;
-	for ( i = 0, constraints_count = this.constraints.length; i < constraints_count; i++ ) {
-		if ( this.constraints[i] === constraint ) {
-			this.constraints.splice( i, 1 );
-			return;
-		}
-	}
+	this.solver.removeConstraint( constraint );
 };
 
 /**

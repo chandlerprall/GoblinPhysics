@@ -102,17 +102,18 @@ Goblin.AABB.prototype.testRayIntersect = (function(){
 		vec3.scale( direction, 1 / tmax ); // normalize direction
 
 		for ( var i = 0; i < 3; i++ ) {
-			var extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+			var extent_min = ( i === 0 ? this.min[0] : (  i === 1 ? this.min[1] : this.min[2] ) ),
+				extent_max = ( i === 0 ? this.max[0] : (  i === 1 ? this.max[1] : this.max[2] ) );
 
 			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
 				// Ray is parallel to axis
-				if ( start[i] < -extent || start[i] > extent ) {
+				if ( start[i] < extent_min || start[i] > extent_max ) {
 					return false;
 				}
 			} else {
 				ood = 1 / direction[i];
-				t1 = ( -extent - start[i] ) * ood;
-				t2 = ( extent - start[i] ) * ood;
+				t1 = ( extent_min - start[i] ) * ood;
+				t2 = ( extent_max - start[i] ) * ood;
 				if ( t1 > t2 ) {
 					ood = t1; // ood is a convenient temp variable as it's not used again
 					t1 = t2;

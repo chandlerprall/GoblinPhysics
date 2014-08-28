@@ -23,6 +23,13 @@ Goblin.IterativeSolver = function() {
 
 	/**
 	 * array of all constraints being solved
+	 * @property all_constraints
+	 * @type {Array}
+	 */
+	this.all_constraints = [];
+
+	/**
+	 * array of constraints on the system, excluding contact & friction
 	 * @property constraints
 	 * @type {Array}
 	 */
@@ -46,9 +53,34 @@ Goblin.IterativeSolver = function() {
 	 * used to relax the contact position solver, 0 is no position correction and 1 is full correction
 	 * @property relaxation
 	 * @type {Number}
-	 * @default 0.5
+	 * @default 0.1
 	 */
-	this.relaxation = 0.5;
+	this.relaxation = 0.1;
+};
+
+/**
+ * adds a constraint to the solver
+ *
+ * @method addConstraint
+ * @param constraint {Goblin.Constraint} constraint to be added
+ */
+Goblin.IterativeSolver.prototype.addConstraint = function( constraint ) {
+	if ( this.constraints.indexOf( constraint ) === -1 ) {
+		this.constraints.push( constraint );
+	}
+};
+
+/**
+ * removes a constraint from the solver
+ *
+ * @method removeConstraint
+ * @param constraint {Goblin.Constraint} constraint to be removed
+ */
+Goblin.IterativeSolver.prototype.removeConstraint = function( constraint ) {
+	var idx = this.constraints.indexOf( constraint );
+	if ( idx !== -1 ) {
+		this.constraints.splice( idx, 1 );
+	}
 };
 
 /**
@@ -94,22 +126,27 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 	}
 
 	// @TODO just for now
-	this.constraints = [];
-	Array.prototype.push.apply( this.constraints, this.contact_constraints );
-	Array.prototype.push.apply( this.constraints, this.friction_constraints );
+	this.all_constraints.length = 0;
+	Array.prototype.push.apply( this.all_constraints, this.friction_constraints );
+	Array.prototype.push.apply( this.all_constraints, this.constraints );
+	Array.prototype.push.apply( this.all_constraints, this.contact_constraints );
 };
 
 Goblin.IterativeSolver.prototype.prepareConstraints = function( time_delta ) {
-	var num_constraints = this.constraints.length,
+	var num_constraints = this.all_constraints.length,
 		num_rows,
 		constraint,
 		row,
 		i, j;
 
 	for ( i = 0; i < num_constraints; i++ ) {
-		constraint = this.constraints[i];
+		constraint = this.all_constraints[i];
+		if ( constraint.active === false ) {
+			continue;
+		}
 		num_rows = constraint.rows.length;
 
+		constraint.update( time_delta );
 		for ( j = 0; j < num_rows; j++ ) {
 			row = constraint.rows[j];
 			row.multiplier = 0;
@@ -250,7 +287,7 @@ Goblin.IterativeSolver.prototype.resolveContacts = function( time_delta ) {
 };
 
 Goblin.IterativeSolver.prototype.solveConstraints = function() {
-	var num_constraints = this.constraints.length,
+	var num_constraints = this.all_constraints.length,
 		constraint,
 		num_rows,
 		row,
@@ -264,7 +301,10 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 	for ( iteration = 0; iteration < this.max_iterations; iteration++ ) {
 		max_impulse = 0;
 		for ( i = 0; i < num_constraints; i++ ) {
-			constraint = this.constraints[i];
+			constraint = this.all_constraints[i];
+			if ( constraint.active === false ) {
+				continue;
+			}
 			num_rows = constraint.rows.length;
 
 			for ( j = 0; j < num_rows; j++ ) {
@@ -292,7 +332,7 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 					);
 				}
 
-				delta_lambda = ( row.eta - jdot ) / row.D;
+				delta_lambda = ( row.eta - jdot ) / row.D * constraint.factor;
 				var cache = row.multiplier;
 				row.multiplier = Math.max(
 					row.lower_limit,
@@ -332,7 +372,7 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 };
 
 Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
-	var num_constraints = this.constraints.length,
+	var num_constraints = this.all_constraints.length,
 		constraint,
 		num_rows,
 		row,
@@ -340,17 +380,27 @@ Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
 		invmass;
 
 	for ( i = 0; i < num_constraints; i++ ) {
-		constraint = this.constraints[i];
+		constraint = this.all_constraints[i];
+		if ( constraint.active === false ) {
+			continue;
+		}
 		num_rows = constraint.rows.length;
+
+		constraint.last_impulse[0] = constraint.last_impulse[1] = constraint.last_impulse[2] = 0;
 
 		for ( j = 0; j < num_rows; j++ ) {
 			row = constraint.rows[j];
 
 			if ( constraint.object_a != null && constraint.object_a.mass !== Infinity ) {
 				invmass = 1 / constraint.object_a.mass;
-				constraint.object_a.linear_velocity[0] += invmass * time_delta * row.jacobian[0] * row.multiplier;
-				constraint.object_a.linear_velocity[1] += invmass * time_delta * row.jacobian[1] * row.multiplier;
-				constraint.object_a.linear_velocity[2] += invmass * time_delta * row.jacobian[2] * row.multiplier;
+				_tmp_vec3_2[0] = invmass * time_delta * row.jacobian[0] * row.multiplier;
+				_tmp_vec3_2[1] = invmass * time_delta * row.jacobian[1] * row.multiplier;
+				_tmp_vec3_2[2] = invmass * time_delta * row.jacobian[2] * row.multiplier;
+				constraint.object_a.linear_velocity[0] += _tmp_vec3_2[0];
+				constraint.object_a.linear_velocity[1] += _tmp_vec3_2[1];
+				constraint.object_a.linear_velocity[2] += _tmp_vec3_2[2];
+
+				vec3.add( constraint.last_impulse, _tmp_vec3_2 );
 
 				_tmp_vec3_1[0] = time_delta * row.jacobian[3] * row.multiplier;
 				_tmp_vec3_1[1] = time_delta * row.jacobian[4] * row.multiplier;
@@ -359,13 +409,20 @@ Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
 				constraint.object_a.angular_velocity[0] += _tmp_vec3_1[0];
 				constraint.object_a.angular_velocity[1] += _tmp_vec3_1[1];
 				constraint.object_a.angular_velocity[2] += _tmp_vec3_1[2];
+
+				vec3.add( constraint.last_impulse, _tmp_vec3_1 );
 			}
 
 			if ( constraint.object_b != null && constraint.object_b.mass !== Infinity ) {
 				invmass = 1 / constraint.object_b.mass;
-				constraint.object_b.linear_velocity[0] += invmass * time_delta * row.jacobian[6] * row.multiplier;
-				constraint.object_b.linear_velocity[1] += invmass * time_delta * row.jacobian[7] * row.multiplier;
-				constraint.object_b.linear_velocity[2] += invmass * time_delta * row.jacobian[8] * row.multiplier;
+				_tmp_vec3_2[0] = invmass * time_delta * row.jacobian[6] * row.multiplier;
+				_tmp_vec3_2[1] = invmass * time_delta * row.jacobian[7] * row.multiplier;
+				_tmp_vec3_2[2] = invmass * time_delta * row.jacobian[8] * row.multiplier;
+				constraint.object_b.linear_velocity[0] += _tmp_vec3_2[0];
+				constraint.object_b.linear_velocity[1] += _tmp_vec3_2[1];
+				constraint.object_b.linear_velocity[2] += _tmp_vec3_2[2];
+
+				vec3.add( constraint.last_impulse, _tmp_vec3_2 );
 
 				_tmp_vec3_1[0] = time_delta * row.jacobian[9] * row.multiplier;
 				_tmp_vec3_1[1] = time_delta * row.jacobian[10] * row.multiplier;
@@ -374,6 +431,14 @@ Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
 				constraint.object_b.angular_velocity[0] += _tmp_vec3_1[0];
 				constraint.object_b.angular_velocity[1] += _tmp_vec3_1[1];
 				constraint.object_b.angular_velocity[2] += _tmp_vec3_1[2];
+
+				vec3.add( constraint.last_impulse, _tmp_vec3_1 );
+			}
+		}
+
+		if ( constraint.breaking_threshold > 0 ) {
+			if ( vec3.squaredLength( constraint.last_impulse ) >= constraint.breaking_threshold * constraint.breaking_threshold ) {
+				constraint.active = false;
 			}
 		}
 	}

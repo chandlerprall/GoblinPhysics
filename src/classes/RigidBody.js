@@ -10,6 +10,8 @@ Goblin.RigidBody = (function() {
 	var body_count = 0;
 
 	return function( shape, mass ) {
+		Goblin.EventEmitter.call( this );
+
 		/**
 		 * goblin ID of the body
 		 *
@@ -178,6 +180,7 @@ Goblin.RigidBody = (function() {
 		this.updateDerived();
 	};
 })();
+Goblin.RigidBody.prototype = Object.create( Goblin.EventEmitter.prototype );
 
 /**
  * Given `direction`, find the point in this body which is the most extreme in that direction.
@@ -236,6 +239,11 @@ Goblin.RigidBody.prototype.rayIntersect = (function(){
 		if ( intersection != null ) {
 			intersection.object = this; // change from the shape to the body
 			mat4.multiplyVec3( this.transform, intersection.point ); // transform shape's local coordinates to the body's world coordinates
+
+            // Rotate intersection normal
+            mat4.toMat3( this.transform, _tmp_mat3_1 );
+            mat3.multiplyVec3( _tmp_mat3_1, intersection.normal );
+
 			intersection_list.push( intersection );
 		}
 	};

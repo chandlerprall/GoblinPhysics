@@ -3,6 +3,7 @@ Goblin.ContactConstraint = function() {
 
 	this.contact = null;
 };
+Goblin.ContactConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
 Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	var row = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
@@ -45,7 +46,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	// Pre-calc error
-	row.bias = 0;//contact.penetration_depth;
+	row.bias = 0;
 
 	// Apply restitution
     //var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );

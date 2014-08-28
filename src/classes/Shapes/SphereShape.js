@@ -96,6 +96,8 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
 		intersection.t = t;
 		vec3.add( intersection.point, start );
 
+        vec3.normalize( intersection.point, intersection.normal );
+
 		return intersection;
 	};
 })();

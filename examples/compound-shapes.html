@@ -60,8 +60,14 @@
 				exampleUtils.objects.push( object );
 			};
 
-			setInterval( spawnObject, 1000 );
-			spawnObject();
+			exampleUtils.world.addListener(
+				'stepStart',
+				function( tick ) {
+					if ( tick % 60 === 1 ) {
+						spawnObject();
+					}
+				}
+			);
 
 			exampleUtils.run();
 		};

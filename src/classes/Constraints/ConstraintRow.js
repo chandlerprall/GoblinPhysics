@@ -10,8 +10,6 @@ Goblin.ConstraintRow = function() {
 	this.multiplier = 0;
 	this.eta = 0;
 	this.eta_row = new Float64Array( 12 );
-
-	this.applied_push_impulse = 0;
 };
 
 Goblin.ConstraintRow.prototype.computeB = function( constraint ) {

@@ -67,7 +67,7 @@
 
 					// Set expected values
 					var pendepth = 0.48;
-					var contact_normal = vec3.createFrom( 0, -0.97, 0.2 );
+					var contact_normal = vec3.createFrom( 0.2, -0.97, 0 );
 					var contact_point = vec3.createFrom( 0, -0.25, 0 );
 
 					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
@@ -97,7 +97,7 @@
 
 					// Set expected values
 					var pendepth = 0.48;
-					var contact_normal = vec3.createFrom( -0.1486, -0.98, -0.1486 );
+					var contact_normal = vec3.createFrom( 0.1486, -0.98, -0.1486 );
 					var contact_point = vec3.createFrom( -2, 0.25, 0 );
 
 					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
@@ -127,7 +127,7 @@
 
 					// Set expected values
 					var pendepth = 0.48;
-					var contact_normal = vec3.createFrom( -0.1486, -0.98, -0.1486 );
+					var contact_normal = vec3.createFrom( -0.1486, -0.98, 0.1486 );
 					var contact_point = vec3.createFrom( -2, 0, 0 );
 
 					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),

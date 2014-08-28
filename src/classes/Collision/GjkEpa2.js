@@ -219,16 +219,22 @@ Goblin.GjkEpa2.Polyhedron = function( simplex ) {
 	this.closest_point = vec3.create();
 
 	this.faces = [
-		new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[2], simplex.points[3] ), // ACD
+		//BCD, ACB, CAD, DAB
+		new Goblin.GjkEpa2.Face( this, simplex.points[2], simplex.points[1], simplex.points[0] ),
+		new Goblin.GjkEpa2.Face( this, simplex.points[3], simplex.points[1], simplex.points[2] ),
+		new Goblin.GjkEpa2.Face( this, simplex.points[1], simplex.points[3], simplex.points[0] ),
+		new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[3], simplex.points[2] )
+
+		/*new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[2], simplex.points[3] ), // ACD
 		new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[1], simplex.points[2] ), // ABC
 		new Goblin.GjkEpa2.Face( this, simplex.points[0], simplex.points[3], simplex.points[1] ), // ADB
-		new Goblin.GjkEpa2.Face( this, simplex.points[3], simplex.points[2], simplex.points[1] ) // DCB
+		new Goblin.GjkEpa2.Face( this, simplex.points[3], simplex.points[2], simplex.points[1] ) // DCB*/
 	];
 
-	this.faces[0].neighbors.push( this.faces[1], this.faces[3], this.faces[2] );
-	this.faces[1].neighbors.push( this.faces[2], this.faces[3], this.faces[0] );
-	this.faces[2].neighbors.push( this.faces[0], this.faces[3], this.faces[1] );
-	this.faces[3].neighbors.push( this.faces[0], this.faces[1], this.faces[2] );
+	this.faces[0].neighbors.push( this.faces[1], this.faces[2], this.faces[3] );
+	this.faces[1].neighbors.push( this.faces[2], this.faces[0], this.faces[3] );
+	this.faces[2].neighbors.push( this.faces[1], this.faces[3], this.faces[0] );
+	this.faces[3].neighbors.push( this.faces[2], this.faces[1], this.faces[0] );
 };
 Goblin.GjkEpa2.Polyhedron.prototype = {
     addVertex: function( vertex )
@@ -511,12 +517,12 @@ Goblin.GjkEpa2.Face.prototype = {
                     if ( vec3.dot( _tmp_vec3_1, ao ) >= 0 ) {
                         // Origin is on the front side of the triangle
                         vec3.set( _tmp_vec3_1, this.next_direction );
+						this.points.length = 0;
+						this.points.push( a, b, c );
                     } else {
                         // Origin is on the back side of the triangle
                         vec3.set( _tmp_vec3_1, this.next_direction );
                         vec3.negate( this.next_direction );
-                        this.points.length = 0;
-                        this.points.push( a, b, c );
                     }
 
                 }
@@ -525,9 +531,9 @@ Goblin.GjkEpa2.Face.prototype = {
         },
 
         getFaceNormal: function( a, b, c, destination ) {
-            vec3.subtract( c.point, a.point, ac );
             vec3.subtract( b.point, a.point, ab );
-            vec3.cross( ac, ab, destination );
+            vec3.subtract( c.point, a.point, ac );
+            vec3.cross( ab, ac, destination );
             vec3.normalize( destination );
         },
 
@@ -538,7 +544,7 @@ Goblin.GjkEpa2.Face.prototype = {
             // Find direction of origin from center of face
             vec3.add( a.point, b.point, _tmp_vec3_2 );
             vec3.add( _tmp_vec3_2, c.point );
-            vec3.negate( _tmp_vec3_2 );
+			vec3.scale( _tmp_vec3_2, -3 );
             vec3.normalize( _tmp_vec3_2 );
 
             return vec3.dot( _tmp_vec3_1, _tmp_vec3_2 );
@@ -550,139 +556,75 @@ Goblin.GjkEpa2.Face.prototype = {
                 c = this.points[1],
                 d = this.points[0];
 
-            if ( this.containsOrigin() ) {
-                // We have a collision, ready for EPA
-                return true;
-            }
+			// Check each of the four sides to see which one is facing the origin.
+			// Then keep the three points for that triangle and use its normal as the search direction
+			// The four faces are BCD, ACB, CAD, DAB
+			var closest_face = null,
+				closest_dot = Goblin.EPSILON,
+				face_dot;
 
+			// @TODO we end up calculating the "winning" face normal twice, don't do that
 
-            var origin = vec3.create();
+			face_dot = this.faceNormalDotOrigin( b, c, d );
+			if ( face_dot > closest_dot ) {
+				closest_face = 1;
+				closest_dot = face_dot;
+			}
 
-            // Tetrahedron doesn't contain the origin, bail
-            // Find which face normal of the tetrahedron aligns best to AO
-            var best = 0, dot = 0, shortest = Infinity, distance = 0;
+			face_dot = this.faceNormalDotOrigin( a, c, b );
+			if ( face_dot > closest_dot ) {
+				closest_face = 2;
+				closest_dot = face_dot;
+			}
 
-            // @TODO this line, repeated four times below, may not be needed:
-            // if ( vec3.squaredLength( _tmp_vec3_2 ) < Goblin.EPSILON ) return true;
+			face_dot = this.faceNormalDotOrigin( c, a, d );
+			if ( face_dot > closest_dot ) {
+				closest_face = 3;
+				closest_dot = face_dot;
+			}
 
-			var forgotten_point = null;
+			face_dot = this.faceNormalDotOrigin( d, a, b );
+			if ( face_dot > closest_dot ) {
+				closest_face = 4;
+				closest_dot = face_dot;
+			}
 
-            // Face 1, DCA
-            Goblin.GeometryMethods.findClosestPointInTriangle( origin, d.point, c.point, a.point, _tmp_vec3_2 );
-            vec3.subtract( d.point, a.point, ab );
-            vec3.subtract( c.point, a.point, ad );
-            vec3.cross( ab, ad, _tmp_vec3_1 );
-            //vec3.normalize( _tmp_vec3_1 );
-            distance = vec3.length( _tmp_vec3_2 );
-            if ( distance < shortest ) {
-                shortest = distance;
-                vec3.set( _tmp_vec3_1, this.next_direction );
-                this.points.length = 0;
-                this.points.push( a, c, d );
-				forgotten_point = b;
-            }
+			if ( closest_face === null ) {
+				// We have a collision, ready for EPA
+				//console.log( 'zomg collision found!' );
+				return true;
+			} else if ( closest_face === 1 ) {
+				// BCD
+				this.points.length = 0;
+				this.points.push( b, c, d );
+				this.getFaceNormal( b, c, d, _tmp_vec3_1 );
+				vec3.set( _tmp_vec3_1, this.next_direction );
+			} else if ( closest_face === 2 ) {
+				// ACB
+				this.points.length = 0;
+				this.points.push( a, c, b );
+				this.getFaceNormal( a, c, b, _tmp_vec3_1 );
+				vec3.set( _tmp_vec3_1, this.next_direction );
+			} else if ( closest_face === 3 ) {
+				// CAD
+				this.points.length = 0;
+				this.points.push( c, a, d );
+				this.getFaceNormal( c, a, d, _tmp_vec3_1 );
+				vec3.set( _tmp_vec3_1, this.next_direction );
+			} else if ( closest_face === 4 ) {
+				// DAB
+				this.points.length = 0;
+				this.points.push( d, a, b );
+				this.getFaceNormal( d, a, b, _tmp_vec3_1 );
+				vec3.set( _tmp_vec3_1, this.next_direction );
+			}
 
-            // Face 2, CBA
-            Goblin.GeometryMethods.findClosestPointInTriangle( origin, c.point, b.point, a.point, _tmp_vec3_2 );
-            vec3.subtract( c.point, a.point, ab );
-            vec3.subtract( b.point, a.point, ad );
-            vec3.cross( ab, ad, _tmp_vec3_1 );
-            //vec3.normalize( _tmp_vec3_1 );
-            distance = vec3.length( _tmp_vec3_2 );
-            if ( distance < shortest ) {
-                shortest = distance;
-                vec3.set( _tmp_vec3_1, this.next_direction );
-                this.points.length = 0;
-                this.points.push( a, b, c );
-				forgotten_point = d;
-            }
-
-            // Face 3, ADB
-            Goblin.GeometryMethods.findClosestPointInTriangle( origin, b.point, d.point, a.point, _tmp_vec3_2 );
-            vec3.subtract( b.point, a.point, ab );
-            vec3.subtract( d.point, a.point, ad );
-            vec3.cross( ab, ad, _tmp_vec3_1 );
-            //vec3.normalize( _tmp_vec3_1 );
-            distance = vec3.length( _tmp_vec3_2 );
-            if ( distance < shortest ) {
-                shortest = distance;
-                vec3.set( _tmp_vec3_1, this.next_direction );
-                this.points.length = 0;
-                this.points.push( b, d, a );
-				forgotten_point = c;
-            }
-
-            // Face 4, DCB
-            Goblin.GeometryMethods.findClosestPointInTriangle( origin, d.point, b.point, c.point, _tmp_vec3_2 );
-            vec3.subtract( d.point, c.point, ab );
-            vec3.subtract( b.point, c.point, ad );
-            vec3.cross( ab, ad, _tmp_vec3_1 );
-            //vec3.normalize( _tmp_vec3_1 );
-            distance = vec3.length( _tmp_vec3_2 );
-            if ( distance < shortest ) {
-                shortest = distance;
-                vec3.set( _tmp_vec3_1, this.next_direction );
-                this.points.length = 0;
-                this.points.push( c, b, d );
-				forgotten_point = a;
-            }
-
-			Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', forgotten_point );
-
-            /*// Check each of the four sides to see which one is facing the origin.
-            // Then keep the three points for that triangle and use its normal as the search direction
-            var best_a, best_b, best_c,
-                reason = -Infinity,
-                current = 0;
-
-            // Face 1, DCA
-            current = this.faceNormalDotOrigin( d, c, a );
-            if ( current > reason ) {
-                console.log( 'DCA' );
-                best_a = d;
-                best_b = c;
-                best_c = a;
-                reason = current;
-            }
-
-            // Face 2, CBA
-            current = this.faceNormalDotOrigin( c, b, a );
-            if ( current > reason ) {
-                console.log( 'CBA' );
-                best_a = c;
-                best_b = b;
-                best_c = a;
-                reason = current;
-            }
-
-            // Face 3, ADB
-            current = this.faceNormalDotOrigin( a, d, b );
-            if ( current > reason ) {
-                console.log( 'ADB' );
-                best_a = a;
-                best_b = d;
-                best_c = b;
-                reason = current;
-            }
-
-            // Face 4, DCB
-            current = this.faceNormalDotOrigin( d, c, b );
-            if ( current > reason ) {
-                console.log( 'DCB' );
-                best_a = d;
-                best_b = c;
-                best_c = b;
-            }
-
-            // Update simplex & direction
-            this.getFaceNormal( best_a, best_b, best_c, _tmp_vec3_1 );
-            vec3.set( _tmp_vec3_1, this.next_direction );
-            this.points.length = 0;
-            this.points.push( best_c, best_b, best_a );*/
+			// @TODO re-enable this based on above results
+			//Goblin.ObjectPool.freeObject( 'GJK2SupportPoint', forgotten_point );
         },
 
         containsOrigin: function() {
-            var a = this.points[3],
+			var a = this.points[3],
                 b = this.points[2],
                 c = this.points[1],
                 d = this.points[0];
@@ -712,8 +654,8 @@ Goblin.GjkEpa2.Face.prototype = {
             }
 
             // Check DCB
-            vec3.subtract( b.point, d.point, ab );
-            vec3.subtract( c.point, d.point, ad );
+            vec3.subtract( d.point, c.point, ab );
+            vec3.subtract( b.point, c.point, ad );
             vec3.cross( ab, ad, _tmp_vec3_1 );
             if ( vec3.dot( _tmp_vec3_1, d.point ) > 0 ) {
                 return false;

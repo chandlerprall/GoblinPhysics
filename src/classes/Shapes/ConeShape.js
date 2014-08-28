@@ -76,12 +76,6 @@ Goblin.ConeShape.prototype.getInertiaTensor = function( mass ) {
  * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
  */
 Goblin.ConeShape.prototype.findSupportPoint = function( direction, support_point ) {
-	/*
-	 support_point = [
-
-	 ]
-	 */
-
 	// Calculate the support point in the local frame
 	//var w = direction - ( direction[1] )
 	var sigma = Math.sqrt( direction[0] * direction[0] + direction[2] * direction[2] );
@@ -112,7 +106,9 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
     var direction = vec3.create(),
         length,
         p1 = vec3.create(),
-        p2 = vec3.create();
+        p2 = vec3.create(),
+		normal1 = vec3.create(),
+		normal2 = vec3.create();
 
     return function( start, end ) {
         vec3.subtract( end, start, direction );
@@ -123,11 +119,11 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 
         // Check for intersection with cone base
 		p1[0] = p1[1] = p1[2] = 0;
-        t1 = this._rayIntersectBase( start, end, p1 );
+        t1 = this._rayIntersectBase( start, end, p1, normal1 );
 
         // Check for intersection with cone shape
 		p2[0] = p2[1] = p2[2] = 0;
-        t2 = this._rayIntersectCone( start, direction, length, p2 );
+        t2 = this._rayIntersectCone( start, direction, length, p2, normal2 );
 
         var intersection;
 
@@ -138,12 +134,14 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
             intersection.object = this;
 			intersection.t = t1;
             vec3.set( p1, intersection.point );
+			vec3.set( normal1, intersection.normal );
             return intersection;
         } else if ( !t1 || ( t2 && t2 < t1 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
 			intersection.t = t2;
             vec3.set( p2, intersection.point );
+			vec3.set( normal2, intersection.normal );
             return intersection;
         }
 
@@ -152,13 +150,13 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 })();
 
 Goblin.ConeShape.prototype._rayIntersectBase = (function(){
-    var normal = vec3.createFrom( 0, -1, 0 ),
+    var _normal = vec3.createFrom( 0, -1, 0 ),
         ab = vec3.create(),
         _start = vec3.create(),
         _end = vec3.create(),
         t;
 
-    return function( start, end, point ) {
+    return function( start, end, point, normal ) {
         _start[0] = start[0];
         _start[1] = start[1] + this.half_height;
         _start[2] = start[2];
@@ -168,7 +166,7 @@ Goblin.ConeShape.prototype._rayIntersectBase = (function(){
         _end[2] = end[2];
 
         vec3.subtract( _end, _start, ab );
-        t = -vec3.dot( normal, _start ) / vec3.dot( normal, ab );
+        t = -vec3.dot( _normal, _start ) / vec3.dot( _normal, ab );
 
         if ( t < 0 || t > 1 ) {
             return null;
@@ -181,7 +179,10 @@ Goblin.ConeShape.prototype._rayIntersectBase = (function(){
             return null;
         }
 
-        return t;
+		normal[0] = normal[2] = 0;
+		normal[1] = -1;
+
+        return t * vec3.length( ab );
     };
 })();
 
@@ -199,7 +200,7 @@ Goblin.ConeShape.prototype._rayIntersectBase = (function(){
 Goblin.ConeShape.prototype._rayIntersectCone = (function(){
     var _point = vec3.create();
 
-    return function( start, direction, length, point ) {
+    return function( start, direction, length, point, normal ) {
         var A = vec3.createFrom( 0, -1, 0 );
 
         var AdD = vec3.dot( A, direction ),
@@ -294,6 +295,17 @@ Goblin.ConeShape.prototype._rayIntersectCone = (function(){
             return null;
         }
 
-        return tmin;
+		// Compute normal
+		normal[0] = point[0];
+		normal[1] = 0;
+		normal[2] = point[2];
+		vec3.normalize( normal );
+
+		normal[0] *= ( this.half_height * 2 ) / this.radius;
+		normal[1] = this.radius / ( this.half_height * 2 );
+		normal[2] *= ( this.half_height * 2 ) / this.radius;
+		vec3.normalize( normal );
+
+        return tmin * length;
     };
 })();

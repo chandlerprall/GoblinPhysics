@@ -63,10 +63,11 @@ window.Goblin = (function() {
 		_tmp_vec3_3 = vec3.create(),
 
 		_tmp_quat4_1 = quat4.create(),
+		_tmp_quat4_2 = quat4.create(),
 
 		_tmp_mat3_1 = mat3.create(),
 		_tmp_mat3_2 = mat3.create(),
 
 		_tmp_mat4_1 = mat4.create();
 
-    Goblin.EPSILON = 0.000001;
+	Goblin.EPSILON = 0.000001;

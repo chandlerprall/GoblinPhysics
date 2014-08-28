@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ray Tracer | Goblin Physics</title>
+    <link rel="stylesheet" type="text/css" href="css/styles.css"/>
+    <script type="text/javascript" src="../lib/three.min.js"></script>
+    <script type="text/javascript" src="../lib/TrackballControls.js"></script>
+    <script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
+    <script type="text/javascript" src="../build/goblin.js"></script>
+
+    <script type="text/javascript">
+        var canvas,
+            ctx,
+            canvas_data,
+	        width = window.innerWidth,
+	        height = window.innerHeight,
+            world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NearPhase(), new Goblin.IterativeSolver() ),
+            camera = mat4.create(),
+            camera_inverse = mat4.create(),
+	        lights = [];
+
+        mat4.perspective(
+            30, // FOV
+            width / height, // Aspect
+            1, // Near,
+            100, // Far
+            camera
+        );
+        mat4.inverse( camera, camera_inverse );
+
+        function TexturedBody( shape, diffuse, reflectivity ) {
+            Goblin.RigidBody.call( this, shape );
+            this.diffuse = diffuse;
+	        this.reflectivity = reflectivity || 0;
+        }
+        TexturedBody.prototype = Goblin.RigidBody.prototype;
+
+        function initLights() {
+	        // Ambient light
+	        lights.push((function(){
+		        var light_color = vec3.createFrom( 0.3, 0.3, 0.3 ),
+			        temp = vec3.create(),
+			        local_point = vec3.create();
+		        return function( intersection, out ) {
+			        mat4.multiplyVec3( intersection.object.transform_inverse, intersection.point, local_point );
+			        vec3.multiply( light_color, intersection.object.diffuse( local_point ), temp );
+			        vec3.add( out, temp );
+		        }
+	        })());
+
+	        // Directional light
+	        lights.push((function(){
+		        var light_color = vec3.createFrom( 0.7, 0.7, 0.7 ),
+			        direction = vec3.normalize( vec3.createFrom( -0.3, -0.7, -0.5 ) ),
+			        light_position = vec3.create(),
+			        temp1 = vec3.create(),
+			        local_point = vec3.create();
+		        vec3.scale( direction, -10, light_position );
+		        return function( intersection, out ) {
+			        // Cast shadow
+			        vec3.add( intersection.point, light_position, temp1 );
+			        var intersections = world.rayIntersect( temp1, intersection.point );
+			        if ( intersections.length === 0 || intersections[0].object === intersection.object ) {
+				        var dot = Math.max( -1 * vec3.dot( intersection.normal, direction ), 0 );
+				        mat4.multiplyVec3( intersection.object.transform_inverse, intersection.point, local_point );
+				        vec3.multiply( light_color, intersection.object.diffuse( local_point ), temp1 );
+				        vec3.scale( temp1, dot );
+				        vec3.add( out, temp1 );
+			        }
+
+			        // Optimization to save a few seconds of rendering
+			        for ( var i = 0; i < intersections.length; i++ ) {
+				        Goblin.ObjectPool.freeObject( 'RayIntersection', intersections[i] );
+			        }
+		        };
+	        })());
+        }
+
+        function initWalls() {
+	        var wall_shape = new Goblin.BoxShape( 5, 3, 0.5 ),
+		        floor_shape = new Goblin.BoxShape( 5, 0.1, 8 ),
+		        wall_material = (function(){
+		        var color = vec3.createFrom( 0.2, 0.2, 0.6 );
+		        return function() {
+			        return color;
+		        }
+	        })();
+
+	        var back = new TexturedBody( wall_shape, wall_material );
+	        back.position[2] = -5;
+	        world.addRigidBody( back );
+
+	        var floor = new TexturedBody( floor_shape, wall_material, 0.8 );
+	        floor.position[1] = -1.5;
+	        world.addRigidBody( floor );
+        }
+
+        function initScene() {
+	        initLights();
+	        initWalls();
+
+            var sphere1 = new TexturedBody(
+	            new Goblin.SphereShape( 1 ),
+	            (function(){
+		            var black = vec3.createFrom( 0, 0, 0 ),
+			            white = vec3.createFrom( 1, 1, 1 );
+		            return function( local_point ) {
+			            var is_black = true;
+
+			            if ( Math.abs( local_point[0] % 0.6 ) < 0.3 ) is_black = !is_black;
+			            if ( Math.abs( local_point[1] % 0.6 ) < 0.3 ) is_black = !is_black;
+
+			            return is_black ? black : white;
+		            };
+	            })(),
+	            0.8
+            );
+	        sphere1.position[1] = -0.4;
+	        world.addRigidBody( sphere1 );
+
+	        var sphere2 = new TexturedBody(
+		        new Goblin.SphereShape( 0.7 ),
+		        (function() { var color = vec3.createFrom( 1, 1, 0 ); return function() { return color }; })()
+	        );
+	        sphere2.position[0] = -1.75;
+	        sphere2.position[1] = -0.7;
+	        sphere2.position[2] = -1;
+	        world.addRigidBody( sphere2 );
+
+	        var sphere3 = new TexturedBody(
+		        new Goblin.SphereShape( 0.4 ),
+		        (function() { var color = vec3.createFrom( 0, 0, 1 ); return function() { return color }; })()
+	        );
+	        sphere3.position[0] = -0.5;
+	        sphere3.position[1] = -1;
+	        sphere3.position[2] = 1;
+	        world.addRigidBody( sphere3 );
+
+	        var box = new TexturedBody(
+		        new Goblin.BoxShape( 0.7, 0.8, 1.2 ),
+		        (function() { var color = vec3.createFrom( 0, 1, 0 ); return function() { return color }; })(),
+		        0.1
+	        );
+	        box.position = vec3.createFrom( 2.5, -0.6, -1.5 );
+	        box.rotation = quat4.normalize( quat4.createFrom( 0, 0.3, 0, 1 ) );
+	        world.addRigidBody( box );
+
+	        var cylinder = new TexturedBody(
+		        new Goblin.CylinderShape( 0.2, 0.74 ),
+		        (function() { var color = vec3.createFrom( 1, 0.3, 0.3 ); return function() { return color }; })(),
+		        0.6
+	        );
+	        cylinder.position = vec3.createFrom( 2, -0.66, -0.2 );
+	        cylinder.rotation = quat4.normalize( quat4.createFrom( 5, -0.5, 0.5, 1 ) );
+	        world.addRigidBody( cylinder );
+
+	        var cone = new TexturedBody(
+		        new Goblin.ConeShape( 0.2, 0.4 ),
+		        (function() { var color = vec3.createFrom( 0, 1, 0 ); return function() { return color }; })(),
+		        0.5
+	        );
+	        cone.position = vec3.createFrom( -1, -1.31, 2 );
+	        cone.rotation = quat4.normalize( quat4.createFrom( 0.8, 0, -1, 1 ) );
+	        world.addRigidBody( cone );
+        }
+
+        var reflectRay = (function(){
+	        var ri = vec3.create(),
+		        temp = vec3.create();
+	        return function( ray, normal ) {
+		        vec3.set( ray, ri );
+		        vec3.scale( normal, 2 * vec3.dot( ri, normal ), temp );
+		        vec3.subtract( ri, temp, ray );
+	        };
+        })();
+
+        var rayToColor = (function(){
+	        var rays = 0,
+		        max_rays = 4,
+		        temp = vec3.create();
+	        return function rayToColor( ray_start, ray_end, color ) {
+		        rays++;
+
+		        if ( rays <= max_rays ) {
+			        color[0] = color[1] = color[2] = 0;
+			        var intersections = world.rayIntersect( ray_start, ray_end );
+
+			        for ( i = 0; i < intersections.length; i++ ) {
+				        var intersection = intersections[i];
+				        // Make sure this intersection isn't at the ray start else we could be reflecting off ourself
+				        vec3.subtract( ray_start, intersection.point, temp );
+				        if ( vec3.squaredLength( temp ) <= Goblin.EPSILON ) continue;
+
+				        // Get all light at the point
+				        for ( var i = 0; i < lights.length; i++ ) {
+					        lights[i]( intersection, color );
+				        }
+
+				        // Reflections
+				        if ( intersection.object.reflectivity !== 0 ) {
+					        var reflected = vec3.create(), reflect_color = vec3.create();
+
+					        vec3.subtract( ray_end, ray_start, reflected );
+					        reflectRay( reflected, intersection.normal );
+                            vec3.add( reflected, intersection.point );
+
+					        rayToColor( intersection.point, reflected, reflect_color );
+					        vec3.scale( reflect_color, intersection.object.reflectivity );
+					        vec3.add( color, reflect_color );
+				        }
+
+				        break; // we found the first real intersection
+			        }
+
+			        // Optimization to save a few seconds of rendering
+			        for ( i = 0; i < intersections.length; i++ ) {
+				        Goblin.ObjectPool.freeObject( 'RayIntersection', intersections[i] );
+			        }
+		        }
+
+		        rays--;
+	        };
+        })();
+
+        var render = (function(){
+	        var y = 0,
+		        start = window.performance.now();
+
+	        var pixel = vec4.create(),
+		        pixel3 = vec3.create(),
+		        ray_end = vec3.create(),
+		        color = vec3.create();
+
+	        return function() {
+		        for ( var i = 0; i < 5 && y < height; i++ && y++ ) {
+			        for ( var x = 0; x < width; x++ ) {
+				        // Unproject pixel
+				        pixel[0] = x * 2 / width - 1;
+				        pixel[1] = 1 - ( y * 2 / height );
+				        pixel[2] = 0;
+				        pixel[3] = 1;
+
+				        mat4.multiplyVec4( camera_inverse, pixel );
+
+				        vec3.set( pixel, pixel3 );
+				        vec3.scale( pixel3, pixel[3] );
+				        vec3.normalize( pixel3 );
+
+				        vec3.scale( pixel3, 100, ray_end );
+				        pixel3[1] -= 1;
+				        pixel3[2] += 8;
+
+				        rayToColor( pixel3, ray_end, color );
+				        var data_offset = ( y * width + x ) * 4;
+				        canvas_data.data[data_offset] = color[0] * 255;
+				        canvas_data.data[data_offset + 1] = color[1] * 255;
+				        canvas_data.data[data_offset + 2] = color[2] * 255;
+				        canvas_data.data[data_offset + 3] = 255;
+			        }
+		        }
+
+		        ctx.putImageData( canvas_data, 0, 0 );
+
+		        if ( y < height ) {
+			        requestAnimationFrame( render );
+		        } else {
+			        var end = window.performance.now();
+			        console.log( 'render time', end - start );
+		        }
+	        }
+        })();
+
+        window.onload = function() {
+            canvas = document.createElement( 'CANVAS' );
+            canvas.height = height;
+            canvas.width = width;
+            ctx = canvas.getContext( '2d' );
+            canvas_data = ctx.getImageData( 0, 0, width, height );
+            document.body.appendChild( canvas );
+
+            initScene();
+
+            render();
+        };
+    </script>
+</head>
+
+<body>
+
+</body>
+</html>

@@ -215,8 +215,9 @@ Goblin.PlaneShape.prototype.rayIntersect = (function(){
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
-		intersection.t = t;
+		intersection.t = t * vec3.length( ab );
 		vec3.set( point, intersection.point );
+		vec3.set( normal, intersection.normal );
 
 		return intersection;
 	};

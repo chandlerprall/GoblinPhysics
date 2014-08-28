@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Boxes | Goblin Physics</title>
+	<title>Slider Constraint | Goblin Physics</title>
 	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
@@ -13,26 +13,32 @@
 		window.onload = function() {
 			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
 
+			var box_material = exampleUtils.createMaterial( 'wood', 1, 1 ),
+				plank_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 );
+
 			var ground = exampleUtils.createPlane( 1, 20, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
 			ground.castShadow = false;
+			ground.goblin.position[1] = -3;
 
-			var box_material = exampleUtils.createMaterial( 'wood', 1, 1 );
+			var spawnBoxes = function() {
+				var base = exampleUtils.createBox( 1, 5, 1, 10, box_material );
+				base.goblin.position[1] = 5;
 
-			var spawnBox = function() {
-				var box = exampleUtils.createBox( 1, 1, 1, 100, box_material );
-				box.goblin.position[1] = 1;
-				box.goblin.linear_velocity[1] = 15;
-				box.goblin.restitution = 0.3;
+				var top = exampleUtils.createBox( 1, 2, 1, 10, box_material );
+				top.goblin.position[1] = 10;
+				top.goblin.position[0] = 3;
+
+				var constraint = new Goblin.SliderConstraint(
+					base.goblin,
+					vec3.createFrom( 0, 1, 0 ),
+					top.goblin
+				);
+
+				exampleUtils.world.addConstraint( constraint );
 			};
 
-			exampleUtils.world.addListener(
-				'stepStart',
-				function( tick ) {
-					if ( tick % 5 === 1 ) {
-						spawnBox();
-					}
-				}
-			);
+			var lines = [];
+			spawnBoxes();
 
 			exampleUtils.run();
 		};

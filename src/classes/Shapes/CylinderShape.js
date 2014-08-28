@@ -152,6 +152,8 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 				// Keep intersection if Dot(S(t) - p, S(t) - p) <= r^2
 				if ( k + t * ( 2 * mn + t * nn ) <= 0 ) {
 					t0 = t;
+				} else {
+					return null;
 				}
 			} else if ( md + t * nd > dd ) {
 				// Intersection outside cylinder on 'q' side
@@ -162,6 +164,8 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 				// Keep intersection if Dot(S(t) - q, S(t) - q) <= r^2
 				if ( k + dd - 2 * md + t * ( 2 * ( mn - nd ) + t * nn ) <= 0 ) {
 					t0 = t;
+				} else {
+					return null;
 				}
 			}
 			t = t0;
@@ -175,9 +179,19 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 		// Segment intersects cylinder between the endcaps; t is correct
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
-		intersection.t = t;
+		intersection.t = t * vec3.length( n );
 		vec3.scale( n, t, intersection.point );
 		vec3.add( intersection.point, start );
+
+		if ( Math.abs( intersection.point[1] - this.half_height ) <= Goblin.EPSILON ) {
+			intersection.normal[0] = intersection.normal[2] = 0;
+			intersection.normal[1] = intersection.point[1] < 0 ? -1 : 1;
+		} else {
+			intersection.normal[1] = 0;
+			intersection.normal[0] = intersection.point[0];
+			intersection.normal[2] = intersection.point[2];
+			vec3.scale( intersection.normal, 1 / this.radius );
+		}
 
 		return intersection;
 	};

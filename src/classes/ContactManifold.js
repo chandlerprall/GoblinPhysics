@@ -120,6 +120,19 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		}
 	}
 
+	var use_contact = false;
+	if ( contact != null ) {
+		use_contact = contact.object_a.emit( 'newContact', contact.object_b, contact );
+		if ( use_contact !== false ) {
+			use_contact = contact.object_b.emit( 'newContact', contact.object_a, contact );
+		}
+
+		if ( use_contact === false ) {
+			Goblin.ObjectPool.freeObject( 'ContactDetails', contact );
+			return;
+		}
+	}
+
 	// Add contact if we don't have enough points yet
 	if ( this.points.length < 4 ) {
 		this.points.push( contact );

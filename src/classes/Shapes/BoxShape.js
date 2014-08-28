@@ -110,7 +110,7 @@ Goblin.BoxShape.prototype.findSupportPoint = function( direction, support_point 
 Goblin.BoxShape.prototype.rayIntersect = (function(){
 	var direction = vec3.create(),
 		tmin, tmax,
-		ood, t1, t2;
+		ood, t1, t2, extent;
 
 	return function( start, end ) {
 		tmin = 0;
@@ -120,31 +120,31 @@ Goblin.BoxShape.prototype.rayIntersect = (function(){
 		vec3.scale( direction, 1 / tmax ); // normalize direction
 
 		for ( var i = 0; i < 3; i++ ) {
-			var extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+			extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
 
 			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
 				// Ray is parallel to axis
 				if ( start[i] < -extent || start[i] > extent ) {
 					return null;
 				}
-			} else {
-				ood = 1 / direction[i];
-				t1 = ( -extent - start[i] ) * ood;
-				t2 = ( extent - start[i] ) * ood;
-				if ( t1 > t2 ) {
-					ood = t1; // ood is a convenient temp variable as it's not used again
-					t1 = t2;
-					t2 = ood;
-				}
-
-				// Find intersection intervals
-				tmin = Math.max( tmin, t1 );
-				tmax = Math.min( tmax, t2 );
-
-				if ( tmin > tmax ) {
-					return null;
-				}
 			}
+
+            ood = 1 / direction[i];
+            t1 = ( -extent - start[i] ) * ood;
+            t2 = ( extent - start[i] ) * ood;
+            if ( t1 > t2 ) {
+                ood = t1; // ood is a convenient temp variable as it's not used again
+                t1 = t2;
+                t2 = ood;
+            }
+
+            // Find intersection intervals
+            tmin = Math.max( tmin, t1 );
+            tmax = Math.min( tmax, t2 );
+
+            if ( tmin > tmax ) {
+                return null;
+            }
 		}
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
@@ -152,6 +152,17 @@ Goblin.BoxShape.prototype.rayIntersect = (function(){
 		intersection.t = tmin;
 		vec3.scale( direction, tmin, intersection.point );
 		vec3.add( intersection.point, start );
+
+		// Find face normal
+        var max = Infinity;
+		for ( i = 0; i < 3; i++ ) {
+			extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
+			if ( extent - Math.abs( intersection.point[i] ) < max ) {
+				intersection.normal[0] = intersection.normal[1] = intersection.normal[2] = 0;
+				intersection.normal[i] = intersection.point[i] < 0 ? -1 : 1;
+				max = extent - Math.abs( intersection.point[i] );
+			}
+		}
 
 		return intersection;
 	};

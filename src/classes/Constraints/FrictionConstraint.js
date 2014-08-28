@@ -1,6 +1,7 @@
 Goblin.FrictionConstraint = function() {
 	Goblin.Constraint.call( this );
 };
+Goblin.FrictionConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
 Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	var row_1 = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' ),
@@ -18,12 +19,31 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	var u1 = vec3.create(),
 		u2 = vec3.create();
 
-	u1[0] = 1 - Math.abs( contact.contact_normal[0] );
-	u1[1] = 1 - Math.abs( contact.contact_normal[1] );
-	u1[2] = 1 - Math.abs( contact.contact_normal[2] );
-	vec3.normalize( u1 );
-
-	vec3.cross( contact.contact_normal, u1, u2 );
+	var a, k;
+	if ( Math.abs( contact.contact_normal[2] ) > 0.7071067811865475 ) {
+		// choose p in y-z plane
+		a = -contact.contact_normal[1] * contact.contact_normal[1] + contact.contact_normal[2] * contact.contact_normal[2];
+		k = 1 / Math.sqrt( a );
+		u1[0] = 0;
+		u1[1] = -contact.contact_normal[2] * k;
+		u1[2] = contact.contact_normal[1] * k;
+		// set q = n x p
+		u2[0] = a * k;
+		u2[1] = -contact.contact_normal[0] * u1[2];
+		u2[2] = contact.contact_normal[0] * u1[1];
+	}
+	else {
+		// choose p in x-y plane
+		a = contact.contact_normal[0] * contact.contact_normal[0] + contact.contact_normal[1] * contact.contact_normal[1];
+		k = 1 / Math.sqrt( a );
+		u1[0] = -contact.contact_normal[1] * k;
+		u1[1] = contact.contact_normal[0] * k;
+		u1[2] = 0;
+		// set q = n x p
+		u2[0] = -contact.contact_normal[2] * u1[1];
+		u2[1] = contact.contact_normal[2] * u1[0];
+		u2[2] = a*k;
+	}
 
 	if ( this.object_a == null || this.object_a.mass === Infinity ) {
 		row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
