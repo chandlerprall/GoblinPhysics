@@ -3465,6 +3465,22 @@ Goblin.RigidBody = (function() {
 		this.gravity = null;
 
 		/**
+		 * proportion of linear velocity lost per second ( 0.0 - 1.0 )
+		 *
+		 * @property linear_damping
+		 * @type {Number}
+		 */
+		this.linear_damping = 0;
+
+		/**
+		 * proportion of angular velocity lost per second ( 0.0 - 1.0 )
+		 *
+		 * @property angular_damping
+		 * @type {Number}
+		 */
+		this.angular_damping = 0;
+
+		/**
 		 * the world to which the rigid body has been added,
 		 * this is set when the rigid body is added to a world
 		 *
@@ -3594,6 +3610,10 @@ Goblin.RigidBody.prototype.integrate = function( timestep ) {
 	// Add accumulated angular force
 	mat3.multiplyVec3 ( this.inverseInertiaTensorWorldFrame, this.accumulated_torque, _tmp_vec3_1 );
 	vec3.add( this.angular_velocity, _tmp_vec3_1 );
+
+	// Apply damping
+	vec3.scale( this.linear_velocity, Math.pow( 1 - this.linear_damping, timestep ) );
+	vec3.scale( this.angular_velocity, Math.pow( 1 - this.angular_damping, timestep ) );
 
 	// Update position
 	vec3.scale( this.linear_velocity, timestep, _tmp_vec3_1 );

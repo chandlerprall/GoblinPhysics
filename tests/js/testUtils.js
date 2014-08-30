@@ -2,7 +2,8 @@ window.testUtils = (function(){
 	var renderer,
 		camera,
 		controls,
-		world;
+		world,
+		run_raf;
 	
 	var objects = [];
 
@@ -59,13 +60,18 @@ window.testUtils = (function(){
         },
 
 		run: function() {
-			requestAnimationFrame( testUtils.run );
+			run_raf = requestAnimationFrame( testUtils.run );
 
 			controls.update();
 			world.step( 1 / 60 );
 			testUtils.render();
 
 			if ( testUtils.ontick ) testUtils.ontick();
+		},
+
+		stop: function()
+		{
+			cancelAnimationFrame( run_raf );
 		},
 
 		withinEpsilon: function( value, expected ) {
