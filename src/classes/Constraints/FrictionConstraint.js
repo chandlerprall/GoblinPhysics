@@ -1,47 +1,64 @@
 Goblin.FrictionConstraint = function() {
 	Goblin.Constraint.call( this );
+
+	this.contact = null;
 };
 Goblin.FrictionConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
 Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
-	var row_1 = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' ),
-		row_2 = this.rows[1] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	this.rows[0] = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	this.rows[1] = this.rows[1] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
 
 	this.object_a = contact.object_a;
 	this.object_b = contact.object_b;
+	this.contact = contact;
+
+	var self = this;
+	var onDestroy = function() {
+		this.removeListener( 'destroy', onDestroy );
+		self.deactivate();
+	};
+	this.contact.addListener( 'destroy', onDestroy );
+
+	this.update();
+};
+
+Goblin.FrictionConstraint.prototype.update = function() {
+	var row_1 = this.rows[0],
+		row_2 = this.rows[1];
 
 	// Find the contact point relative to object_a and object_b
 	var rel_a = vec3.create(),
 		rel_b = vec3.create();
-	vec3.subtract( contact.contact_point, contact.object_a.position, rel_a );
-	vec3.subtract( contact.contact_point, contact.object_b.position, rel_b );
+	vec3.subtract( this.contact.contact_point, this.object_a.position, rel_a );
+	vec3.subtract( this.contact.contact_point, this.object_b.position, rel_b );
 
 	var u1 = vec3.create(),
 		u2 = vec3.create();
 
 	var a, k;
-	if ( Math.abs( contact.contact_normal[2] ) > 0.7071067811865475 ) {
+	if ( Math.abs( this.contact.contact_normal[2] ) > 0.7071067811865475 ) {
 		// choose p in y-z plane
-		a = -contact.contact_normal[1] * contact.contact_normal[1] + contact.contact_normal[2] * contact.contact_normal[2];
+		a = -this.contact.contact_normal[1] * this.contact.contact_normal[1] + this.contact.contact_normal[2] * this.contact.contact_normal[2];
 		k = 1 / Math.sqrt( a );
 		u1[0] = 0;
-		u1[1] = -contact.contact_normal[2] * k;
-		u1[2] = contact.contact_normal[1] * k;
+		u1[1] = -this.contact.contact_normal[2] * k;
+		u1[2] = this.contact.contact_normal[1] * k;
 		// set q = n x p
 		u2[0] = a * k;
-		u2[1] = -contact.contact_normal[0] * u1[2];
-		u2[2] = contact.contact_normal[0] * u1[1];
+		u2[1] = -this.contact.contact_normal[0] * u1[2];
+		u2[2] = this.contact.contact_normal[0] * u1[1];
 	}
 	else {
 		// choose p in x-y plane
-		a = contact.contact_normal[0] * contact.contact_normal[0] + contact.contact_normal[1] * contact.contact_normal[1];
+		a = this.contact.contact_normal[0] * this.contact.contact_normal[0] + this.contact.contact_normal[1] * this.contact.contact_normal[1];
 		k = 1 / Math.sqrt( a );
-		u1[0] = -contact.contact_normal[1] * k;
-		u1[1] = contact.contact_normal[0] * k;
+		u1[0] = -this.contact.contact_normal[1] * k;
+		u1[1] = this.contact.contact_normal[0] * k;
 		u1[2] = 0;
 		// set q = n x p
-		u2[0] = -contact.contact_normal[2] * u1[1];
-		u2[1] = contact.contact_normal[2] * u1[0];
+		u2[0] = -this.contact.contact_normal[2] * u1[1];
+		u2[1] = this.contact.contact_normal[2] * u1[0];
 		u2[2] = a*k;
 	}
 
@@ -96,8 +113,8 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	// Find total velocity between the two bodies along the contact normal
-	var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
-	velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
+	var velocity = vec3.dot( this.object_a.linear_velocity, this.contact.contact_normal );
+	velocity -= vec3.dot( this.object_b.linear_velocity, this.contact.contact_normal );
 
 	var avg_mass = 0;
 	if ( this.object_a == null || this.object_a.mass === Infinity ) {
@@ -109,7 +126,7 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	velocity = 1; // @TODO velocity calculation above needs to be total external forces, not the velocity
-	var limit = contact.friction * velocity * avg_mass;
+	var limit = this.contact.friction * velocity * avg_mass;
 	if ( limit < 0 ) {
 		limit = 0;
 	}

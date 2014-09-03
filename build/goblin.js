@@ -71,6 +71,59 @@ window.Goblin = (function() {
 		_tmp_mat4_1 = mat4.create();
 
 	Goblin.EPSILON = 0.000001;
+Goblin.EventEmitter = function(){};
+
+Goblin.EventEmitter.prototype = {
+	addListener: function( event, listener ) {
+		if ( this.listeners[event] == null ) {
+			this.listeners[event] = [];
+		}
+
+		if ( this.listeners[event].indexOf( listener ) === -1 ) {
+			this.listeners[event].push( listener );
+		}
+	},
+
+	removeListener: function( event, listener ) {
+		if ( this.listeners[event] == null ) {
+			this.listeners[event] = [];
+		}
+
+		var index = this.listeners[event].indexOf( listener );
+		if ( index !== -1 ) {
+			this.listeners[event].splice( index, 1 );
+		}
+	},
+
+	removeAllListeners: function() {
+		var listeners = Object.keys( this.listeners );
+		for ( var i = 0; i < listeners.length; i++ ) {
+			this.listeners[listeners[i]].length = 0;
+		}
+	},
+
+	emit: function( event ) {
+		var event_arguments = Array.prototype.slice.call( arguments, 1 ),
+			ret_value;
+
+		if ( this.listeners[event] instanceof Array ) {
+			var listeners = this.listeners[event].slice();
+			for ( var i = 0; i < listeners.length; i++ ) {
+				ret_value = listeners[i].apply( this, event_arguments );
+				if ( ret_value === false ) {
+					return false;
+				}
+			}
+		}
+	}
+};
+
+Goblin.EventEmitter.apply = function( klass ) {
+	klass.prototype.addListener = Goblin.EventEmitter.prototype.addListener;
+	klass.prototype.removeListener = Goblin.EventEmitter.prototype.removeListener;
+	klass.prototype.removeAllListeners = Goblin.EventEmitter.prototype.removeAllListeners;
+	klass.prototype.emit = Goblin.EventEmitter.prototype.emit;
+};
 /**
  * @class AABB
  * @param [min] {vec3}
@@ -659,6 +712,7 @@ Goblin.GjkEpa2 = {
 					contact.friction = ( simplex.object_a.friction + simplex.object_b.friction ) / 2;
 
 					Goblin.GjkEpa2.freePolyhedron( polyhedron );
+
 					return contact;
 				}
 
@@ -1227,6 +1281,14 @@ Goblin.Constraint = function() {
 	this.last_impulse = vec3.create();
 
 	this.breaking_threshold = 0;
+
+	this.listeners = {};
+};
+Goblin.EventEmitter.apply( Goblin.Constraint );
+
+Goblin.Constraint.prototype.deactivate = function() {
+	this.active = false;
+	this.emit( 'deactivate' );
 };
 
 Goblin.Constraint.prototype.update = function(){};
@@ -1240,6 +1302,7 @@ Goblin.ConstraintRow = function() {
 
 	this.bias = 0;
 	this.multiplier = 0;
+	this.multiplier_cached = 0;
 	this.eta = 0;
 	this.eta_row = new Float64Array( 12 );
 };
@@ -1361,25 +1424,38 @@ Goblin.ContactConstraint = function() {
 Goblin.ContactConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
 Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
-	var row = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
-
 	this.object_a = contact.object_a;
 	this.object_b = contact.object_b;
 	this.contact = contact;
 
+	var self = this;
+	var onDestroy = function() {
+		this.removeListener( 'destroy', onDestroy );
+		self.deactivate();
+	};
+	this.contact.addListener( 'destroy', onDestroy );
+
+	var row = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
 	row.lower_limit = 0;
 	row.upper_limit = Infinity;
+	this.rows[0] = row;
+
+	this.update();
+};
+
+Goblin.ContactConstraint.prototype.update = function() {
+	var row = this.rows[0];
 
 	if ( this.object_a == null || this.object_a.mass === Infinity ) {
 		row.jacobian[0] = row.jacobian[1] = row.jacobian[2] = 0;
 		row.jacobian[3] = row.jacobian[4] = row.jacobian[5] = 0;
 	} else {
-		row.jacobian[0] = -contact.contact_normal[0];
-		row.jacobian[1] = -contact.contact_normal[1];
-		row.jacobian[2] = -contact.contact_normal[2];
+		row.jacobian[0] = -this.contact.contact_normal[0];
+		row.jacobian[1] = -this.contact.contact_normal[1];
+		row.jacobian[2] = -this.contact.contact_normal[2];
 
-		vec3.subtract( contact.contact_point, contact.object_a.position, _tmp_vec3_1 );
-		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
+		vec3.subtract( this.contact.contact_point, this.contact.object_a.position, _tmp_vec3_1 );
+		vec3.cross( _tmp_vec3_1, this.contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[3] = -_tmp_vec3_1[0];
 		row.jacobian[4] = -_tmp_vec3_1[1];
 		row.jacobian[5] = -_tmp_vec3_1[2];
@@ -1389,12 +1465,12 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 		row.jacobian[6] = row.jacobian[7] = row.jacobian[8] = 0;
 		row.jacobian[9] = row.jacobian[10] = row.jacobian[11] = 0;
 	} else {
-		row.jacobian[6] = contact.contact_normal[0];
-		row.jacobian[7] = contact.contact_normal[1];
-		row.jacobian[8] = contact.contact_normal[2];
+		row.jacobian[6] = this.contact.contact_normal[0];
+		row.jacobian[7] = this.contact.contact_normal[1];
+		row.jacobian[8] = this.contact.contact_normal[2];
 
-		vec3.subtract( contact.contact_point, contact.object_b.position, _tmp_vec3_1 );
-		vec3.cross( _tmp_vec3_1, contact.contact_normal, _tmp_vec3_1 );
+		vec3.subtract( this.contact.contact_point, this.contact.object_b.position, _tmp_vec3_1 );
+		vec3.cross( _tmp_vec3_1, this.contact.contact_normal, _tmp_vec3_1 );
 		row.jacobian[9] = _tmp_vec3_1[0];
 		row.jacobian[10] = _tmp_vec3_1[1];
 		row.jacobian[11] = _tmp_vec3_1[2];
@@ -1404,67 +1480,80 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 	row.bias = 0;
 
 	// Apply restitution
-    //var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
-    //velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
 	var velocity_along_normal = 0;
 	if ( this.object_a.mass !== Infinity ) {
-		this.object_a.getVelocityInLocalPoint( contact.contact_point_in_a, _tmp_vec3_1 );
-		velocity_along_normal += vec3.dot( _tmp_vec3_1, contact.contact_normal );
+		this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
+		velocity_along_normal += vec3.dot( _tmp_vec3_1, this.contact.contact_normal );
 	}
 	if ( this.object_b.mass !== Infinity ) {
-		this.object_b.getVelocityInLocalPoint( contact.contact_point_in_b, _tmp_vec3_1 );
-		velocity_along_normal -= vec3.dot( _tmp_vec3_1, contact.contact_normal );
+		this.object_b.getVelocityInLocalPoint( this.contact.contact_point_in_b, _tmp_vec3_1 );
+		velocity_along_normal -= vec3.dot( _tmp_vec3_1, this.contact.contact_normal );
 	}
 
 	// Add restitution to bias
-	row.bias += velocity_along_normal * contact.restitution;
-
-	this.rows[0] = row;
+	row.bias += velocity_along_normal * this.contact.restitution;
 };
 Goblin.FrictionConstraint = function() {
 	Goblin.Constraint.call( this );
+
+	this.contact = null;
 };
 Goblin.FrictionConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
 Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
-	var row_1 = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' ),
-		row_2 = this.rows[1] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	this.rows[0] = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	this.rows[1] = this.rows[1] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
 
 	this.object_a = contact.object_a;
 	this.object_b = contact.object_b;
+	this.contact = contact;
+
+	var self = this;
+	var onDestroy = function() {
+		this.removeListener( 'destroy', onDestroy );
+		self.deactivate();
+	};
+	this.contact.addListener( 'destroy', onDestroy );
+
+	this.update();
+};
+
+Goblin.FrictionConstraint.prototype.update = function() {
+	var row_1 = this.rows[0],
+		row_2 = this.rows[1];
 
 	// Find the contact point relative to object_a and object_b
 	var rel_a = vec3.create(),
 		rel_b = vec3.create();
-	vec3.subtract( contact.contact_point, contact.object_a.position, rel_a );
-	vec3.subtract( contact.contact_point, contact.object_b.position, rel_b );
+	vec3.subtract( this.contact.contact_point, this.object_a.position, rel_a );
+	vec3.subtract( this.contact.contact_point, this.object_b.position, rel_b );
 
 	var u1 = vec3.create(),
 		u2 = vec3.create();
 
 	var a, k;
-	if ( Math.abs( contact.contact_normal[2] ) > 0.7071067811865475 ) {
+	if ( Math.abs( this.contact.contact_normal[2] ) > 0.7071067811865475 ) {
 		// choose p in y-z plane
-		a = -contact.contact_normal[1] * contact.contact_normal[1] + contact.contact_normal[2] * contact.contact_normal[2];
+		a = -this.contact.contact_normal[1] * this.contact.contact_normal[1] + this.contact.contact_normal[2] * this.contact.contact_normal[2];
 		k = 1 / Math.sqrt( a );
 		u1[0] = 0;
-		u1[1] = -contact.contact_normal[2] * k;
-		u1[2] = contact.contact_normal[1] * k;
+		u1[1] = -this.contact.contact_normal[2] * k;
+		u1[2] = this.contact.contact_normal[1] * k;
 		// set q = n x p
 		u2[0] = a * k;
-		u2[1] = -contact.contact_normal[0] * u1[2];
-		u2[2] = contact.contact_normal[0] * u1[1];
+		u2[1] = -this.contact.contact_normal[0] * u1[2];
+		u2[2] = this.contact.contact_normal[0] * u1[1];
 	}
 	else {
 		// choose p in x-y plane
-		a = contact.contact_normal[0] * contact.contact_normal[0] + contact.contact_normal[1] * contact.contact_normal[1];
+		a = this.contact.contact_normal[0] * this.contact.contact_normal[0] + this.contact.contact_normal[1] * this.contact.contact_normal[1];
 		k = 1 / Math.sqrt( a );
-		u1[0] = -contact.contact_normal[1] * k;
-		u1[1] = contact.contact_normal[0] * k;
+		u1[0] = -this.contact.contact_normal[1] * k;
+		u1[1] = this.contact.contact_normal[0] * k;
 		u1[2] = 0;
 		// set q = n x p
-		u2[0] = -contact.contact_normal[2] * u1[1];
-		u2[1] = contact.contact_normal[2] * u1[0];
+		u2[0] = -this.contact.contact_normal[2] * u1[1];
+		u2[1] = this.contact.contact_normal[2] * u1[0];
 		u2[2] = a*k;
 	}
 
@@ -1519,8 +1608,8 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	// Find total velocity between the two bodies along the contact normal
-	var velocity = vec3.dot( this.object_a.linear_velocity, contact.contact_normal );
-	velocity -= vec3.dot( this.object_b.linear_velocity, contact.contact_normal );
+	var velocity = vec3.dot( this.object_a.linear_velocity, this.contact.contact_normal );
+	velocity -= vec3.dot( this.object_b.linear_velocity, this.contact.contact_normal );
 
 	var avg_mass = 0;
 	if ( this.object_a == null || this.object_a.mass === Infinity ) {
@@ -1532,7 +1621,7 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	}
 
 	velocity = 1; // @TODO velocity calculation above needs to be total external forces, not the velocity
-	var limit = contact.friction * velocity * avg_mass;
+	var limit = this.contact.friction * velocity * avg_mass;
 	if ( limit < 0 ) {
 		limit = 0;
 	}
@@ -1991,6 +2080,14 @@ Goblin.ContactDetails = function() {
 	 * @type {*}
 	 */
 	this.friction = 0;
+
+	this.listeners = {};
+};
+Goblin.EventEmitter.apply( Goblin.ContactDetails );
+
+Goblin.ContactDetails.prototype.destroy = function() {
+	this.emit( 'destroy' );
+	Goblin.ObjectPool.freeObject( 'ContactDetails', this );
 };
 /**
  * Structure which holds information about the contact points between two objects
@@ -2109,7 +2206,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 	var i;
 	for ( i = 0; i < this.points.length; i++ ) {
 		if ( vec3.dist( this.points[i].contact_point, contact.contact_point ) <= 0.02 ) {
-			Goblin.ObjectPool.freeObject( 'ContactDetails', contact );
+			contact.destroy();
 			return;
 		}
 	}
@@ -2122,6 +2219,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		}
 
 		if ( use_contact === false ) {
+			contact.emit( 'destroy' );
 			Goblin.ObjectPool.freeObject( 'ContactDetails', contact );
 			return;
 		}
@@ -2132,7 +2230,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		this.points.push( contact );
 	} else {
 		var replace_index = this.findWeakestContact( contact );
-		//@TODO give the contact back to the object pool
+		this.points[replace_index].destroy();
 		this.points[replace_index] = contact;
 	}
 };
@@ -2169,7 +2267,7 @@ Goblin.ContactManifold.prototype.update = function() {
 		// If distance from contact is too great remove this contact point
 		if ( point.penetration_depth < -0.02 ) {
 			// Points are too far away along the contact normal
-			Goblin.ObjectPool.freeObject( 'ContactDetails', point );
+			point.destroy();
 			for ( j = i; j < this.points.length; j++ ) {
 				this.points[j] = this.points[j + 1];
 			}
@@ -2183,7 +2281,7 @@ Goblin.ContactManifold.prototype.update = function() {
 			var distance = vec3.squaredLength( _tmp_vec3_1 );
 			if ( distance > 0.2 * 0.2 ) {
 				// Points are indeed too far away
-				Goblin.ObjectPool.freeObject( 'ContactDetails', point );
+				point.destroy();
 				for ( j = i; j < this.points.length; j++ ) {
 					this.points[j] = this.points[j + 1];
 				}
@@ -2252,44 +2350,6 @@ Goblin.ContactManifoldList.prototype.getManifoldForObjects = function( object_a,
 	}
 
 	return manifold;
-};
-Goblin.EventEmitter = function() {
-	this.events = {};
-};
-
-Goblin.EventEmitter.prototype.addListener = function( event, listener ) {
-	if ( this.events[event] === undefined ) {
-		this.events[event] = [];
-	}
-
-	if ( this.events[event].indexOf( listener ) === -1 ) {
-		this.events[event].push( listener );
-	}
-};
-
-Goblin.EventEmitter.prototype.removeListener = function( event, listener ) {
-	if ( this.events[event] === undefined ) {
-		this.events[event] = [];
-	}
-
-	var index = this.events[event].indexOf( listener );
-	if ( index !== -1 ) {
-		this.events[event].splice( index, 1 );
-	}
-};
-
-Goblin.EventEmitter.prototype.emit = function( event ) {
-	var event_arguments = Array.prototype.slice.call( arguments, 1 ),
-		ret_value;
-
-	if ( this.events[event] !== undefined ) {
-		for ( var i = 0; i < this.events[event].length; i++ ) {
-			ret_value = this.events[event][i].apply( this, event_arguments );
-			if ( ret_value === false ) {
-				return false;
-			}
-		}
-	}
 };
 /**
  * adds a constant force to associated objects
@@ -2492,6 +2552,7 @@ Goblin.IterativeSolver = function() {
 
 	/**
 	 * array of all constraints being solved
+	 *
 	 * @property all_constraints
 	 * @type {Array}
 	 */
@@ -2499,6 +2560,7 @@ Goblin.IterativeSolver = function() {
 
 	/**
 	 * array of constraints on the system, excluding contact & friction
+	 *
 	 * @property constraints
 	 * @type {Array}
 	 */
@@ -2506,6 +2568,7 @@ Goblin.IterativeSolver = function() {
 
 	/**
 	 * maximum solver iterations per time step
+	 *
 	 * @property max_iterations
 	 * @type {number}
 	 */
@@ -2513,6 +2576,7 @@ Goblin.IterativeSolver = function() {
 
 	/**
 	 * maximum solver iterations per time step to resolve contacts
+	 *
 	 * @property penetrations_max_iterations
 	 * @type {number}
 	 */
@@ -2520,11 +2584,22 @@ Goblin.IterativeSolver = function() {
 
 	/**
 	 * used to relax the contact position solver, 0 is no position correction and 1 is full correction
+	 *
 	 * @property relaxation
 	 * @type {Number}
 	 * @default 0.1
 	 */
 	this.relaxation = 0.1;
+
+	/**
+	 * weighting used in the Gauss-Seidel successive over-relaxation solver
+	 *
+	 * @property sor_weight
+	 * @type {Number}
+	 */
+	this.sor_weight = 0.85;
+
+	this.warmstarting_factor = 0.95;
 };
 
 /**
@@ -2563,32 +2638,69 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 		manifold,
 		contacts_length,
 		contact,
-		constraint;
-
-	this.contact_constraints.length = 0;
-	this.friction_constraints.length = 0;
+		constraint,
+		contact_constraints = this.contact_constraints,
+		friction_constraints = this.friction_constraints;
 
 	manifold = contact_manifolds.first;
 
-	i = 0;
+	var onContactDeactivate = function() {
+			this.removeListener( 'deactivate', onContactDeactivate );
+
+			var idx = contact_constraints.indexOf( this );
+			contact_constraints.splice( idx, 1 );
+		},
+		onFrictionDeactivate = function() {
+			this.removeListener( 'deactivate', onFrictionDeactivate );
+
+			var idx = friction_constraints.indexOf( this );
+			friction_constraints.splice( idx, 1 );
+		};
+
 	while( manifold ) {
-		i++;
 		contacts_length = manifold.points.length;
 
-		for ( j = 0; j < contacts_length; j++ ) {
-			contact = manifold.points[j];
+		for ( i = 0; i < contacts_length; i++ ) {
+			contact = manifold.points[i];
 
-			//if ( contact.penetration_depth >= -0.02 ) {
-				// Build contact constraint
+			/** Contact Constraints **/
+			var existing_constraint = null;
+			for ( j = 0; j < contact_constraints.length; j++ ) {
+				if ( contact_constraints[j].contact === contact ) {
+					existing_constraint = contact_constraints[j];
+					break;
+				}
+			}
+
+			// Build contact constraint
+			if ( !existing_constraint ) {
 				constraint = Goblin.ObjectPool.getObject( 'ContactConstraint' );
 				constraint.buildFromContact( contact );
-				this.contact_constraints.push( constraint );
+				contact_constraints.push( constraint );
+				constraint.addListener( 'deactivate', onContactDeactivate );
+			} else {
+				existing_constraint.update();
+			}
 
-				// Build friction constraint
+
+			/** Friction Constraints **/
+			existing_constraint = null;
+			for ( j = 0; j < friction_constraints.length; j++ ) {
+				if ( friction_constraints[j].contact === contact ) {
+					existing_constraint = friction_constraints[j];
+					break;
+				}
+			}
+
+			// Build friction constraint
+			if ( !existing_constraint ) {
 				constraint = Goblin.ObjectPool.getObject( 'FrictionConstraint' );
 				constraint.buildFromContact( contact );
-				this.friction_constraints.push( constraint );
-			//}
+				friction_constraints.push( constraint );
+				constraint.addListener( 'deactivate', onFrictionDeactivate );
+			} else {
+				existing_constraint.update();
+			}
 		}
 
 		manifold = manifold.next_manifold;
@@ -2626,7 +2738,7 @@ Goblin.IterativeSolver.prototype.prepareConstraints = function( time_delta ) {
 	}
 };
 
-Goblin.IterativeSolver.prototype.resolveContacts = function( time_delta ) {
+Goblin.IterativeSolver.prototype.resolveContacts = function() {
 	var iteration,
 		constraint,
 		jdot, row, i,
@@ -2698,6 +2810,8 @@ Goblin.IterativeSolver.prototype.resolveContacts = function( time_delta ) {
 		if ( max_impulse >= -Goblin.EPSILON && max_impulse <= Goblin.EPSILON ) {
 			break;
 		}
+
+		document.title = iteration;
 	}
 
 	// Apply position/rotation solver
@@ -2752,6 +2866,8 @@ Goblin.IterativeSolver.prototype.resolveContacts = function( time_delta ) {
 			constraint.object_b.rotation[3] += 0.5 * _tmp_quat4_1[3];
 			quat4.normalize( constraint.object_b.rotation );
 		}
+
+		row.multiplier = 0;
 	}
 };
 
@@ -2760,12 +2876,46 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 		constraint,
 		num_rows,
 		row,
+		warmth,
 		i, j;
 
 	var iteration,
 		delta_lambda,
 		max_impulse = 0, // Track the largest impulse per iteration; if the impulse is <= EPSILON then early out
 		jdot;
+
+	// Warm starting
+	for ( i = 0; i < num_constraints; i++ ) {
+		constraint = this.all_constraints[i];
+		if ( constraint.active === false ) {
+			continue;
+		}
+
+		for ( j = 0; j < constraint.rows.length; j++ ) {
+			row = constraint.rows[j];
+			warmth = row.multiplier_cached * this.warmstarting_factor;
+			row.multiplier = warmth;
+
+			if ( constraint.object_a && constraint.object_a.mass !== Infinity ) {
+				constraint.object_a.solver_impulse[0] += warmth * row.B[0];
+				constraint.object_a.solver_impulse[1] += warmth * row.B[1];
+				constraint.object_a.solver_impulse[2] += warmth * row.B[2];
+
+				constraint.object_a.solver_impulse[3] += warmth * row.B[3];
+				constraint.object_a.solver_impulse[4] += warmth * row.B[4];
+				constraint.object_a.solver_impulse[5] += warmth * row.B[5];
+			}
+			if ( constraint.object_b && constraint.object_b.mass !== Infinity ) {
+				constraint.object_b.solver_impulse[0] += warmth * row.B[6];
+				constraint.object_b.solver_impulse[1] += warmth * row.B[7];
+				constraint.object_b.solver_impulse[2] += warmth * row.B[8];
+
+				constraint.object_b.solver_impulse[3] += warmth * row.B[9];
+				constraint.object_b.solver_impulse[4] += warmth * row.B[10];
+				constraint.object_b.solver_impulse[5] += warmth * row.B[11];
+			}
+		}
+	}
 
 	for ( iteration = 0; iteration < this.max_iterations; iteration++ ) {
 		max_impulse = 0;
@@ -2802,16 +2952,28 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 				}
 
 				delta_lambda = ( row.eta - jdot ) / row.D * constraint.factor;
-				var cache = row.multiplier;
+				var cache = row.multiplier,
+					multiplier_target = cache + delta_lambda;
+
+
+				// successive over-relaxation
+				multiplier_target = this.sor_weight * multiplier_target + ( 1 - this.sor_weight ) * cache;
+
+				// Clamp to row constraints
 				row.multiplier = Math.max(
 					row.lower_limit,
 					Math.min(
-						cache + delta_lambda,
+						multiplier_target,
 						row.upper_limit
 					)
 				);
+
+				// Find final `delta_lambda`
 				delta_lambda = row.multiplier - cache;
-				max_impulse = Math.max( max_impulse, delta_lambda );
+
+				var total_mass = ( constraint.object_a && constraint.object_a.mass !== Infinity ? constraint.object_a.mass : 0 ) +
+					( constraint.object_b && constraint.object_b.mass !== Infinity ? constraint.object_b.mass : 0 );
+				max_impulse = Math.max( max_impulse, Math.abs( delta_lambda ) / total_mass );
 
 				if ( constraint.object_a && constraint.object_a.mass !== Infinity ) {
 					constraint.object_a.solver_impulse[0] += delta_lambda * row.B[0];
@@ -2834,7 +2996,7 @@ Goblin.IterativeSolver.prototype.solveConstraints = function() {
 			}
 		}
 
-		if ( max_impulse >= -Goblin.EPSILON && max_impulse <= Goblin.EPSILON ) {
+		if ( max_impulse <= 0.1 ) {
 			break;
 		}
 	}
@@ -2859,6 +3021,7 @@ Goblin.IterativeSolver.prototype.applyConstraints = function( time_delta ) {
 
 		for ( j = 0; j < num_rows; j++ ) {
 			row = constraint.rows[j];
+			row.multiplier_cached = row.multiplier;
 
 			if ( constraint.object_a != null && constraint.object_a.mass !== Infinity ) {
 				invmass = 1 / constraint.object_a.mass;
@@ -3304,6 +3467,9 @@ Goblin.ObjectPool = {
 	 * @param object {Mixed} object to release into the pool
 	 */
 	freeObject: function( key, object ) {
+		if ( object.removeAllListeners != null ) {
+			object.removeAllListeners();
+		}
 		this.pools[ key ].push( object );
 	}
 };
@@ -3335,8 +3501,6 @@ Goblin.RigidBody = (function() {
 	var body_count = 0;
 
 	return function( shape, mass ) {
-		Goblin.EventEmitter.call( this );
-
 		/**
 		 * goblin ID of the body
 		 *
@@ -3519,9 +3683,11 @@ Goblin.RigidBody = (function() {
 
 		// Set default derived values
 		this.updateDerived();
+
+		this.listeners = {};
 	};
 })();
-Goblin.RigidBody.prototype = Object.create( Goblin.EventEmitter.prototype );
+Goblin.EventEmitter.apply( Goblin.RigidBody );
 
 /**
  * Given `direction`, find the point in this body which is the most extreme in that direction.
@@ -5026,7 +5192,6 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
  * @constructor
  */
 Goblin.World = function( broadphase, nearphase, solver ) {
-	Goblin.EventEmitter.call( this );
 	/**
 	 * How many time steps have been simulated. If the steps are always the same length then total simulation time = world.ticks * time_step
 	 *
@@ -5097,8 +5262,10 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @private
 	 */
 	this.force_generators = [];
+
+	this.listeners = {};
 };
-Goblin.World.prototype = Object.create( Goblin.EventEmitter.prototype );
+Goblin.EventEmitter.apply( Goblin.World );
 
 /**
 * Steps the physics simulation according to the time delta
@@ -5154,7 +5321,7 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         this.solver.prepareConstraints( delta );
 
         // Resolve contacts
-        this.solver.resolveContacts( delta );
+        this.solver.resolveContacts();
 
         // Run the constraint solver
         this.solver.solveConstraints();

@@ -115,7 +115,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 	var i;
 	for ( i = 0; i < this.points.length; i++ ) {
 		if ( vec3.dist( this.points[i].contact_point, contact.contact_point ) <= 0.02 ) {
-			Goblin.ObjectPool.freeObject( 'ContactDetails', contact );
+			contact.destroy();
 			return;
 		}
 	}
@@ -128,6 +128,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		}
 
 		if ( use_contact === false ) {
+			contact.emit( 'destroy' );
 			Goblin.ObjectPool.freeObject( 'ContactDetails', contact );
 			return;
 		}
@@ -138,7 +139,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 		this.points.push( contact );
 	} else {
 		var replace_index = this.findWeakestContact( contact );
-		//@TODO give the contact back to the object pool
+		this.points[replace_index].destroy();
 		this.points[replace_index] = contact;
 	}
 };
@@ -175,7 +176,7 @@ Goblin.ContactManifold.prototype.update = function() {
 		// If distance from contact is too great remove this contact point
 		if ( point.penetration_depth < -0.02 ) {
 			// Points are too far away along the contact normal
-			Goblin.ObjectPool.freeObject( 'ContactDetails', point );
+			point.destroy();
 			for ( j = i; j < this.points.length; j++ ) {
 				this.points[j] = this.points[j + 1];
 			}
@@ -189,7 +190,7 @@ Goblin.ContactManifold.prototype.update = function() {
 			var distance = vec3.squaredLength( _tmp_vec3_1 );
 			if ( distance > 0.2 * 0.2 ) {
 				// Points are indeed too far away
-				Goblin.ObjectPool.freeObject( 'ContactDetails', point );
+				point.destroy();
 				for ( j = i; j < this.points.length; j++ ) {
 					this.points[j] = this.points[j + 1];
 				}

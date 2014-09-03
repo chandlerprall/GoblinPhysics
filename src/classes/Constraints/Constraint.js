@@ -12,6 +12,14 @@ Goblin.Constraint = function() {
 	this.last_impulse = vec3.create();
 
 	this.breaking_threshold = 0;
+
+	this.listeners = {};
+};
+Goblin.EventEmitter.apply( Goblin.Constraint );
+
+Goblin.Constraint.prototype.deactivate = function() {
+	this.active = false;
+	this.emit( 'deactivate' );
 };
 
 Goblin.Constraint.prototype.update = function(){};

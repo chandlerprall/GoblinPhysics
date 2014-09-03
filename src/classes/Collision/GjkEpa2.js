@@ -186,6 +186,7 @@ Goblin.GjkEpa2 = {
 					contact.friction = ( simplex.object_a.friction + simplex.object_b.friction ) / 2;
 
 					Goblin.GjkEpa2.freePolyhedron( polyhedron );
+
 					return contact;
 				}
 

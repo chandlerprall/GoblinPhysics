@@ -55,6 +55,9 @@ Goblin.ObjectPool = {
 	 * @param object {Mixed} object to release into the pool
 	 */
 	freeObject: function( key, object ) {
+		if ( object.removeAllListeners != null ) {
+			object.removeAllListeners();
+		}
 		this.pools[ key ].push( object );
 	}
 };

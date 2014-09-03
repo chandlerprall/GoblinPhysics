@@ -7,7 +7,6 @@
  * @constructor
  */
 Goblin.World = function( broadphase, nearphase, solver ) {
-	Goblin.EventEmitter.call( this );
 	/**
 	 * How many time steps have been simulated. If the steps are always the same length then total simulation time = world.ticks * time_step
 	 *
@@ -78,8 +77,10 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	 * @private
 	 */
 	this.force_generators = [];
+
+	this.listeners = {};
 };
-Goblin.World.prototype = Object.create( Goblin.EventEmitter.prototype );
+Goblin.EventEmitter.apply( Goblin.World );
 
 /**
 * Steps the physics simulation according to the time delta
@@ -135,7 +136,7 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         this.solver.prepareConstraints( delta );
 
         // Resolve contacts
-        this.solver.resolveContacts( delta );
+        this.solver.resolveContacts();
 
         // Run the constraint solver
         this.solver.solveConstraints();

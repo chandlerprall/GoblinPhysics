@@ -76,4 +76,12 @@ Goblin.ContactDetails = function() {
 	 * @type {*}
 	 */
 	this.friction = 0;
+
+	this.listeners = {};
+};
+Goblin.EventEmitter.apply( Goblin.ContactDetails );
+
+Goblin.ContactDetails.prototype.destroy = function() {
+	this.emit( 'destroy' );
+	Goblin.ObjectPool.freeObject( 'ContactDetails', this );
 };

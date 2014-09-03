@@ -13,6 +13,11 @@
 		window.onload = function() {
 			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
 
+			// Tuning the warmstarting_factor down makes the bridge less jiggly
+			// sor_weight is turned up to ensure decent results are found within the max solver iterations
+			exampleUtils.world.solver.warmstarting_factor = 0.4;
+			exampleUtils.world.solver.sor_weight = 1;
+
 			var sphere_material = exampleUtils.createMaterial( 'scratched_metal', 1, 1 ),
 				plank_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 );
 

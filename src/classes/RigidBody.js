@@ -10,8 +10,6 @@ Goblin.RigidBody = (function() {
 	var body_count = 0;
 
 	return function( shape, mass ) {
-		Goblin.EventEmitter.call( this );
-
 		/**
 		 * goblin ID of the body
 		 *
@@ -194,9 +192,11 @@ Goblin.RigidBody = (function() {
 
 		// Set default derived values
 		this.updateDerived();
+
+		this.listeners = {};
 	};
 })();
-Goblin.RigidBody.prototype = Object.create( Goblin.EventEmitter.prototype );
+Goblin.EventEmitter.apply( Goblin.RigidBody );
 
 /**
  * Given `direction`, find the point in this body which is the most extreme in that direction.
