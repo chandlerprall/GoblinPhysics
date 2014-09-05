@@ -17,5 +17,5 @@ Permission is granted to anyone to use this software for any purpose, including 
 ----------------------------------------
 
 
-Three.js (https://github.com/mrdoob/three.js/), used in examples and tests, is licensed under the MIT license.
+Three.js (https://github.com/mrdoob/three.js/) and Stats.js (https://github.com/mrdoob/stats.js), used in examples and tests, is licensed under the MIT license.
 gl-matrix (https://github.com/toji/gl-matrix), the math library used, is licensed under the zlib license.

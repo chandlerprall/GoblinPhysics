@@ -2,7 +2,8 @@ window.exampleUtils = (function(){
 	var renderer,
 		camera,
 		controls,
-		world;
+		world,
+		stats;
 	
 	var objects = [];
 
@@ -49,6 +50,13 @@ window.exampleUtils = (function(){
 		initialize: function() {
 			startThree();
 			startGoblin();
+
+			stats = new Stats();
+			stats.setMode( 1 ); // ms
+			stats.domElement.style.position = 'absolute';
+			stats.domElement.style.left = '0px';
+			stats.domElement.style.top = '0px';
+			document.body.appendChild( stats.domElement );
 		},
 
 		materials: {
@@ -88,7 +96,7 @@ window.exampleUtils = (function(){
 		},
 
         render: function() {
-            // Sync objects
+			// Sync objects
             var i, object;
             for ( i = 0; i < objects.length; i++ ) {
                 object = objects[i];
@@ -112,7 +120,9 @@ window.exampleUtils = (function(){
 			requestAnimationFrame( exampleUtils.run );
 
 			controls.update();
+			stats.begin();
 			world.step( 1 / 60 );
+			stats.end();
 			exampleUtils.render();
 
 			if ( exampleUtils.ontick ) exampleUtils.ontick();

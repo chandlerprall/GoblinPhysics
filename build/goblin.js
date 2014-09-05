@@ -2810,8 +2810,6 @@ Goblin.IterativeSolver.prototype.resolveContacts = function() {
 		if ( max_impulse >= -Goblin.EPSILON && max_impulse <= Goblin.EPSILON ) {
 			break;
 		}
-
-		document.title = iteration;
 	}
 
 	// Apply position/rotation solver
