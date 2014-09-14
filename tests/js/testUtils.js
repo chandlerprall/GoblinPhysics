@@ -165,6 +165,30 @@ window.testUtils = (function(){
 			world.addRigidBody( plane.goblin );
 
 			return plane;
+		},
+
+		createConvex: function( vertices, mass ) {
+			//var start = performance.now();
+			var convex = new THREE.Mesh(
+				new THREE.ConvexGeometry(vertices.map(function( vertex ){
+					return new THREE.Vector3( vertex[0], vertex[1], vertex[2] );
+				})),
+				new THREE.MeshNormalMaterial({ opacity: 1, transparent: true })
+			);
+			//console.log( 'three: ' + ( performance.now() - start ) );
+
+			//var start = performance.now();
+			convex.goblin = new Goblin.RigidBody(
+				new Goblin.ConvexShape( vertices ),
+				mass
+			);
+			//console.log( 'goblin: ' + ( performance.now() - start ) );
+
+			objects.push( convex );
+			testUtils.scene.add( convex );
+			world.addRigidBody( convex.goblin );
+
+			return convex;
 		}
 	};
 })();
@@ -195,8 +219,8 @@ window.renderPolyhedron = function( polyhedron, edges ) {
 				}
 
 				linegeom = new THREE.Geometry();
-				center = geometry.vertices[geometry.vertices.length - 3].clone().addSelf( geometry.vertices[geometry.vertices.length - 2] ).addSelf( geometry.vertices[geometry.vertices.length - 1] ).multiplyScalar( 0.333 );
-				normal = center.clone().addSelf( new THREE.Vector3( face.normal[0], face.normal[1], face.normal[2] ) );
+				center = geometry.vertices[geometry.vertices.length - 3].clone().add( geometry.vertices[geometry.vertices.length - 2] ).add( geometry.vertices[geometry.vertices.length - 1] ).multiplyScalar( 0.333 );
+				normal = center.clone().add( new THREE.Vector3( face.normal[0], face.normal[1], face.normal[2] ) );
 				linegeom.vertices.push( center, normal );
 				line = new THREE.Line( linegeom, new THREE.LineBasicMaterial({ color: color }) );
 				testUtils.scene.add( line );
@@ -231,12 +255,14 @@ window.renderPolyhedron = function( polyhedron, edges ) {
 			);
 			line = new THREE.Line( linegeom, new THREE.LineBasicMaterial({ color: 0x0000FF }) );
 			testUtils.scene.add( line );
-		};
+		}
 	}
 
+	geometry.computeFaceNormals();
 	var mesh = new THREE.Mesh(
 		geometry,
-		new THREE.MeshBasicMaterial({ color: 0x00FF00, transparent: false, wireframe: false, opacity: 0.7 })
+		//new THREE.MeshBasicMaterial({ color: 0x00FF00, transparent: false, wireframe: false, opacity: 0.7 })
+		new THREE.MeshNormalMaterial({ opacity: 1, transparent: true, wireframe: false })
 	);
 	testUtils.scene.add( mesh );
 	testUtils.render();

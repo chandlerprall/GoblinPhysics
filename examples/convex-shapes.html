@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Convex Shapes | Goblin Physics</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/ConvexGeometry.js"></script>
+	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
+	<script type="text/javascript" src="../lib/stats.min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/exampleUtils.js"></script>
+
+	<script type="text/javascript">
+		window.onload = function() {
+			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			var ground = exampleUtils.createPlane( 1, 20, 20, 0, exampleUtils.createMaterial( 'wood', 5, 5 ) );
+			ground.castShadow = false;
+
+			var convex_material = exampleUtils.createMaterial( 'cement', 0.5, 0.5 );
+
+			var spawnObject = function() {
+				var points = [],
+					pointcount = 15 + Math.random() * 20;
+				for ( i = 0; i < pointcount; i++ ) {
+					var point = vec3.createFrom(
+						Math.random() * 2 - 1,
+						Math.random() * 2 - 1,
+						Math.random() * 2 - 1
+					);
+					if ( vec3.squaredLength( point ) > 1 ) {
+						vec3.normalize( point );
+						vec3.scale( point, 1 );
+					}
+					points.push( point );
+				}
+
+				var convex = exampleUtils.createConvex( points, 5, convex_material );
+				convex.goblin.restitution = 0;
+				convex.goblin.friction = 0.5;
+				convex.goblin.position[1] = 10;
+				convex.goblin.applyImpulse(vec3.createFrom( 0, -5, 0 ));
+			};
+
+			exampleUtils.world.addListener(
+				'stepStart',
+				function( tick ) {
+					if ( tick % 10 === 1 ) {
+						spawnObject();
+					}
+				}
+			);
+
+			exampleUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+
+</body>
+</html>

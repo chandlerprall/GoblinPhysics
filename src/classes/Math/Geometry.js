@@ -128,5 +128,36 @@ Goblin.GeometryMethods = {
 		out[1] = ( d11 * d20 - d01 * d21 ) / denom;
 		out[2] = ( d00 * d21 - d01 * d20 ) / denom;
 		out[0] = 1 - out[1] - out[2];
-	}
+	},
+
+	/**
+	 * Calculates the distance from point `p` to line `ab`
+	 * @param p {vec3} point to calculate distance to
+	 * @param a {vec3} first point in line
+	 * @param b [vec3] second point in line
+	 * @returns {number}
+	 */
+	findSquaredDistanceFromSegment: (function(){
+		var ab = vec3.create(),
+			ap = vec3.create(),
+			bp = vec3.create();
+
+		return function( p, a, b ) {
+			vec3.subtract( a, b, ab );
+			vec3.subtract( a, p, ap );
+			vec3.subtract( b, p, bp );
+
+			var e = vec3.dot( ap, ab );
+			if ( e <= 0 ) {
+				return vec3.dot( ap, ap );
+			}
+
+			var f = vec3.dot( ab, ab );
+			if ( e >= f ) {
+				return vec3.dot( bp, bp );
+			}
+
+			return vec3.dot( ap, ap ) - e * e / f;
+		};
+	})()
 };

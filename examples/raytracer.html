@@ -162,6 +162,23 @@
 	        cone.position = vec3.createFrom( -1, -1.31, 2 );
 	        cone.rotation = quat4.normalize( quat4.createFrom( 0.8, 0, -1, 1 ) );
 	        world.addRigidBody( cone );
+
+	        var convex = new TexturedBody(
+		        new Goblin.ConvexShape(
+			        [
+				        vec3.createFrom( -0.7, 0, -0.7 ),
+				        vec3.createFrom( 0.7, 0, -0.7 ),
+				        vec3.createFrom( 0.7, 0, 0.7 ),
+				        vec3.createFrom( -0.7, 0, 0.7 ),
+				        vec3.createFrom( 0, 1.5, 0 )
+			        ]
+		        ),
+		        (function() { var color = vec3.createFrom( 1, 0.7, 0.2 ); return function() { return color }; })(),
+		        0.2
+	        );
+	        convex.position = vec3.createFrom( -2.5, -1.4, 1 );
+	        convex.rotation = quat4.normalize( quat4.createFrom( 0, 0.8, 0, 1 ) );
+	        world.addRigidBody( convex );
         }
 
         var reflectRay = (function(){

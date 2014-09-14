@@ -35,7 +35,7 @@
 
 				setTimeout(
 					function() {
-						Goblin.EPSILON = 0.00001;
+						Goblin.EPSILON = 0.0001;
 
 						describe('Test 1', function(){
 
@@ -108,7 +108,7 @@
 
 							it('Separating Velocity', function(){
 								var separating_velocity = vec3.length( sphere1.goblin.linear_velocity ) + vec3.length( sphere2.goblin.linear_velocity );
-								return assert( testUtils.withinEpsilon( separating_velocity, 2.00056 ) );
+								return assert( testUtils.withinEpsilon( separating_velocity, 2 ) );
 							});
 
 						});

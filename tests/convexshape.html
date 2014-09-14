@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Convex Shape | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="css/mocha.css"/>
+	<script type="text/javascript" src="js/chai.js"></script>
+	<script type="text/javascript" src="js/mocha.js"></script>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/ConvexGeometry.js"></script>
+	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/testUtils.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var assert = (typeof chai !== "undefined" && chai !== null ? chai.assert : void 0) || require('chai').assert;
+		window.onload = function() {
+			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+			testUtils.render();
+
+			var convexbox = testUtils.createConvex(
+				[
+					vec3.createFrom( -1, -1, -1 ),
+					vec3.createFrom( 1, -1, -1 ),
+					vec3.createFrom( 1, -1, 1 ),
+					vec3.createFrom( -1, -1, 1 ),
+
+					vec3.createFrom( -1, 1, -1 ),
+					vec3.createFrom( 1, 1, -1 ),
+					vec3.createFrom( 1, 1, 1 ),
+					vec3.createFrom( -1, 1, 1 )
+				],
+				0
+			);
+
+			var convexpyramid = testUtils.createConvex(
+				[
+					vec3.createFrom( -1, -1, -1 ),
+					vec3.createFrom( 1, -1, -1 ),
+					vec3.createFrom( 1, -1, 1 ),
+					vec3.createFrom( -1, -1, 1 ),
+
+					vec3.createFrom( 0, 2, 0 )
+				],
+				0
+			);
+
+			describe('Box', function(){
+
+				it('Volume',function(){
+					return assert( convexbox.goblin.shape.volume === 8 );
+				});
+
+				it('Center of Mass',function(){
+					return assert( testUtils.withinEpsilon( vec3.dist( convexbox.goblin.shape.center_of_mass, vec3.createFrom( 0, 0, 0 ) ), 0 ) );
+				});
+
+				it('Support Point, Corner',function(){
+					var support_point = vec3.create();
+					convexbox.goblin.findSupportPoint( vec3.createFrom( -1, -1, -1 ), support_point );
+					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( -1, -1, -1 ) ), 0 ) );
+				});
+
+				it('Support Point, Face',function(){
+					var support_point = vec3.create();
+					convexbox.goblin.findSupportPoint( vec3.createFrom( 1, 0, 0 ), support_point );
+					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( 1, -1, 1 ) ), 0 ) );
+				});
+
+				it('Support Point, Edge',function(){
+					var support_point = vec3.create();
+					convexbox.goblin.findSupportPoint( vec3.createFrom( 0, 1, 1 ), support_point );
+					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( 1, 1, 1 ) ), 0 ) );
+				});
+
+			});
+
+			describe('Pyramid', function(){
+
+				it('Volume',function(){
+					return assert( convexpyramid.goblin.shape.volume === 4 );
+				});
+
+				it('Center of Mass',function(){
+					return assert( testUtils.withinEpsilon( vec3.dist( convexpyramid.goblin.shape.center_of_mass, vec3.createFrom( 0, -0.25, 0 ) ), 0 ) );
+				});
+
+				it('Support Point, Corner',function(){
+					var support_point = vec3.create();
+					convexpyramid.goblin.findSupportPoint( vec3.createFrom( -1, -1, -1 ), support_point );
+					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( -1, -1, -1 ) ), 0 ) );
+				});
+
+				it('Support Point, Point',function(){
+					var support_point = vec3.create();
+					convexpyramid.goblin.findSupportPoint( vec3.createFrom( 0, 1, 0 ), support_point );
+					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( 0, 2, 0 ) ), 0 ) );
+				});
+
+				it('Support Point, Edge',function(){
+					var support_point = vec3.create();
+					convexpyramid.goblin.findSupportPoint( vec3.createFrom( 0, -1, 1 ), support_point );
+					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( 1, -1, 1 ) ), 0 ) );
+				});
+
+			});
+
+			mocha.run();
+		};
+	</script>
+</head>
+
+<body>
+	<div id="mocha"></div>
+</body>
+</html>

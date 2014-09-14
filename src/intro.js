@@ -70,4 +70,4 @@ window.Goblin = (function() {
 
 		_tmp_mat4_1 = mat4.create();
 
-	Goblin.EPSILON = 0.000001;
+	Goblin.EPSILON = 0.00001;

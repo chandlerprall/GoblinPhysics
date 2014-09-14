@@ -236,6 +236,28 @@ window.exampleUtils = (function(){
 			return plane;
 		},
 
+		createConvex: function( vertices, mass, material ) {
+			var convex = new THREE.Mesh(
+				new THREE.ConvexGeometry(vertices.map(function( vertex ){
+					return new THREE.Vector3( vertex[0], vertex[1], vertex[2] );
+				})),
+				material
+			);
+			convex.castShadow = true;
+			convex.receiveShadow = true;
+
+			convex.goblin = new Goblin.RigidBody(
+				new Goblin.ConvexShape( vertices ),
+				mass
+			);
+
+			objects.push( convex );
+			exampleUtils.scene.add( convex );
+			world.addRigidBody( convex.goblin );
+
+			return convex;
+		},
+
 		createMaterial: function( name, repeat_x, repeat_y ) {
 			var def = exampleUtils.materials[name],
 				map = THREE.ImageUtils.loadTexture( 'textures/' + def.diffuse ),

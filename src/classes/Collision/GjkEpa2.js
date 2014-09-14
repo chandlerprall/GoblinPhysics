@@ -200,7 +200,7 @@ Goblin.GjkEpa2 = {
 
     Face: function( polyhedron, a, b, c ) {
 		this.active = true;
-		this.polyhedron = polyhedron;
+		//this.polyhedron = polyhedron;
         this.a = a;
         this.b = b;
         this.c = c;
@@ -241,6 +241,7 @@ Goblin.GjkEpa2.Polyhedron.prototype = {
     addVertex: function( vertex )
     {
         var edges = [], faces = [], i, j, a, b, last_b;
+		if ( !this.faces[this.closest_face] ) debugger;
         this.faces[this.closest_face].silhouette( vertex, edges );
 
         // Re-order the edges if needed

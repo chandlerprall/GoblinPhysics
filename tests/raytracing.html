@@ -9,6 +9,7 @@
 	<script type="text/javascript" src="js/mocha.js"></script>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/ConvexGeometry.js"></script>
 	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/testUtils.js"></script>
@@ -27,7 +28,18 @@
 					box = testUtils.createBox( 3, 4, 5, 1 ), // half width (x), half height (y), half length (z), mass
 					cylinder = testUtils.createCylinder( 3, 2.5, 1 ), // radius, half height, mass
 					cone = testUtils.createCone( 3, 2.5, 1 ), // radius, half height, mass
-					plane_x = testUtils.createPlane( 0, 5, 10, 1 );
+					plane_x = testUtils.createPlane( 0, 5, 10, 1 ),
+					convex = testUtils.createConvex(
+						[
+							vec3.createFrom( -1, -1, -1 ),
+							vec3.createFrom( 1, -1, -1 ),
+							vec3.createFrom( 1, -1, 1 ),
+							vec3.createFrom( -1, -1, 1 ),
+
+							vec3.createFrom( 0, 2, 0 )
+						],
+						0
+					);
 
 				var compound_shape = new Goblin.CompoundShape();
 				compound_shape.addChildShape(
@@ -143,7 +155,7 @@
 
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
-                });
+				});
 
 				describe('Box', function(){
 					it('Base Box 1', function(){
@@ -518,6 +530,20 @@
 						compound_body.updateDerived();
 						compound_body.rayIntersect( start, stop, intersection_list );
 
+						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
+					});
+				});
+
+				describe('Convex', function(){
+
+					it('Base Convex', function(){
+						var start = vec3.createFrom( -4, 0, 0 ),
+							stop = vec3.createFrom( 4, 0, 0 ),
+							expected = vec3.createFrom( -0.67, 0, 0 ),
+							intersection_list = [];
+
+						convex.goblin.updateDerived();
+						convex.goblin.rayIntersect( start, stop, intersection_list );
 						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( intersection_list[0].point, expected ) ), 0 ) );
 					});
 				});
