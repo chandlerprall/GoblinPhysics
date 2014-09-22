@@ -9,7 +9,6 @@
 	<script type="text/javascript" src="js/mocha.js"></script>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/testUtils.js"></script>
 
@@ -24,50 +23,50 @@
 			 */
 			(function(){
 				var body1 = testUtils.createSphere( 1, 1 );
-				body1.goblin.position[0] = -12;
+				body1.goblin.position.x = -12;
 
 				var body2 = testUtils.createSphere( 1, 1 );
-				body2.goblin.position[0] = -9;
+				body2.goblin.position.x = -9;
 				body2.goblin.setGravity( 0, 0, 0 );
-				body2.goblin.applyImpulse( vec3.createFrom( 0, -10, 0 ) );
+				body2.goblin.applyImpulse( new Goblin.Vector3( 0, -10, 0 ) );
 
 				var body3 = testUtils.createSphere( 1, 1 );
-				body3.goblin.position[0] = -6;
+				body3.goblin.position.x = -6;
 				body3.goblin.setGravity( 0, 0, 0 );
-				body3.goblin.angular_velocity[2] = 5;
+				body3.goblin.angular_velocity.z = 5;
 
 
 				var body4 = testUtils.createSphere( 1, 1 );
-				body4.goblin.position[0] = -3;
+				body4.goblin.position.x = -3;
 				body4.goblin.linear_damping = 0.5;
 
 				var body5 = testUtils.createSphere( 1, 1 );
-				body5.goblin.position[0] = 0;
+				body5.goblin.position.x = 0;
 				body5.goblin.setGravity( 0, 0, 0 );
-				body5.goblin.applyImpulse( vec3.createFrom( 0, -10, 0 ) );
+				body5.goblin.applyImpulse( new Goblin.Vector3( 0, -10, 0 ) );
 				body5.goblin.linear_damping = 0.5;
 
 				var body6 = testUtils.createSphere( 1, 1 );
-				body6.goblin.position[0] = 3;
+				body6.goblin.position.x = 3;
 				body6.goblin.setGravity( 0, 0, 0 );
-				body6.goblin.angular_velocity[2] = 5;
+				body6.goblin.angular_velocity.z = 5;
 				body6.goblin.angular_damping = 0.5;
 
 
 				var body7 = testUtils.createSphere( 1, 1 );
-				body7.goblin.position[0] = 6;
+				body7.goblin.position.x = 6;
 				body7.goblin.linear_damping = 0.9;
 
 				var body8 = testUtils.createSphere( 1, 1 );
-				body8.goblin.position[0] = 9;
+				body8.goblin.position.x = 9;
 				body8.goblin.setGravity( 0, 0, 0 );
-				body8.goblin.applyImpulse( vec3.createFrom( 0, -10, 0 ) );
+				body8.goblin.applyImpulse( new Goblin.Vector3( 0, -10, 0 ) );
 				body8.goblin.linear_damping = 0.9;
 
 				var body9 = testUtils.createSphere( 1, 1 );
-				body9.goblin.position[0] = 12;
+				body9.goblin.position.x = 12;
 				body9.goblin.setGravity( 0, 0, 0 );
-				body9.goblin.angular_velocity[2] = 5;
+				body9.goblin.angular_velocity.z = 5;
 				body9.goblin.angular_damping = 0.9;
 
 
@@ -76,41 +75,41 @@
 					Goblin.EPSILON = 0.25;
 
 					it('Gravity Only', function(){
-						return assert( testUtils.withinEpsilon( body1.goblin.linear_velocity[1], -19.6 ) );
+						return assert( testUtils.withinEpsilon( body1.goblin.linear_velocity.y, -19.6 ) );
 					});
 
 					it('Constant Linear Velocity', function(){
-						return assert( testUtils.withinEpsilon( body2.goblin.linear_velocity[1], -10 ) );
+						return assert( testUtils.withinEpsilon( body2.goblin.linear_velocity.y, -10 ) );
 					});
 
 					it('Constant Angular Velocity', function(){
-						return assert( testUtils.withinEpsilon( body3.goblin.angular_velocity[2], 5 ) );
+						return assert( testUtils.withinEpsilon( body3.goblin.angular_velocity.z, 5 ) );
 					});
 
 
 					it('Gravity + Damping', function(){
-						return assert( testUtils.withinEpsilon( body4.goblin.linear_velocity[1], -10.54 ) );
+						return assert( testUtils.withinEpsilon( body4.goblin.linear_velocity.y, -10.54 ) );
 					});
 
 					it('Constant Linear Velocity + Damping', function(){
-						return assert( testUtils.withinEpsilon( body5.goblin.linear_velocity[1], -10 / 4 ) );
+						return assert( testUtils.withinEpsilon( body5.goblin.linear_velocity.y, -10 / 4 ) );
 					});
 
 					it('Constant Angular Velocity + Damping', function(){
-						return assert( testUtils.withinEpsilon( body6.goblin.angular_velocity[2], 5 / 4 ) );
+						return assert( testUtils.withinEpsilon( body6.goblin.angular_velocity.z, 5 / 4 ) );
 					});
 
 
 					it('Gravity + Strong Damping', function(){
-						return assert( testUtils.withinEpsilon( body7.goblin.linear_velocity[1], -4.13 ) );
+						return assert( testUtils.withinEpsilon( body7.goblin.linear_velocity.y, -4.13 ) );
 					});
 
 					it('Constant Linear Velocity + Strong Damping', function(){
-						return assert( testUtils.withinEpsilon( body8.goblin.linear_velocity[1], -10 / 1000 ) );
+						return assert( testUtils.withinEpsilon( body8.goblin.linear_velocity.y, -10 / 1000 ) );
 					});
 
 					it('Constant Angular Velocity + Strong Damping', function(){
-						return assert( testUtils.withinEpsilon( body9.goblin.angular_velocity[2], 5 / 1000 ) );
+						return assert( testUtils.withinEpsilon( body9.goblin.angular_velocity.z, 5 / 1000 ) );
 					});
 
 				});

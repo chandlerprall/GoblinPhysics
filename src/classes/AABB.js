@@ -9,70 +9,70 @@ Goblin.AABB = function( min, max ) {
 	 * @property min
 	 * @type {vec3}
 	 */
-	this.min = min || vec3.create();
+	this.min = min || new Goblin.Vector3();
 
 	/**
 	 * @property max
 	 * @type {vec3}
 	 */
-	this.max = max || vec3.create();
+	this.max = max || new Goblin.Vector3();
 };
 
 Goblin.AABB.prototype.transform = (function(){
-	var local_half_extents = vec3.create(),
-		local_center = vec3.create(),
-		center = vec3.create(),
-		extents = vec3.create(),
-		abs = mat3.create();
+	var local_half_extents = new Goblin.Vector3(),
+		local_center = new Goblin.Vector3(),
+		center = new Goblin.Vector3(),
+		extents = new Goblin.Vector3(),
+		abs = new Goblin.Matrix3();
 
 	return function( local_aabb, matrix ) {
-		vec3.subtract( local_aabb.max, local_aabb.min, local_half_extents );
-		vec3.scale( local_half_extents, 0.5 );
+		local_half_extents.subtractVectors( local_aabb.max, local_aabb.min );
+		local_half_extents.scale( 0.5  );
 
-		vec3.add( local_aabb.max, local_aabb.min, local_center );
-		vec3.scale( local_center, 0.5 );
+		local_center.addVectors( local_aabb.max, local_aabb.min );
+		local_center.scale( 0.5  );
 
-		mat4.multiplyVec3( matrix, local_center, center );
+		matrix.transformVector3Into( local_center, center );
 
 		// Extract the absolute rotation matrix
-		abs[0] = Math.abs( matrix[0] );
-		abs[1] = Math.abs( matrix[1] );
-		abs[2] = Math.abs( matrix[2] );
-		abs[3] = Math.abs( matrix[4] );
-		abs[4] = Math.abs( matrix[5] );
-		abs[5] = Math.abs( matrix[6] );
-		abs[6] = Math.abs( matrix[8] );
-		abs[7] = Math.abs( matrix[9] );
-		abs[8] = Math.abs( matrix[10] );
+		abs.e00 = Math.abs( matrix.e00 );
+		abs.e01 = Math.abs( matrix.e01 );
+		abs.e02 = Math.abs( matrix.e02 );
+		abs.e10 = Math.abs( matrix.e10 );
+		abs.e11 = Math.abs( matrix.e11 );
+		abs.e12 = Math.abs( matrix.e12 );
+		abs.e20 = Math.abs( matrix.e20 );
+		abs.e21 = Math.abs( matrix.e21 );
+		abs.e22 = Math.abs( matrix.e22 );
 
-		_tmp_vec3_1[0] = abs[0];
-		_tmp_vec3_1[1] = abs[1];
-		_tmp_vec3_1[2] = abs[2];
-		extents[0] = vec3.dot( local_half_extents, _tmp_vec3_1 );
+		_tmp_vec3_1.x = abs.e00;
+		_tmp_vec3_1.y = abs.e10;
+		_tmp_vec3_1.z = abs.e20;
+		extents.x = local_half_extents.dot( _tmp_vec3_1 );
 
-		_tmp_vec3_1[0] = abs[3];
-		_tmp_vec3_1[1] = abs[4];
-		_tmp_vec3_1[2] = abs[5];
-		extents[1] = vec3.dot( local_half_extents, _tmp_vec3_1 );
+		_tmp_vec3_1.x = abs.e01;
+		_tmp_vec3_1.y = abs.e11;
+		_tmp_vec3_1.z = abs.e21;
+		extents.y = local_half_extents.dot( _tmp_vec3_1 );
 
-		_tmp_vec3_1[0] = abs[6];
-		_tmp_vec3_1[1] = abs[7];
-		_tmp_vec3_1[2] = abs[8];
-		extents[2] = vec3.dot( local_half_extents, _tmp_vec3_1 );
+		_tmp_vec3_1.x = abs.e02;
+		_tmp_vec3_1.y = abs.e12;
+		_tmp_vec3_1.z = abs.e22;
+		extents.z = local_half_extents.dot( _tmp_vec3_1 );
 
-		vec3.subtract( center, extents, this.min );
-		vec3.add( center, extents, this.max );
+		this.min.subtractVectors( center, extents );
+		this.max.addVectors( center, extents );
 	};
 })();
 
 Goblin.AABB.prototype.intersects = function( aabb ) {
     if (
-        this.max[0] < aabb.min[0] ||
-        this.max[1] < aabb.min[1] ||
-        this.max[2] < aabb.min[2] ||
-        this.min[0] > aabb.max[0] ||
-        this.min[1] > aabb.max[1] ||
-        this.min[2] > aabb.max[2]
+        this.max.x < aabb.min.x ||
+        this.max.y < aabb.min.y ||
+        this.max.z < aabb.min.z ||
+        this.min.x > aabb.max.x ||
+        this.min.y > aabb.max.y ||
+        this.min.z > aabb.max.z
     )
     {
         return false;
@@ -90,30 +90,32 @@ Goblin.AABB.prototype.intersects = function( aabb ) {
  * @return {boolean}
  */
 Goblin.AABB.prototype.testRayIntersect = (function(){
-	var direction = vec3.create(),
+	var direction = new Goblin.Vector3(),
 		tmin, tmax,
-		ood, t1, t2;
+		ood, t1, t2,
+		axis;
 
 	return function( start, end ) {
 		tmin = 0;
 
-		vec3.subtract( end, start, direction );
-		tmax = vec3.length( direction );
-		vec3.scale( direction, 1 / tmax ); // normalize direction
+		direction.subtractVectors( end, start );
+		tmax = direction.length();
+		direction.scale( 1 / tmax ); // normalize direction
 
 		for ( var i = 0; i < 3; i++ ) {
-			var extent_min = ( i === 0 ? this.min[0] : (  i === 1 ? this.min[1] : this.min[2] ) ),
-				extent_max = ( i === 0 ? this.max[0] : (  i === 1 ? this.max[1] : this.max[2] ) );
+			axis = i === 0 ? 'x' : ( i === 1 ? 'y' : 'z' );
+			var extent_min = ( i === 0 ? this.min.x : (  i === 1 ? this.min.y : this.min.z )  ),
+				extent_max = ( i === 0 ? this.max.x : (  i === 1 ? this.max.y : this.max.z ) );
 
-			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
+			if ( Math.abs( direction[axis] ) < Goblin.EPSILON ) {
 				// Ray is parallel to axis
-				if ( start[i] < extent_min || start[i] > extent_max ) {
+				if ( start[axis] < extent_min || start[axis] > extent_max ) {
 					return false;
 				}
 			} else {
-				ood = 1 / direction[i];
-				t1 = ( extent_min - start[i] ) * ood;
-				t2 = ( extent_max - start[i] ) * ood;
+				ood = 1 / direction[axis];
+				t1 = ( extent_min - start[axis] ) * ood;
+				t2 = ( extent_max - start[axis] ) * ood;
 				if ( t1 > t2 ) {
 					ood = t1; // ood is a convenient temp variable as it's not used again
 					t1 = t2;

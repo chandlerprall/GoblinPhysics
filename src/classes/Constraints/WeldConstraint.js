@@ -7,10 +7,10 @@ Goblin.WeldConstraint = function( object_a, point_a, object_b, point_b ) {
 	this.object_b = object_b || null;
 	this.point_b = point_b || null;
 
-	this.rotation_difference = quat4.create();
+	this.rotation_difference = new Goblin.Quaternion();
 	if ( this.object_b != null ) {
-		quat4.inverse( this.object_b.rotation, _tmp_quat4_1 );
-		quat4.multiply( _tmp_quat4_1, this.object_a.rotation, this.rotation_difference );
+		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
+		this.rotation_difference.multiplyQuaternions( _tmp_quat4_1, this.object_a.rotation );
 	}
 
 	this.erp = 0.1;
@@ -58,8 +58,8 @@ Goblin.WeldConstraint = function( object_a, point_a, object_b, point_b ) {
 Goblin.WeldConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
 Goblin.WeldConstraint.prototype.update = (function(){
-	var r1 = vec3.create(),
-		r2 = vec3.create();
+	var r1 = new Goblin.Vector3(),
+		r2 = new Goblin.Vector3();
 
 	return function( time_delta ) {
 		if ( this.object_b == null ) {
@@ -67,82 +67,82 @@ Goblin.WeldConstraint.prototype.update = (function(){
 			return;
 		}
 
-		mat4.multiplyVec3( this.object_a.transform, this.point_a, _tmp_vec3_1 );
-		vec3.subtract( _tmp_vec3_1, this.object_a.position, r1 );
+		this.object_a.transform.transformVector3Into( this.point_a, _tmp_vec3_1 );
+		r1.subtractVectors( _tmp_vec3_1, this.object_a.position );
 
 		this.rows[0].jacobian[0] = -1;
 		this.rows[0].jacobian[1] = 0;
 		this.rows[0].jacobian[2] = 0;
 		this.rows[0].jacobian[3] = 0;
-		this.rows[0].jacobian[4] = -r1[2];
-		this.rows[0].jacobian[5] = r1[1];
+		this.rows[0].jacobian[4] = -r1.z;
+		this.rows[0].jacobian[5] = r1.y;
 
 		this.rows[1].jacobian[0] = 0;
 		this.rows[1].jacobian[1] = -1;
 		this.rows[1].jacobian[2] = 0;
-		this.rows[1].jacobian[3] = r1[2];
+		this.rows[1].jacobian[3] = r1.z;
 		this.rows[1].jacobian[4] = 0;
-		this.rows[1].jacobian[5] = -r1[0];
+		this.rows[1].jacobian[5] = -r1.x;
 
 		this.rows[2].jacobian[0] = 0;
 		this.rows[2].jacobian[1] = 0;
 		this.rows[2].jacobian[2] = -1;
-		this.rows[2].jacobian[3] = -r1[1];
-		this.rows[2].jacobian[4] = r1[0];
+		this.rows[2].jacobian[3] = -r1.y;
+		this.rows[2].jacobian[4] = r1.x;
 		this.rows[2].jacobian[5] = 0;
 
 		if ( this.object_b != null ) {
-			mat4.multiplyVec3( this.object_b.transform, this.point_b, _tmp_vec3_2 );
-			vec3.subtract( _tmp_vec3_2, this.object_b.position, r2 );
+			this.object_b.transform.transformVector3Into( this.point_b, _tmp_vec3_2 );
+			r2.subtractVectors( _tmp_vec3_2, this.object_b.position );
 
 			this.rows[0].jacobian[6] = 1;
 			this.rows[0].jacobian[7] = 0;
 			this.rows[0].jacobian[8] = 0;
 			this.rows[0].jacobian[9] = 0;
-			this.rows[0].jacobian[10] = r2[2];
-			this.rows[0].jacobian[11] = -r2[1];
+			this.rows[0].jacobian[10] = r2.z;
+			this.rows[0].jacobian[11] = -r2.y;
 
 			this.rows[1].jacobian[6] = 0;
 			this.rows[1].jacobian[7] = 1;
 			this.rows[1].jacobian[8] = 0;
-			this.rows[1].jacobian[9] = -r2[2];
+			this.rows[1].jacobian[9] = -r2.z;
 			this.rows[1].jacobian[10] = 0;
-			this.rows[1].jacobian[11] = r2[0];
+			this.rows[1].jacobian[11] = r2.x;
 
 			this.rows[2].jacobian[6] = 0;
 			this.rows[2].jacobian[7] = 0;
 			this.rows[2].jacobian[8] = 1;
-			this.rows[2].jacobian[9] = r2[1];
-			this.rows[2].jacobian[10] = -r2[0];
+			this.rows[2].jacobian[9] = r2.y;
+			this.rows[2].jacobian[10] = -r2.x;
 			this.rows[2].jacobian[11] = 0;
 		} else {
-			vec3.set( this.point_b, _tmp_vec3_2 );
+			_tmp_vec3_2.copy( this.point_b );
 		}
 
-		var error = vec3.create();
+		var error = new Goblin.Vector3();
 
 		// Linear correction
-		vec3.subtract( _tmp_vec3_1, _tmp_vec3_2, error );
-		vec3.scale( error, this.erp / time_delta );
-		this.rows[0].bias = error[0];
-		this.rows[1].bias = error[1];
-		this.rows[2].bias = error[2];
+		error.subtractVectors( _tmp_vec3_1, _tmp_vec3_2 );
+		error.scale( this.erp / time_delta  );
+		this.rows[0].bias = error.x;
+		this.rows[1].bias = error.y;
+		this.rows[2].bias = error.z;
 
 		// Rotation correction
-		quat4.inverse( this.object_b.rotation, _tmp_quat4_1 );
-		quat4.multiply( _tmp_quat4_1, this.object_a.rotation );
+		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
+		_tmp_quat4_1.multiply( this.object_a.rotation );
 
-		quat4.inverse( this.rotation_difference, _tmp_quat4_2 );
-		quat4.multiply( _tmp_quat4_2, _tmp_quat4_1 );
+		_tmp_quat4_2.invertQuaternion( this.rotation_difference );
+		_tmp_quat4_2.multiply( _tmp_quat4_1 );
 		// _tmp_quat4_2 is now the rotational error that needs to be corrected
 
-		error[0] = _tmp_quat4_2[0];
-		error[1] = _tmp_quat4_2[1];
-		error[2] = _tmp_quat4_2[2];
-		vec3.scale( error, 1 * this.erp / time_delta );
+		error.x = _tmp_quat4_2.x;
+		error.y = _tmp_quat4_2.y;
+		error.z = _tmp_quat4_2.z;
+		error.scale( this.erp / time_delta );
 
-		this.rows[3].bias = error[0];
-		this.rows[4].bias = error[1];
-		this.rows[5].bias = error[2];
+		this.rows[3].bias = error.x;
+		this.rows[4].bias = error.y;
+		this.rows[5].bias = error.z;
 	};
-})();
+})( );

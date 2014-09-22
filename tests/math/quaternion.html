@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Math: Quaternion | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="../css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="../css/mocha.css"/>
+	<script type="text/javascript" src="../js/chai.js"></script>
+	<script type="text/javascript" src="../js/mocha.js"></script>
+	<script type="text/javascript" src="../../build/goblin.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var assert = chai.assert,
+			expect = chai.expect;
+		window.onload = function() {
+			describe('Quaternion', function(){
+				it('Instantiate with no values', function(){
+					var quaternion = new Goblin.Quaternion();
+					expect( quaternion ).property( 'x', 0 );
+					expect( quaternion ).property( 'y', 0 );
+					expect( quaternion ).property( 'z', 0 );
+					expect( quaternion ).property( 'w', 0 );
+				});
+
+				it('Instantiate with values', function(){
+					var quaternion = new Goblin.Quaternion( 1, 3, 5.5, 8 );
+					expect( quaternion ).property( 'x', 0.09794042137487835 );
+					expect( quaternion ).property( 'y', 0.29382126412463505 );
+					expect( quaternion ).property( 'z', 0.5386723175618309 );
+					expect( quaternion ).property( 'w', 0.7835233709990268 );
+				});
+
+				it('multiply', function(){
+					var q1 = new Goblin.Quaternion( 1, 3, 5.5, 8 ),
+						q2 = new Goblin.Quaternion( 0, 0, 0, 1 );
+
+					q1.multiply( q2 );
+					expect( q1 ).property( 'x', 0.09794042137487835 );
+					expect( q1 ).property( 'y', 0.29382126412463505 );
+					expect( q1 ).property( 'z', 0.5386723175618309 );
+					expect( q1 ).property( 'w', 0.7835233709990268 );
+
+					q2 = new Goblin.Quaternion( 0.5, 1, 1, 0.5 );
+					q1.multiply( q2 );
+					expect( q1 ).property( 'x', 0.12388592261650222 );
+					expect( q1 ).property( 'y', 0.6968583147178248 );
+					expect( q1 ).property( 'z', 0.6349153534095736 );
+					expect( q1 ).property( 'w', -0.30971480654125544 );
+				});
+
+				it('multiplyQuaternions', function(){
+					var q1 = new Goblin.Quaternion( 1, 3, 5.5, 8 ),
+						q2 = new Goblin.Quaternion( 0, 0, 0, 1 ),
+						q3 = new Goblin.Quaternion();
+
+					q3.multiplyQuaternions( q1, q2 );
+					expect( q3 ).property( 'x', 0.09794042137487835 );
+					expect( q3 ).property( 'y', 0.29382126412463505 );
+					expect( q3 ).property( 'z', 0.5386723175618309 );
+					expect( q3 ).property( 'w', 0.7835233709990268 );
+
+					q2 = new Goblin.Quaternion( 0.5, 1, 1, 0.5 );
+					q3.multiplyQuaternions( q1, q2 );
+					expect( q3 ).property( 'x', 0.12388592261650222 );
+					expect( q3 ).property( 'y', 0.6968583147178248 );
+					expect( q3 ).property( 'z', 0.6349153534095736 );
+					expect( q3 ).property( 'w', -0.30971480654125544 );
+				});
+
+				it('normalize', function(){
+					var quaternion = new Goblin.Quaternion();
+
+					quaternion.normalize();
+					expect( quaternion ).property( 'x', 0 );
+					expect( quaternion ).property( 'y', 0 );
+					expect( quaternion ).property( 'z', 0 );
+					expect( quaternion ).property( 'w', 0 );
+
+					quaternion = new Goblin.Quaternion( 1, 0, 0, 1 );
+					quaternion.normalize();
+					expect( quaternion ).property( 'x', 0.7071067811865476 );
+					expect( quaternion ).property( 'y', 0 );
+					expect( quaternion ).property( 'z', 0 );
+					expect( quaternion ).property( 'w', 0.7071067811865476 );
+
+					quaternion = new Goblin.Quaternion( 2, 1, 1, 1 );
+					quaternion.normalize();
+					expect( quaternion ).property( 'x', 0.7559289460184546 );
+					expect( quaternion ).property( 'y', 0.3779644730092273 );
+					expect( quaternion ).property( 'z', 0.3779644730092273 );
+					expect( quaternion ).property( 'w', 0.3779644730092273 );
+				});
+
+				it('invertQuaternion', function(){
+					var q1 = new Goblin.Quaternion(),
+						q2 = new Goblin.Quaternion();
+
+					q2.invertQuaternion( q1 );
+					expect( q2 ).property( 'x', 0 );
+					expect( q2 ).property( 'y', 0 );
+					expect( q2 ).property( 'z', 0 );
+					expect( q2 ).property( 'w', 0 );
+
+					q1 = new Goblin.Quaternion( 1, 0, 0, 1 );
+					q2.invertQuaternion( q1 );
+					expect( q2 ).property( 'x', -0.7071067811865476 );
+					expect( q2 ).property( 'y', 0 );
+					expect( q2 ).property( 'z', 0 );
+					expect( q2 ).property( 'w', 0.7071067811865476 );
+				});
+			});
+
+			mocha.run();
+		};
+	</script>
+</head>
+
+<body>
+<div id="mocha"></div>
+</body>
+</html>

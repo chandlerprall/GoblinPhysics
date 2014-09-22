@@ -13,7 +13,7 @@ Goblin.ForceGenerator = function( force ) {
 	* @type {vec3}
 	* @default [ 0, 0, 0 ]
 	*/
-	this.force = force || vec3.create();
+	this.force = force || new Goblin.Vector3();
 
 	/**
 	* whether or not the force generator is enabled

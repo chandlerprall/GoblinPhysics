@@ -15,31 +15,31 @@ Goblin.GeometryMethods = {
 	 * @param {vec3} c third triangle vertex
 	 * @param {vec3} out vector where the result will be stored
 	 */
-	findClosestPointInTriangle: function() {
-		var ab = vec3.create(),
-			ac = vec3.create(),
-			_vec = vec3.create();
+	findClosestPointInTriangle: (function() {
+		var ab = new Goblin.Vector3(),
+			ac = new Goblin.Vector3(),
+			_vec = new Goblin.Vector3();
 
 		return function( p, a, b, c, out ) {
 			var v;
 
 			// Check if P in vertex region outside A
-			vec3.subtract( b, a, ab );
-			vec3.subtract( c, a, ac );
-			vec3.subtract( p, a, _vec );
-			var d1 = vec3.dot( ab, _vec ),
-				d2 = vec3.dot( ac, _vec );
+			ab.subtractVectors( b, a );
+			ac.subtractVectors( c, a );
+			_vec.subtractVectors( p, a );
+			var d1 = ab.dot( _vec ),
+				d2 = ac.dot( _vec );
 			if ( d1 <= 0 && d2 <= 0 ) {
-				vec3.set( a, out );
+				out.copy( a );
 				return;
 			}
 
 			// Check if P in vertex region outside B
-			vec3.subtract( p, b, _vec );
-			var d3 = vec3.dot( ab, _vec ),
-				d4 = vec3.dot( ac, _vec );
+			_vec.subtractVectors( p, b );
+			var d3 = ab.dot( _vec ),
+				d4 = ac.dot( _vec );
 			if ( d3 >= 0 && d4 <= d3 ) {
-				vec3.set( b, out );
+				out.copy( b );
 				return;
 			}
 
@@ -47,17 +47,17 @@ Goblin.GeometryMethods = {
 			var vc = d1*d4 - d3*d2;
 			if ( vc <= 0 && d1 >= 0 && d3 <= 0 ) {
 				v = d1 / ( d1 - d3 );
-				vec3.scale( ab, v, out );
-				vec3.add( out, a );
+				out.scaleVector( ab, v );
+				out.add( a );
 				return;
 			}
 
 			// Check if P in vertex region outside C
-			vec3.subtract( p, c, _vec );
-			var d5 = vec3.dot( ab, _vec ),
-				d6 = vec3.dot( ac, _vec );
+			_vec.subtractVectors( p, c );
+			var d5 = ab.dot( _vec ),
+				d6 = ac.dot( _vec );
 			if ( d6 >= 0 && d5 <= d6 ) {
-				vec3.set( c, out );
+				out.copy( c );
 				return;
 			}
 
@@ -66,8 +66,8 @@ Goblin.GeometryMethods = {
 				w;
 			if ( vb <= 0 && d2 >= 0 && d6 <= 0 ) {
 				w = d2 / ( d2 - d6 );
-				vec3.scale( ac, w, out );
-				vec3.add( out, a );
+				out.scaleVector( ac, w );
+				out.add( a );
 				return;
 			}
 
@@ -75,9 +75,9 @@ Goblin.GeometryMethods = {
 			var va = d3*d6 - d5*d4;
 			if ( va <= 0 && d4-d3 >= 0 && d5-d6 >= 0 ) {
 				w = (d4 - d3) / ( (d4-d3) + (d5-d6) );
-				vec3.subtract( c, b, out );
-				vec3.scale( out, w );
-				vec3.add( out, b );
+				out.subtractVectors( c, b );
+				out.scale( w );
+				out.add( b );
 				return;
 			}
 
@@ -89,14 +89,14 @@ Goblin.GeometryMethods = {
 
 			// At this point `ab` and `ac` can be recycled and lose meaning to their nomenclature
 
-			vec3.scale( ab, v );
-			vec3.add( ab, a );
+			ab.scale( v );
+			ab.add( a );
 
-			vec3.scale( ac, w );
+			ac.scale( w );
 
-			vec3.add( ab, ac, out );
+			out.addVectors( ab, ac );
 		};
-	}(),
+	})(),
 
 	/**
 	 * Finds the Barycentric coordinates of point `p` in the triangle `a`, `b`, `c`
@@ -110,24 +110,24 @@ Goblin.GeometryMethods = {
 	 */
 	findBarycentricCoordinates: function( p, a, b, c, out ) {
 
-		var v0 = vec3.create(),
-			v1 = vec3.create(),
-			v2 = vec3.create();
+		var v0 = new Goblin.Vector3(),
+			v1 = new Goblin.Vector3(),
+			v2 = new Goblin.Vector3();
 
-		vec3.subtract( b, a, v0 );
-		vec3.subtract( c, a, v1 );
-		vec3.subtract( p, a, v2 );
+		v0.subtractVectors( b, a );
+		v1.subtractVectors( c, a );
+		v2.subtractVectors( p, a );
 
-		var d00 = vec3.dot( v0, v0 ),
-			d01 = vec3.dot( v0, v1 ),
-			d11 = vec3.dot( v1, v1 ),
-			d20 = vec3.dot( v2, v0 ),
-			d21 = vec3.dot( v2, v1 ),
+		var d00 = v0.dot( v0 ),
+			d01 = v0.dot( v1 ),
+			d11 = v1.dot( v1 ),
+			d20 = v2.dot( v0 ),
+			d21 = v2.dot( v1 ),
 			denom = d00 * d11 - d01 * d01;
 
-		out[1] = ( d11 * d20 - d01 * d21 ) / denom;
-		out[2] = ( d00 * d21 - d01 * d20 ) / denom;
-		out[0] = 1 - out[1] - out[2];
+		out.y = ( d11 * d20 - d01 * d21 ) / denom;
+		out.z = ( d00 * d21 - d01 * d20 ) / denom;
+		out.x = 1 - out.y - out.z;
 	},
 
 	/**
@@ -138,26 +138,26 @@ Goblin.GeometryMethods = {
 	 * @returns {number}
 	 */
 	findSquaredDistanceFromSegment: (function(){
-		var ab = vec3.create(),
-			ap = vec3.create(),
-			bp = vec3.create();
+		var ab = new Goblin.Vector3(),
+			ap = new Goblin.Vector3(),
+			bp = new Goblin.Vector3();
 
 		return function( p, a, b ) {
-			vec3.subtract( a, b, ab );
-			vec3.subtract( a, p, ap );
-			vec3.subtract( b, p, bp );
+			ab.subtractVectors( a, b );
+			ap.subtractVectors( a, p );
+			bp.subtractVectors( b, p );
 
-			var e = vec3.dot( ap, ab );
+			var e = ap.dot( ab );
 			if ( e <= 0 ) {
-				return vec3.dot( ap, ap );
+				return ap.dot( ap );
 			}
 
-			var f = vec3.dot( ab, ab );
+			var f = ab.dot( ab );
 			if ( e >= f ) {
-				return vec3.dot( bp, bp );
+				return bp.dot( bp );
 			}
 
-			return vec3.dot( ap, ap ) - e * e / f;
+			return ap.dot( ap ) - e * e / f;
 		};
 	})()
 };

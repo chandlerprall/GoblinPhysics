@@ -9,7 +9,6 @@
 	<script type="text/javascript" src="js/mocha.js"></script>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/testUtils.js"></script>
 
@@ -22,7 +21,7 @@
 			(function(){
 				var box = testUtils.createBox( 0.5, 0.5, 0.5, 0 ),
 					sphere = testUtils.createSphere( 1, 1 );
-				sphere.goblin.position[1] = 5;
+				sphere.goblin.position.y = 5;
 
 				setTimeout(
 					function() {
@@ -30,7 +29,7 @@
 
 						describe('Collision Results', function(){
 							it('Sphere Position', function(){
-								return assert( testUtils.withinEpsilon( sphere.goblin.position[1], 1.5 ) );
+								return assert( testUtils.withinEpsilon( sphere.goblin.position.y, 1.5 ) );
 							});
 						});
 

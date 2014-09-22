@@ -50,17 +50,17 @@ Goblin.ConeShape = function( radius, half_height ) {
  * @param aabb {AABB}
  */
 Goblin.ConeShape.prototype.calculateLocalAABB = function( aabb ) {
-    aabb.min[0] = aabb.min[2] = -this.radius;
-    aabb.min[1] = -this.half_height;
+    aabb.min.x = aabb.min.z = -this.radius;
+    aabb.min.y = -this.half_height;
 
-    aabb.max[0] = aabb.max[2] = this.radius;
-    aabb.max[1] = this.half_height;
+    aabb.max.x = aabb.max.z = this.radius;
+    aabb.max.y = this.half_height;
 };
 
 Goblin.ConeShape.prototype.getInertiaTensor = function( mass ) {
 	var element = 0.1 * mass * Math.pow( this.half_height * 2, 2 ) + 0.15 * mass * this.radius * this.radius;
 
-	return mat3.createFrom(
+	return new Goblin.Matrix3(
 		element, 0, 0,
 		0, 0.3 * mass * this.radius * this.radius, 0,
 		0, 0, element
@@ -77,20 +77,20 @@ Goblin.ConeShape.prototype.getInertiaTensor = function( mass ) {
  */
 Goblin.ConeShape.prototype.findSupportPoint = function( direction, support_point ) {
 	// Calculate the support point in the local frame
-	//var w = direction - ( direction[1] )
-	var sigma = Math.sqrt( direction[0] * direction[0] + direction[2] * direction[2] );
+	//var w = direction - ( direction.y )
+	var sigma = Math.sqrt( direction.x * direction.x + direction.z * direction.z );
 
-	if ( direction[1] > vec3.length( direction ) * this._sinangle ) {
-		support_point[0] = support_point[2] = 0;
-		support_point[1] = this.half_height;
+	if ( direction.y > direction.length() * this._sinangle ) {
+		support_point.x = support_point.z = 0;
+		support_point.y = this.half_height;
 	} else if ( sigma > 0 ) {
 		var r_s = this.radius / sigma;
-		support_point[0] = r_s * direction[0];
-		support_point[1] = -this.half_height;
-		support_point[2] = r_s * direction[2];
+		support_point.x = r_s * direction.x;
+		support_point.y = -this.half_height;
+		support_point.z = r_s * direction.z;
 	} else {
-		support_point[0] = support_point[2] = 0;
-		support_point[1] = -this.half_height;
+		support_point.x = support_point.z = 0;
+		support_point.y = -this.half_height;
 	}
 };
 
@@ -103,26 +103,26 @@ Goblin.ConeShape.prototype.findSupportPoint = function( direction, support_point
  * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
  */
 Goblin.ConeShape.prototype.rayIntersect = (function(){
-    var direction = vec3.create(),
+    var direction = new Goblin.Vector3(),
         length,
-        p1 = vec3.create(),
-        p2 = vec3.create(),
-		normal1 = vec3.create(),
-		normal2 = vec3.create();
+        p1 = new Goblin.Vector3(),
+        p2 = new Goblin.Vector3(),
+		normal1 = new Goblin.Vector3(),
+		normal2 = new Goblin.Vector3();
 
     return function( start, end ) {
-        vec3.subtract( end, start, direction );
-        length = vec3.length( direction );
-        vec3.scale( direction, 1 / length ); // normalize direction
+        direction.subtractVectors( end, start );
+        length = direction.length();
+        direction.scale( 1 / length  ); // normalize direction
 
         var t1, t2;
 
         // Check for intersection with cone base
-		p1[0] = p1[1] = p1[2] = 0;
+		p1.x = p1.y = p1.z = 0;
         t1 = this._rayIntersectBase( start, end, p1, normal1 );
 
         // Check for intersection with cone shape
-		p2[0] = p2[1] = p2[2] = 0;
+		p2.x = p2.y = p2.z = 0;
         t2 = this._rayIntersectCone( start, direction, length, p2, normal2 );
 
         var intersection;
@@ -133,15 +133,15 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
 			intersection.t = t1;
-            vec3.set( p1, intersection.point );
-			vec3.set( normal1, intersection.normal );
+            intersection.point.copy( p1 );
+			intersection.normal.copy( normal1 );
             return intersection;
         } else if ( !t1 || ( t2 && t2 < t1 ) ) {
             intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
             intersection.object = this;
 			intersection.t = t2;
-            vec3.set( p2, intersection.point );
-			vec3.set( normal2, intersection.normal );
+            intersection.point.copy( p2 );
+			intersection.normal.copy( normal2 );
             return intersection;
         }
 
@@ -150,39 +150,39 @@ Goblin.ConeShape.prototype.rayIntersect = (function(){
 })();
 
 Goblin.ConeShape.prototype._rayIntersectBase = (function(){
-    var _normal = vec3.createFrom( 0, -1, 0 ),
-        ab = vec3.create(),
-        _start = vec3.create(),
-        _end = vec3.create(),
+    var _normal = new Goblin.Vector3( 0, -1, 0 ),
+        ab = new Goblin.Vector3(),
+        _start = new Goblin.Vector3(),
+        _end = new Goblin.Vector3(),
         t;
 
     return function( start, end, point, normal ) {
-        _start[0] = start[0];
-        _start[1] = start[1] + this.half_height;
-        _start[2] = start[2];
+        _start.x = start.x;
+        _start.y = start.y + this.half_height;
+        _start.z = start.z;
 
-        _end[0] = end[0];
-        _end[1] = end[1] + this.half_height;
-        _end[2] = end[2];
+        _end.x = end.x;
+        _end.y = end.y + this.half_height;
+        _end.z = end.z;
 
-        vec3.subtract( _end, _start, ab );
-        t = -vec3.dot( _normal, _start ) / vec3.dot( _normal, ab );
+        ab.subtractVectors( _end, _start );
+        t = -_normal.dot( _start ) / _normal.dot( ab );
 
         if ( t < 0 || t > 1 ) {
             return null;
         }
 
-        vec3.scale( ab, t, point );
-        vec3.add( point, start );
+        point.scaleVector( ab, t );
+        point.add( start );
 
-        if ( point[0] * point[0] + point[2] * point[2] > this.radius * this.radius ) {
+        if ( point.x * point.x + point.z * point.z > this.radius * this.radius ) {
             return null;
         }
 
-		normal[0] = normal[2] = 0;
-		normal[1] = -1;
+		normal.x = normal.z = 0;
+		normal.y = -1;
 
-        return t * vec3.length( ab );
+        return t * ab.length();
     };
 })();
 
@@ -198,22 +198,22 @@ Goblin.ConeShape.prototype._rayIntersectBase = (function(){
  * @return {vec3|null} if the segment intersects, point where the segment intersects the cone, else `null`
  */
 Goblin.ConeShape.prototype._rayIntersectCone = (function(){
-    var _point = vec3.create();
+    var _point = new Goblin.Vector3();
 
     return function( start, direction, length, point, normal ) {
-        var A = vec3.createFrom( 0, -1, 0 );
+        var A = new Goblin.Vector3( 0, -1, 0 );
 
-        var AdD = vec3.dot( A, direction ),
+        var AdD = A.dot( direction ),
             cosSqr = this._cosangle * this._cosangle;
 
-        var E = vec3.create();
-        E[0] = start[0];
-        E[1] = start[1] - this.half_height;
-        E[2] = start[2];
+        var E = new Goblin.Vector3();
+        E.x = start.x;
+        E.y = start.y - this.half_height;
+        E.z = start.z;
 
-        var AdE = vec3.dot( A, E ),
-            DdE = vec3.dot( direction, E ),
-            EdE = vec3.dot( E, E ),
+        var AdE = A.dot( E ),
+            DdE = direction.dot( E ),
+            EdE = E.dot( E ),
             c2 = AdD * AdD - cosSqr,
             c1 = AdD * AdE - cosSqr * DdE,
             c0 = AdE * AdE - cosSqr * EdE,
@@ -229,26 +229,26 @@ Goblin.ConeShape.prototype._rayIntersectCone = (function(){
 
                 t = ( -c1 - root ) * invC2;
                 if ( t >= 0 && t <= length ) {
-                    vec3.scale( direction, t, _point );
-                    vec3.add( _point, start );
-                    E[1] = _point[1] - this.half_height;
-                    dot = vec3.dot( E, A );
+                    _point.scaleVector( direction, t );
+                    _point.add( start );
+                    E.y = _point.y - this.half_height;
+                    dot = E.dot( A );
                     if ( dot >= 0 ) {
                         tmin = t;
-                        vec3.set( _point, point );
+                        point.copy( _point );
                     }
                 }
 
                 t = ( -c1 + root ) * invC2;
                 if ( t >= 0 && t <= length ) {
                     if ( tmin == null || t < tmin ) {
-                        vec3.scale( direction, t, _point );
-                        vec3.add( _point, start );
-                        E[1] = _point[1] - this.half_height;
-                        dot = vec3.dot( E, A );
+                        _point.scaleVector( direction, t );
+                        _point.add( start );
+                        E.y = _point.y - this.half_height;
+                        dot = E.dot( A );
                         if ( dot >= 0 ) {
                             tmin = t;
-                            vec3.set( _point, point );
+                            point.copy( _point );
                         }
                     }
                 }
@@ -259,52 +259,52 @@ Goblin.ConeShape.prototype._rayIntersectCone = (function(){
                 tmin /= length;
             } else {
                 t = -c1 / c2;
-                vec3.scale( direction, t, _point );
-                vec3.add( _point, start );
-                E[1] = _point[1] - this.half_height;
-                dot = vec3.dot( E, A );
+                _point.scaleVector( direction, t );
+                _point.add( start );
+                E.y = _point.y - this.half_height;
+                dot = E.dot( A );
                 if ( dot < 0 ) {
                     return null;
                 }
 
                 // Verify segment reaches _point
-                vec3.subtract( _point, start, _tmp_vec3_1 );
-                if ( vec3.squaredLength( _tmp_vec3_1 ) > length * length ) {
+                _tmp_vec3_1.subtractVectors( _point, start );
+                if ( _tmp_vec3_1.lengthSquared() > length * length ) {
                     return null;
                 }
 
                 tmin = t / length;
-                vec3.set( _point, point );
+                point.copy( _point );
             }
         } else if ( Math.abs( c1 ) >= Goblin.EPSILON ) {
             t = 0.5 * c0 / c1;
-            vec3.scale( direction, t, _point );
-            vec3.add( _point, start );
-            E[1] = _point[1] - this.half_height;
-            dot = vec3.dot( E, A );
+            _point.scaleVector( direction, t );
+            _point.add( start );
+            E.y = _point.y - this.half_height;
+            dot = E.dot( A );
             if ( dot < 0 ) {
                 return null;
             }
             tmin = t;
-            vec3.set( _point, point );
+            point.copy( _point );
         } else {
             return null;
         }
 
-        if ( point[1] < -this.half_height ) {
+        if ( point.y < -this.half_height ) {
             return null;
         }
 
 		// Compute normal
-		normal[0] = point[0];
-		normal[1] = 0;
-		normal[2] = point[2];
-		vec3.normalize( normal );
+		normal.x = point.x;
+		normal.y = 0;
+		normal.z = point.z;
+		normal.normalize();
 
-		normal[0] *= ( this.half_height * 2 ) / this.radius;
-		normal[1] = this.radius / ( this.half_height * 2 );
-		normal[2] *= ( this.half_height * 2 ) / this.radius;
-		vec3.normalize( normal );
+		normal.x *= ( this.half_height * 2 ) / this.radius;
+		normal.y = this.radius / ( this.half_height * 2 );
+		normal.z *= ( this.half_height * 2 ) / this.radius;
+		normal.normalize();
 
         return tmin * length;
     };

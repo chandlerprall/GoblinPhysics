@@ -32,17 +32,17 @@ Goblin.CylinderShape = function( radius, half_height ) {
  * @param aabb {AABB}
  */
 Goblin.CylinderShape.prototype.calculateLocalAABB = function( aabb ) {
-    aabb.min[0] = aabb.min[2] = -this.radius;
-    aabb.min[1] = -this.half_height;
+    aabb.min.x = aabb.min.z = -this.radius;
+    aabb.min.y = -this.half_height;
 
-    aabb.max[0] = aabb.max[2] = this.radius;
-    aabb.max[1] = this.half_height;
+    aabb.max.x = aabb.max.z = this.radius;
+    aabb.max.y = this.half_height;
 };
 
 Goblin.CylinderShape.prototype.getInertiaTensor = function( mass ) {
 	var element = 0.0833 * mass * ( 3 * this.radius * this.radius + ( this.half_height + this.half_height ) * ( this.half_height + this.half_height ) );
 
-	return mat3.createFrom(
+	return new Goblin.Matrix3(
 		element, 0, 0,
 		0, 0.5 * mass * this.radius * this.radius, 0,
 		0, 0, element
@@ -59,19 +59,19 @@ Goblin.CylinderShape.prototype.getInertiaTensor = function( mass ) {
  */
 Goblin.CylinderShape.prototype.findSupportPoint = function( direction, support_point ) {
 	// Calculate the support point in the local frame
-	if ( direction[1] < 0 ) {
-		support_point[1] = -this.half_height;
+	if ( direction.y < 0 ) {
+		support_point.y = -this.half_height;
 	} else {
-		support_point[1] = this.half_height;
+		support_point.y = this.half_height;
 	}
 
-	if ( direction[0] === 0 && direction[2] === 0 ) {
-		support_point[0] = support_point[2] = 0;
+	if ( direction.x === 0 && direction.z === 0 ) {
+		support_point.x = support_point.z = 0;
 	} else {
-		var sigma = Math.sqrt( direction[0] * direction[0] + direction[2] * direction[2] ),
+		var sigma = Math.sqrt( direction.x * direction.x + direction.z * direction.z ),
 			r_s = this.radius / sigma;
-		support_point[0] = r_s * direction[0];
-		support_point[2] = r_s * direction[2];
+		support_point.x = r_s * direction.x;
+		support_point.z = r_s * direction.z;
 	}
 };
 
@@ -84,25 +84,25 @@ Goblin.CylinderShape.prototype.findSupportPoint = function( direction, support_p
  * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
  */
 Goblin.CylinderShape.prototype.rayIntersect = (function(){
-	var p = vec3.create(),
-		q = vec3.create();
+	var p = new Goblin.Vector3(),
+		q = new Goblin.Vector3();
 
 	return function ( start, end ) {
-		p[1] = this.half_height;
-		q[1] = -this.half_height;
+		p.y = this.half_height;
+		q.y = -this.half_height;
 
-		var d = vec3.create();
-		vec3.subtract( q, p, d );
+		var d = new Goblin.Vector3();
+		d.subtractVectors( q, p );
 
-		var m = vec3.create();
-		vec3.subtract( start, p, m );
+		var m = new Goblin.Vector3();
+		m.subtractVectors( start, p );
 
-		var n = vec3.create();
-		vec3.subtract( end, start, n );
+		var n = new Goblin.Vector3();
+		n.subtractVectors( end, start );
 
-		var md = vec3.dot( m, d ),
-			nd = vec3.dot( n, d ),
-			dd = vec3.dot( d, d );
+		var md = m.dot( d ),
+			nd = n.dot( d ),
+			dd = d.dot( d );
 
 		// Test if segment fully outside either endcap of cylinder
 		if ( md < 0 && md + nd < 0 ) {
@@ -112,10 +112,10 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 			return null; // Segment outside 'q' side of cylinder
 		}
 
-		var nn = vec3.dot( n, n ),
-			mn = vec3.dot( m, n ),
+		var nn = n.dot( n ),
+			mn = m.dot( n ),
 			a = dd * nn - nd * nd,
-			k = vec3.dot( m, m ) - this.radius * this.radius,
+			k = m.dot( m ) - this.radius * this.radius,
 			c = dd * k - md * md,
 			t, t0;
 
@@ -179,20 +179,20 @@ Goblin.CylinderShape.prototype.rayIntersect = (function(){
 		// Segment intersects cylinder between the endcaps; t is correct
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
-		intersection.t = t * vec3.length( n );
-		vec3.scale( n, t, intersection.point );
-		vec3.add( intersection.point, start );
+		intersection.t = t * n.length();
+		intersection.point.scaleVector( n, t );
+		intersection.point.add( start );
 
-		if ( Math.abs( intersection.point[1] - this.half_height ) <= Goblin.EPSILON ) {
-			intersection.normal[0] = intersection.normal[2] = 0;
-			intersection.normal[1] = intersection.point[1] < 0 ? -1 : 1;
+		if ( Math.abs( intersection.point.y - this.half_height ) <= Goblin.EPSILON ) {
+			intersection.normal.x = intersection.normal.z = 0;
+			intersection.normal.y = intersection.point.y < 0 ? -1 : 1;
 		} else {
-			intersection.normal[1] = 0;
-			intersection.normal[0] = intersection.point[0];
-			intersection.normal[2] = intersection.point[2];
-			vec3.scale( intersection.normal, 1 / this.radius );
+			intersection.normal.y = 0;
+			intersection.normal.x = intersection.point.x;
+			intersection.normal.z = intersection.point.z;
+			intersection.normal.scale( 1 / this.radius );
 		}
 
 		return intersection;
 	};
-})();
+})( );

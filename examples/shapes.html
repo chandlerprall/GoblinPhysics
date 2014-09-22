@@ -5,7 +5,6 @@
 	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../lib/stats.min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/exampleUtils.js"></script>
@@ -17,7 +16,7 @@
 			// Ground object
 			var ground = exampleUtils.createBox( 20, 0.25, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
 			ground.castShadow = false;
-			ground.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 0, -0.02, 1 ) );
+			ground.goblin.rotation = new Goblin.Quaternion( 0, 0, -0.02, 1 );
 
 			// Materials
 			var wood_material = exampleUtils.createMaterial( 'wood', 1, 1 ),
@@ -30,25 +29,25 @@
 			var compoundspheres = new Goblin.CompoundShape();
 			compoundspheres.addChildShape(
 				sphereshape,
-				vec3.createFrom( 0, -0.5, 0 ),
-				quat4.createFrom( 0, 0, 0, 1 )
+				new Goblin.Vector3( 0, -0.5, 0 ),
+				new Goblin.Quaternion( 0, 0, 0, 1 )
 			);
 			compoundspheres.addChildShape(
 				sphereshape,
-				vec3.createFrom( 0, 0.5, 0 ),
-				quat4.createFrom( 0, 0, 0, 1 )
+				new Goblin.Vector3( 0, 0.5, 0 ),
+				new Goblin.Quaternion( 0, 0, 0, 1 )
 			);
 
 			var compoundboxes = new Goblin.CompoundShape();
 			compoundboxes.addChildShape(
 				boxshape,
-				vec3.createFrom( 0, 0, 0 ),
-				quat4.createFrom( 0, 0, 0, 1 )
+				new Goblin.Vector3( 0, 0, 0 ),
+				new Goblin.Quaternion( 0, 0, 0, 1 )
 			);
 			compoundboxes.addChildShape(
 				boxshape,
-				vec3.createFrom( 0, 0, 0 ),
-				quat4.normalize( quat4.createFrom( 0, 0, 1, 1 ) )
+				new Goblin.Vector3( 0, 0, 0 ),
+				new Goblin.Quaternion( 0, 0, 1, 1 )
 			);
 
 			function spawnObject() {
@@ -124,9 +123,9 @@
 					exampleUtils.objects.push( object );
 				}
 
-				object.goblin.position[0] = Math.random() * 3;
-				object.goblin.position[1] = 10;
-				object.goblin.position[2] = Math.random() * 3;
+				object.goblin.position.x = Math.random() * 3;
+				object.goblin.position.y = 10;
+				object.goblin.position.z = Math.random() * 3;
 			}
 
 			exampleUtils.world.addListener(

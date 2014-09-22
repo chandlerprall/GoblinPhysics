@@ -5,7 +5,6 @@
 	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../lib/stats.min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/exampleUtils.js"></script>
@@ -21,8 +20,8 @@
 
 			var spawnBox = function() {
 				var box = exampleUtils.createBox( 1, 1, 1, 100, box_material );
-				box.goblin.position[1] = 1;
-				box.goblin.linear_velocity[1] = 15;
+				box.goblin.position.y = 1;
+				box.goblin.linear_velocity.y = 15;
 				box.goblin.restitution = 0.3;
 			};
 

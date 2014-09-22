@@ -79,7 +79,7 @@ Goblin.NearPhase.prototype.midPhase = function( object_a, object_b ) {
 				if ( parent_a instanceof Goblin.RigidBodyProxy ) {
 					while ( parent_a.parent ) {
 						if ( parent_a instanceof Goblin.RigidBodyProxy ) {
-							mat4.multiplyVec3( parent_a.shape_data.transform, contact.contact_point_in_a );
+							parent_a.shape_data.transform.transformVector3( contact.contact_point_in_a );
 						}
 						parent_a = parent_a.parent;
 					}
@@ -88,7 +88,7 @@ Goblin.NearPhase.prototype.midPhase = function( object_a, object_b ) {
 				if ( parent_b instanceof Goblin.RigidBodyProxy ) {
 					while ( parent_b.parent ) {
 						if ( parent_b instanceof Goblin.RigidBodyProxy ) {
-							mat4.multiplyVec3( parent_b.shape_data.transform, contact.contact_point_in_b );
+							parent_b.shape_data.transform.transformVector3( contact.contact_point_in_b );
 						}
 						parent_b = parent_b.parent;
 					}

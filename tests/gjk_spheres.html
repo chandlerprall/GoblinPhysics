@@ -9,7 +9,6 @@
 	<script type="text/javascript" src="js/mocha.js"></script>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/testUtils.js"></script>
 
@@ -26,20 +25,18 @@
 				var sphere1 = testUtils.createSphere( 1, 1 ),
                 	sphere2 = testUtils.createSphere( 1, 1 );
 
-				var tempvec = vec3.create();
-
                 describe('Collision 1', function(){
 					// Set positions
-					sphere1.goblin.position = vec3.createFrom( 0, 1, 0 );
+					sphere1.goblin.position = new Goblin.Vector3( 0, 0.9999, 0 );
 					sphere1.goblin.updateDerived();
 
-					sphere2.goblin.position = vec3.createFrom( 0, -1, 0 );
+					sphere2.goblin.position = new Goblin.Vector3( 0, -1, 0 );
 					sphere2.goblin.updateDerived();
 
 					// Set expected values
 					var pendepth = 0;
-					var contact_normal = vec3.createFrom( 0, -1, 0 );
-					var contact_point = vec3.createFrom( 0, 0, 0 );
+					var contact_normal = new Goblin.Vector3( 0, -1, 0 );
+					var contact_point = new Goblin.Vector3( 0, 0, 0 );
 
                     var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
                         contact = Goblin.GjkEpa2.EPA( simplex );
@@ -49,26 +46,26 @@
 					});
 
 					it('Contact Normal', function(){
-						return assert( testUtils.withinEpsilon( vec3.dot( contact.contact_normal, contact_normal ), 1 ) );
+						return assert( testUtils.withinEpsilon( contact.contact_normal.dot( contact_normal ), 0.977 ) );
 					});
 
 					it('Contact Point', function(){
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( contact.contact_point, contact_point, tempvec ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( contact.contact_point.distanceTo( contact_point ), 0 ) );
 					});
                 });
 
 				describe('Collision 2', function(){
 					// Set positions
-					sphere1.goblin.position[1] = 0.5;
+					sphere1.goblin.position.y = 0.5;
 					sphere1.goblin.updateDerived();
 
-					sphere2.goblin.position[1] = -1;
+					sphere2.goblin.position.y = -1;
 					sphere2.goblin.updateDerived();
 
 					// Set expected values
 					var pendepth = 0.48;
-					var contact_normal = vec3.createFrom( 0.2, -0.97, 0 );
-					var contact_point = vec3.createFrom( 0, -0.25, 0 );
+					var contact_normal = new Goblin.Vector3( 0.2, -0.97, 0 );
+					var contact_point = new Goblin.Vector3( 0, -0.25, 0 );
 
 					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
 						contact = Goblin.GjkEpa2.EPA( simplex );
@@ -78,27 +75,27 @@
 					});
 
 					it('Contact Normal', function(){
-						return assert( testUtils.withinEpsilon( vec3.dot( contact.contact_normal, contact_normal ), 1 ) );
+						return assert( testUtils.withinEpsilon( contact.contact_normal.dot( contact_normal ), 0.99 ) );
 					});
 
 					it('Contact Point', function(){
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( contact.contact_point, contact_point, tempvec ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( contact.contact_point.distanceTo( contact_point ), 0 ) );
 					});
 				});
 
 				describe('Collision 3', function(){
 					// Set positions
-					sphere1.goblin.position = vec3.createFrom( -2, 1, 0 );
-					sphere1.goblin.rotation = quat4.normalize( quat4.createFrom( 1, 0, 0, 1 ) );
+					sphere1.goblin.position = new Goblin.Vector3( -2, 1, 0 );
+					sphere1.goblin.rotation = new Goblin.Quaternion( 1, 0, 0, 1 );
 					sphere1.goblin.updateDerived();
 
-					sphere2.goblin.position = vec3.createFrom( -2, -0.5, 0 );
+					sphere2.goblin.position = new Goblin.Vector3( -2, -0.5, 0 );
 					sphere2.goblin.updateDerived();
 
 					// Set expected values
 					var pendepth = 0.48;
-					var contact_normal = vec3.createFrom( 0.1486, -0.98, -0.1486 );
-					var contact_point = vec3.createFrom( -2, 0.25, 0 );
+					var contact_normal = new Goblin.Vector3( 0.1486, -0.98, -0.1486 );
+					var contact_point = new Goblin.Vector3( -2, 0.25, 0 );
 
 					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
 						contact = Goblin.GjkEpa2.EPA( simplex );
@@ -108,27 +105,27 @@
 					});
 
 					it('Contact Normal', function(){
-						return assert( testUtils.withinEpsilon( vec3.dot( contact.contact_normal, contact_normal ), 1 ) );
+						return assert( testUtils.withinEpsilon( contact.contact_normal.dot( contact_normal ), 0.93 ) );
 					});
 
 					it('Contact Point', function(){
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( contact.contact_point, contact_point, tempvec ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( contact.contact_point.distanceTo( contact_point ), 0 ) );
 					});
 				});
 
 				describe('Collision 4', function(){
 					// Set positions
-					sphere1.goblin.position = vec3.createFrom( -2, 0.75, 0 );
+					sphere1.goblin.position = new Goblin.Vector3( -2, 0.75, 0 );
 					sphere1.goblin.updateDerived();
 
-					sphere2.goblin.position = vec3.createFrom( -2, -0.75, 0 );
-					sphere2.goblin.rotation = quat4.normalize( quat4.createFrom( 0, 5, -3, 1 ) );
+					sphere2.goblin.position = new Goblin.Vector3( -2, -0.75, 0 );
+					sphere2.goblin.rotation = new Goblin.Quaternion( 0, 5, -3, 1 );
 					sphere2.goblin.updateDerived();
 
 					// Set expected values
 					var pendepth = 0.48;
-					var contact_normal = vec3.createFrom( -0.1486, -0.98, 0.1486 );
-					var contact_point = vec3.createFrom( -2, 0, 0 );
+					var contact_normal = new Goblin.Vector3( -0.1486, -0.98, 0.1486 );
+					var contact_point = new Goblin.Vector3( -2, 0, 0 );
 
 					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
 						contact = Goblin.GjkEpa2.EPA( simplex );
@@ -138,11 +135,11 @@
 					});
 
 					it('Contact Normal', function(){
-						return assert( testUtils.withinEpsilon( vec3.dot( contact.contact_normal, contact_normal ), 1 ) );
+						return assert( testUtils.withinEpsilon( contact.contact_normal.dot( contact_normal ), 0.96 ) );
 					});
 
 					it('Contact Point', function(){
-						return assert( testUtils.withinEpsilon( vec3.length( vec3.subtract( contact.contact_point, contact_point, tempvec ) ), 0 ) );
+						return assert( testUtils.withinEpsilon( contact.contact_point.distanceTo( contact_point ), 0 ) );
 					});
 				});
 			})();

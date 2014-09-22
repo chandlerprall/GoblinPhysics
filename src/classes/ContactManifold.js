@@ -64,28 +64,28 @@ Goblin.ContactManifold.prototype.findWeakestContact = function( new_contact ) {
 		res2 = 0,
 		res3 = 0;
 	if ( max_penetration_index !== 0 ) {
-		vec3.subtract( new_contact.contact_point_in_a, this.points[1].contact_point_in_a, _tmp_vec3_1 );
-		vec3.subtract( this.points[3].contact_point_in_a, this.points[2].contact_point_in_a, _tmp_vec3_2 );
-		vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
-		res0 = vec3.squaredLength( _tmp_vec3_1 );
+		_tmp_vec3_1.subtractVectors( new_contact.contact_point_in_a, this.points[1].contact_point_in_a );
+		_tmp_vec3_2.subtractVectors( this.points[3].contact_point_in_a, this.points[2].contact_point_in_a );
+		_tmp_vec3_1.cross( _tmp_vec3_2 );
+		res0 = _tmp_vec3_1.lengthSquared();
 	}
 	if ( max_penetration_index !== 1 ) {
-		vec3.subtract( new_contact.contact_point_in_a, this.points[0].contact_point_in_a, _tmp_vec3_1 );
-		vec3.subtract( this.points[3].contact_point_in_a, this.points[2].contact_point_in_a, _tmp_vec3_2 );
-		vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
-		res1 = vec3.squaredLength( _tmp_vec3_1 );
+		_tmp_vec3_1.subtractVectors( new_contact.contact_point_in_a, this.points[0].contact_point_in_a );
+		_tmp_vec3_2.subtractVectors( this.points[3].contact_point_in_a, this.points[2].contact_point_in_a );
+		_tmp_vec3_1.cross( _tmp_vec3_2 );
+		res1 = _tmp_vec3_1.lengthSquared();
 	}
 	if ( max_penetration_index !== 2 ) {
-		vec3.subtract( new_contact.contact_point_in_a, this.points[0].contact_point_in_a, _tmp_vec3_1 );
-		vec3.subtract( this.points[3].contact_point_in_a, this.points[1].contact_point_in_a, _tmp_vec3_2 );
-		vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
-		res2 = vec3.squaredLength( _tmp_vec3_1 );
+		_tmp_vec3_1.subtractVectors( new_contact.contact_point_in_a, this.points[0].contact_point_in_a );
+		_tmp_vec3_2.subtractVectors( this.points[3].contact_point_in_a, this.points[1].contact_point_in_a );
+		_tmp_vec3_1.cross( _tmp_vec3_2 );
+		res2 = _tmp_vec3_1.lengthSquared();
 	}
 	if ( max_penetration_index !== 3 ) {
-		vec3.subtract( new_contact.contact_point_in_a, this.points[0].contact_point_in_a, _tmp_vec3_1 );
-		vec3.subtract( this.points[2].contact_point_in_a, this.points[1].contact_point_in_a, _tmp_vec3_2 );
-		vec3.cross( _tmp_vec3_1, _tmp_vec3_2 );
-		res3 = vec3.squaredLength( _tmp_vec3_1 );
+		_tmp_vec3_1.subtractVectors( new_contact.contact_point_in_a, this.points[0].contact_point_in_a );
+		_tmp_vec3_2.subtractVectors( this.points[2].contact_point_in_a, this.points[1].contact_point_in_a );
+		_tmp_vec3_1.cross( _tmp_vec3_2 );
+		res3 = _tmp_vec3_1.lengthSquared();
 	}
 
 	var max_index = 0,
@@ -114,7 +114,7 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 	//@TODO add feature-ids to detect duplicate contacts
 	var i;
 	for ( i = 0; i < this.points.length; i++ ) {
-		if ( vec3.dist( this.points[i].contact_point, contact.contact_point ) <= 0.02 ) {
+		if ( this.points[i].contact_point.distanceTo( contact.contact_point ) <= 0.02 ) {
 			contact.destroy();
 			return;
 		}
@@ -154,24 +154,24 @@ Goblin.ContactManifold.prototype.update = function() {
 	var i,
 		j,
 		point,
-		object_a_world_coords = vec3.create(),
-		object_b_world_coords = vec3.create(),
-		vector_difference = vec3.create();
+		object_a_world_coords = new Goblin.Vector3(),
+		object_b_world_coords = new Goblin.Vector3(),
+		vector_difference = new Goblin.Vector3();
 
 	for ( i = 0; i < this.points.length; i++ ) {
 		point = this.points[i];
 
 		// Convert the local contact points into world coordinates
-		mat4.multiplyVec3( point.object_a.transform, point.contact_point_in_a, object_a_world_coords );
-		mat4.multiplyVec3( point.object_b.transform, point.contact_point_in_b, object_b_world_coords );
+		point.object_a.transform.transformVector3Into( point.contact_point_in_a, object_a_world_coords );
+		point.object_b.transform.transformVector3Into( point.contact_point_in_b, object_b_world_coords );
 
 		// Find new world contact point
-		vec3.add( object_a_world_coords, object_b_world_coords, point.contact_point );
-		vec3.scale( point.contact_point, 0.5 );
+		point.contact_point.addVectors( object_a_world_coords, object_b_world_coords );
+		point.contact_point.scale( 0.5  );
 
 		// Find the new penetration depth
-		vec3.subtract( object_a_world_coords, object_b_world_coords, vector_difference );
-		point.penetration_depth = vec3.dot( vector_difference, point.contact_normal );
+		vector_difference.subtractVectors( object_a_world_coords, object_b_world_coords );
+		point.penetration_depth = vector_difference.dot( point.contact_normal );
 
 		// If distance from contact is too great remove this contact point
 		if ( point.penetration_depth < -0.02 ) {
@@ -183,11 +183,11 @@ Goblin.ContactManifold.prototype.update = function() {
 			this.points.length = this.points.length - 1;
 		} else {
 			// Check if points are too far away orthogonally
-			vec3.scale( point.contact_normal, point.penetration_depth, _tmp_vec3_1 );
-			vec3.subtract( object_a_world_coords, _tmp_vec3_1, _tmp_vec3_1 );
+			_tmp_vec3_1.scaleVector( point.contact_normal, point.penetration_depth );
+			_tmp_vec3_1.subtractVectors( object_a_world_coords, _tmp_vec3_1 );
 
-			vec3.subtract( object_b_world_coords, _tmp_vec3_1, _tmp_vec3_1 );
-			var distance = vec3.squaredLength( _tmp_vec3_1 );
+			_tmp_vec3_1.subtractVectors( object_b_world_coords, _tmp_vec3_1 );
+			var distance = _tmp_vec3_1.lengthSquared();
 			if ( distance > 0.2 * 0.2 ) {
 				// Points are indeed too far away
 				point.destroy();

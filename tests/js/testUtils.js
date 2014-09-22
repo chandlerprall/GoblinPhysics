@@ -44,15 +44,15 @@ window.testUtils = (function(){
             for ( i = 0; i < objects.length; i++ ) {
                 object = objects[i];
                 object.position.set(
-                    object.goblin.position[0],
-                    object.goblin.position[1],
-                    object.goblin.position[2]
+                    object.goblin.position.x,
+                    object.goblin.position.y,
+                    object.goblin.position.z
                 );
                 object.quaternion.set(
-                    object.goblin.rotation[0],
-                    object.goblin.rotation[1],
-                    object.goblin.rotation[2],
-                    object.goblin.rotation[3]
+                    object.goblin.rotation.x,
+                    object.goblin.rotation.y,
+                    object.goblin.rotation.z,
+                    object.goblin.rotation.w
                 );
             }
 
@@ -171,7 +171,7 @@ window.testUtils = (function(){
 			//var start = performance.now();
 			var convex = new THREE.Mesh(
 				new THREE.ConvexGeometry(vertices.map(function( vertex ){
-					return new THREE.Vector3( vertex[0], vertex[1], vertex[2] );
+					return new THREE.Vector3( vertex.x, vertex.y, vertex.z );
 				})),
 				new THREE.MeshNormalMaterial({ opacity: 1, transparent: true })
 			);
@@ -204,9 +204,9 @@ window.renderPolyhedron = function( polyhedron, edges ) {
 		{
 			if ( face.active ) {
 				geometry.vertices.push(
-					new THREE.Vector3( face.a.point[0], face.a.point[1], face.a.point[2] ),
-					new THREE.Vector3( face.b.point[0], face.b.point[1], face.b.point[2] ),
-					new THREE.Vector3( face.c.point[0], face.c.point[1], face.c.point[2] )
+					new THREE.Vector3( face.a.point.x, face.a.point.y, face.a.point.z ),
+					new THREE.Vector3( face.b.point.x, face.b.point.y, face.b.point.z ),
+					new THREE.Vector3( face.c.point.x, face.c.point.y, face.c.point.z )
 				);
 				geometry.faces.push( new THREE.Face3( geometry.vertices.length - 3, geometry.vertices.length - 2, geometry.vertices.length - 1 ) );
 
@@ -220,7 +220,7 @@ window.renderPolyhedron = function( polyhedron, edges ) {
 
 				linegeom = new THREE.Geometry();
 				center = geometry.vertices[geometry.vertices.length - 3].clone().add( geometry.vertices[geometry.vertices.length - 2] ).add( geometry.vertices[geometry.vertices.length - 1] ).multiplyScalar( 0.333 );
-				normal = center.clone().add( new THREE.Vector3( face.normal[0], face.normal[1], face.normal[2] ) );
+				normal = center.clone().add( new THREE.Vector3( face.normal.x, face.normal.y, face.normal.z ) );
 				linegeom.vertices.push( center, normal );
 				line = new THREE.Line( linegeom, new THREE.LineBasicMaterial({ color: color }) );
 				testUtils.scene.add( line );
@@ -250,8 +250,8 @@ window.renderPolyhedron = function( polyhedron, edges ) {
 
 			linegeom = new THREE.Geometry();
 			linegeom.vertices.push(
-				new THREE.Vector3( a.point[0], a.point[1], a.point[2] ),
-				new THREE.Vector3( b.point[0], b.point[1], b.point[2] )
+				new THREE.Vector3( a.point.x, a.point.y, a.point.z ),
+				new THREE.Vector3( b.point.x, b.point.y, b.point.z )
 			);
 			line = new THREE.Line( linegeom, new THREE.LineBasicMaterial({ color: 0x0000FF }) );
 			testUtils.scene.add( line );

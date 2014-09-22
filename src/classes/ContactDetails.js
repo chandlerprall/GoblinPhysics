@@ -27,7 +27,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_point
 	 * @type {vec3}
 	 */
-	this.contact_point = vec3.create();
+	this.contact_point = new Goblin.Vector3();
 
 	/**
 	 * contact point in local frame of `object_a`
@@ -35,7 +35,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_point_in_a
 	 * @type {vec3}
 	 */
-	this.contact_point_in_a = vec3.create();
+	this.contact_point_in_a = new Goblin.Vector3();
 
 	/**
 	 * contact point in local frame of `object_b`
@@ -43,7 +43,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_point_in_b
 	 * @type {vec3}
 	 */
-	this.contact_point_in_b = vec3.create();
+	this.contact_point_in_b = new Goblin.Vector3();
 
 	/**
 	 * normal vector, in world coordinates, of the contact
@@ -51,7 +51,7 @@ Goblin.ContactDetails = function() {
 	 * @property contact_normal
 	 * @type {vec3}
 	 */
-	this.contact_normal = vec3.create();
+	this.contact_normal = new Goblin.Vector3();
 
 	/**
 	 * how far the objects are penetrated at the point of contact

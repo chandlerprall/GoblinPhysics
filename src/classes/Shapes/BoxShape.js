@@ -41,13 +41,13 @@ Goblin.BoxShape = function( half_width, half_height, half_depth ) {
  * @param aabb {AABB}
  */
 Goblin.BoxShape.prototype.calculateLocalAABB = function( aabb ) {
-    aabb.min[0] = -this.half_width;
-    aabb.min[1] = -this.half_height;
-    aabb.min[2] = -this.half_depth;
+    aabb.min.x = -this.half_width;
+    aabb.min.y = -this.half_height;
+    aabb.min.z = -this.half_depth;
 
-    aabb.max[0] = this.half_width;
-    aabb.max[1] = this.half_height;
-    aabb.max[2] = this.half_depth;
+    aabb.max.x = this.half_width;
+    aabb.max.y = this.half_height;
+    aabb.max.z = this.half_depth;
 };
 
 Goblin.BoxShape.prototype.getInertiaTensor = function( mass ) {
@@ -55,7 +55,7 @@ Goblin.BoxShape.prototype.getInertiaTensor = function( mass ) {
 		width_squared = this.half_width * this.half_width * 4,
 		depth_squared = this.half_depth * this.half_depth * 4,
 		element = 0.0833 * mass;
-	return mat3.createFrom(
+	return new Goblin.Matrix3(
 		element * ( height_squared + depth_squared ), 0, 0,
 		0, element * ( width_squared + depth_squared ), 0,
 		0, 0, element * ( height_squared + width_squared )
@@ -80,22 +80,22 @@ Goblin.BoxShape.prototype.findSupportPoint = function( direction, support_point 
 	*/
 
 	// Calculate the support point in the local frame
-	if ( direction[0] < 0 ) {
-		support_point[0] = -this.half_width;
+	if ( direction.x < 0 ) {
+		support_point.x = -this.half_width;
 	} else {
-		support_point[0] = this.half_width;
+		support_point.x = this.half_width;
 	}
 
-	if ( direction[1] < 0 ) {
-		support_point[1] = -this.half_height;
+	if ( direction.y < 0 ) {
+		support_point.y = -this.half_height;
 	} else {
-		support_point[1] = this.half_height;
+		support_point.y = this.half_height;
 	}
 
-	if ( direction[2] < 0 ) {
-		support_point[2] = -this.half_depth;
+	if ( direction.z < 0 ) {
+		support_point.z = -this.half_depth;
 	} else {
-		support_point[2] = this.half_depth;
+		support_point.z = this.half_depth;
 	}
 };
 
@@ -104,35 +104,36 @@ Goblin.BoxShape.prototype.findSupportPoint = function( direction, support_point 
  *
  * @method rayIntersect
  * @property start {vec3} start point of the segment
- * @property end {vec3{ end point of the segment
+ * @property end {vec3} end point of the segment
  * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
  */
 Goblin.BoxShape.prototype.rayIntersect = (function(){
-	var direction = vec3.create(),
+	var direction = new Goblin.Vector3(),
 		tmin, tmax,
-		ood, t1, t2, extent;
+		axis, ood, t1, t2, extent;
 
 	return function( start, end ) {
 		tmin = 0;
 
-		vec3.subtract( end, start, direction );
-		tmax = vec3.length( direction );
-		vec3.scale( direction, 1 / tmax ); // normalize direction
+		direction.subtractVectors( end, start );
+		tmax = direction.length();
+		direction.scale( 1 / tmax ); // normalize direction
 
 		for ( var i = 0; i < 3; i++ ) {
+			axis = i === 0 ? 'x' : ( i === 1 ? 'y' : 'z' );
 			extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
 
-			if ( Math.abs( direction[i] ) < Goblin.EPSILON ) {
+			if ( Math.abs( direction[axis] ) < Goblin.EPSILON ) {
 				// Ray is parallel to axis
-				if ( start[i] < -extent || start[i] > extent ) {
+				if ( start[axis] < -extent || start[axis] > extent ) {
 					return null;
 				}
 			}
 
-            ood = 1 / direction[i];
-            t1 = ( -extent - start[i] ) * ood;
-            t2 = ( extent - start[i] ) * ood;
-            if ( t1 > t2 ) {
+            ood = 1 / direction[axis];
+            t1 = ( -extent - start[axis] ) * ood;
+            t2 = ( extent - start[axis] ) * ood;
+            if ( t1 > t2  ) {
                 ood = t1; // ood is a convenient temp variable as it's not used again
                 t1 = t2;
                 t2 = ood;
@@ -150,17 +151,18 @@ Goblin.BoxShape.prototype.rayIntersect = (function(){
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
 		intersection.t = tmin;
-		vec3.scale( direction, tmin, intersection.point );
-		vec3.add( intersection.point, start );
+		intersection.point.scaleVector( direction, tmin );
+		intersection.point.add( start );
 
 		// Find face normal
         var max = Infinity;
 		for ( i = 0; i < 3; i++ ) {
+			axis = i === 0 ? 'x' : ( i === 1 ? 'y' : 'z' );
 			extent = ( i === 0 ? this.half_width : (  i === 1 ? this.half_height : this.half_depth ) );
-			if ( extent - Math.abs( intersection.point[i] ) < max ) {
-				intersection.normal[0] = intersection.normal[1] = intersection.normal[2] = 0;
-				intersection.normal[i] = intersection.point[i] < 0 ? -1 : 1;
-				max = extent - Math.abs( intersection.point[i] );
+			if ( extent - Math.abs( intersection.point[axis] ) < max ) {
+				intersection.normal.x = intersection.normal.y = intersection.normal.z = 0;
+				intersection.normal[axis] = intersection.point[axis] < 0 ? -1 : 1;
+				max = extent - Math.abs( intersection.point[axis] );
 			}
 		}
 

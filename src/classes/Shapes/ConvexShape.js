@@ -30,7 +30,7 @@ Goblin.ConvexShape = function( vertices ) {
 	 * @property center_of_mass
 	 * @type {vec3}
 	 */
-	this.center_of_mass = vec3.create();
+	this.center_of_mass = new Goblin.Vector3();
 
 	/**
 	 * used in computing the convex hull's center of mass & volume
@@ -55,10 +55,10 @@ Goblin.ConvexShape.prototype.process = function( vertices ) {
 	for ( var i = 0; i < candidates.length; i++ ) {
 		var vertex = candidates[i];
 
-		if ( min_point == null || min_point[0] > vertex[0] ) {
+		if ( min_point == null || min_point.x > vertex.x ) {
 			min_point = vertex;
 		}
-		if ( max_point == null || max_point[0] > vertex[0] ) {
+		if ( max_point == null || max_point.x > vertex.x ) {
 			max_point = vertex;
 		}
 	}
@@ -89,16 +89,16 @@ Goblin.ConvexShape.prototype.process = function( vertices ) {
 	candidates.splice( furthest_idx, 1 );
 
 	// Fourth point of the 3-simplex is the one furthest away from the 2-simplex
-	vec3.subtract( point_b, point_a, _tmp_vec3_1 );
-	vec3.subtract( point_c, point_a, _tmp_vec3_2 );
-	vec3.cross( _tmp_vec3_1, _tmp_vec3_2 ); // _tmp_vec3_1 is the normal of the 2-simplex
+	_tmp_vec3_1.subtractVectors( point_b, point_a );
+	_tmp_vec3_2.subtractVectors( point_c, point_a );
+	_tmp_vec3_1.cross( _tmp_vec3_2 ); // _tmp_vec3_1 is the normal of the 2-simplex
 
 	distance = -Infinity;
 	furthest_idx = null;
 
 	for ( i = 0; i < candidates.length; i++ ) {
 		candidate = candidates[i];
-		candidate_distance = Math.abs( vec3.dot( _tmp_vec3_1, candidate ) );
+		candidate_distance = Math.abs( _tmp_vec3_1.dot( candidate ) );
 		if ( candidate_distance > distance ) {
 			distance = candidate_distance;
 			furthest_idx = i;
@@ -108,7 +108,7 @@ Goblin.ConvexShape.prototype.process = function( vertices ) {
 	candidates.splice( furthest_idx, 1 );
 
 	// If `point_d` is on the front side of `abc` then flip to `cba`
-	if ( vec3.dot( _tmp_vec3_1, point_d ) > 0 ) {
+	if ( _tmp_vec3_1.dot( point_d ) > 0 ) {
 		var tmp_point = point_a;
 		point_a = point_c;
 		point_c = tmp_point;
@@ -175,17 +175,17 @@ Goblin.ConvexShape.prototype.process = function( vertices ) {
  * @param aabb {AABB}
  */
 Goblin.ConvexShape.prototype.calculateLocalAABB = function( aabb ) {
-	aabb.min[0] = aabb.min[1] = aabb.min[2] = 0;
-	aabb.max[0] = aabb.max[1] = aabb.max[2] = 0;
+	aabb.min.x = aabb.min.y = aabb.min.z = 0;
+	aabb.max.x = aabb.max.y = aabb.max.z = 0;
 
 	for ( var i = 0; i < this.vertices.length; i++ ) {
-		aabb.min[0] = Math.min( aabb.min[0], this.vertices[i][0] );
-		aabb.min[1] = Math.min( aabb.min[1], this.vertices[i][1] );
-		aabb.min[2] = Math.min( aabb.min[2], this.vertices[i][2] );
+		aabb.min.x = Math.min( aabb.min.x, this.vertices[i].x );
+		aabb.min.y = Math.min( aabb.min.y, this.vertices[i].y );
+		aabb.min.z = Math.min( aabb.min.z, this.vertices[i].z );
 
-		aabb.max[0] = Math.max( aabb.max[0], this.vertices[i][0] );
-		aabb.max[1] = Math.max( aabb.max[1], this.vertices[i][1] );
-		aabb.max[2] = Math.max( aabb.max[2], this.vertices[i][2] );
+		aabb.max.x = Math.max( aabb.max.x, this.vertices[i].x );
+		aabb.max.y = Math.max( aabb.max.y, this.vertices[i].y );
+		aabb.max.z = Math.max( aabb.max.z, this.vertices[i].z );
 	}
 };
 
@@ -211,17 +211,17 @@ Goblin.ConvexShape.prototype.computeVolume = (function(){
 				v1 = face.b.point,
 				v2 = face.c.point;
 
-			var a1 = v1[0] - v0[0],
-				b1 = v1[1] - v0[1],
-				c1 = v1[2] - v0[2],
-				a2 = v2[0] - v0[0],
-				b2 = v2[1] - v0[1],
-				c2 = v2[2] - v0[2],
+			var a1 = v1.x - v0.x,
+				b1 = v1.y - v0.y,
+				c1 = v1.z - v0.z,
+				a2 = v2.x - v0.x,
+				b2 = v2.y - v0.y,
+				c2 = v2.z - v0.z,
 				d0 = b1 * c2 - b2 * c1,
 				d1 = a2 * c1 - a1 * c2,
 				d2 = a1 * b2 - a2 * b1;
 
-			macro( v0[0], v1[0], v2[0] );
+			macro( v0.x, v1.x, v2.x );
 			var f1x = output[0],
 				f2x = output[1],
 				f3x = output[2],
@@ -229,7 +229,7 @@ Goblin.ConvexShape.prototype.computeVolume = (function(){
 				g1x = output[4],
 				g2x = output[5];
 
-			macro( v0[1], v1[1], v2[1] );
+			macro( v0.y, v1.y, v2.y );
 			var f1y = output[0],
 				f2y = output[1],
 				f3y = output[2],
@@ -237,7 +237,7 @@ Goblin.ConvexShape.prototype.computeVolume = (function(){
 				g1y = output[4],
 				g2y = output[5];
 
-			macro( v0[2], v1[2], v2[2] );
+			macro( v0.z, v1.z, v2.z );
 			var f1z = output[0],
 				f2z = output[1],
 				f3z = output[2],
@@ -252,9 +252,9 @@ Goblin.ConvexShape.prototype.computeVolume = (function(){
 			this._integral[4] += d0 * f3x;
 			this._integral[5] += d1 * f3y;
 			this._integral[6] += d2 * f3z;
-			this._integral[7] += d0 * ( v0[1] * g0x + v1[1] * g1x + v2[1] * g2x );
-			this._integral[8] += d1 * ( v0[2] * g0y + v1[2] * g1y + v2[2] * g2y );
-			this._integral[9] += d2 * ( v0[0] * g0z + v1[0] * g1z + v2[0] * g2z );
+			this._integral[7] += d0 * ( v0.y * g0x + v1.y * g1x + v2.y * g2x );
+			this._integral[8] += d1 * ( v0.z * g0y + v1.z * g1y + v2.z * g2y );
+			this._integral[9] += d2 * ( v0.x * g0z + v1.x * g1z + v2.x * g2z );
 		}
 
 		this._integral[0] *= 1 / 6;
@@ -270,35 +270,35 @@ Goblin.ConvexShape.prototype.computeVolume = (function(){
 
 		this.volume = this._integral[0];
 
-		this.center_of_mass[0] = this._integral[1] / this.volume;
-		this.center_of_mass[1] = this._integral[2] / this.volume;
-		this.center_of_mass[2] = this._integral[3] / this.volume;
+		this.center_of_mass.x = this._integral[1] / this.volume;
+		this.center_of_mass.y = this._integral[2] / this.volume;
+		this.center_of_mass.z = this._integral[3] / this.volume;
 	};
 })();
 
 Goblin.ConvexShape.prototype.getInertiaTensor = (function(){
 	return function( mass ) {
-		var	inertia_tensor = mat3.create();
+		var	inertia_tensor = new Goblin.Matrix3();
 
-		inertia_tensor[0] = ( this._integral[5] + this._integral[6] ) * mass;
-		inertia_tensor[4] = ( this._integral[4] + this._integral[6] ) * mass;
-		inertia_tensor[8] = ( this._integral[4] + this._integral[5] ) * mass;
-		inertia_tensor[1] = inertia_tensor[3] = -this._integral[7] * mass; //xy
-		inertia_tensor[5] = inertia_tensor[7] = -this._integral[8] * mass; //yz
-		inertia_tensor[2] = inertia_tensor[6] = -this._integral[9] * mass; //xz
+		inertia_tensor.e00 = ( this._integral[5] + this._integral[6] ) * mass;
+		inertia_tensor.e11 = ( this._integral[4] + this._integral[6] ) * mass;
+		inertia_tensor.e22 = ( this._integral[4] + this._integral[5] ) * mass;
+		inertia_tensor.e10 = inertia_tensor.e01 = -this._integral[7] * mass; //xy
+		inertia_tensor.e21 = inertia_tensor.e12 = -this._integral[8] * mass; //yz
+		inertia_tensor.e20 = inertia_tensor.e02 = -this._integral[9] * mass; //xz
 
-		inertia_tensor[0] -= mass * ( this.center_of_mass[1] * this.center_of_mass[1] + this.center_of_mass[2] * this.center_of_mass[2] );
-		inertia_tensor[4] -= mass * ( this.center_of_mass[0] * this.center_of_mass[0] + this.center_of_mass[2] * this.center_of_mass[2] );
-		inertia_tensor[8] -= mass * ( this.center_of_mass[0] * this.center_of_mass[0] + this.center_of_mass[1] * this.center_of_mass[1] );
+		inertia_tensor.e00 -= mass * ( this.center_of_mass.y * this.center_of_mass.y + this.center_of_mass.z * this.center_of_mass.z );
+		inertia_tensor.e11 -= mass * ( this.center_of_mass.x * this.center_of_mass.x + this.center_of_mass.z * this.center_of_mass.z );
+		inertia_tensor.e22 -= mass * ( this.center_of_mass.x * this.center_of_mass.x + this.center_of_mass.y * this.center_of_mass.y );
 
-		inertia_tensor[1] += mass * this.center_of_mass[0] * this.center_of_mass[1];
-		inertia_tensor[3] += mass * this.center_of_mass[0] * this.center_of_mass[1];
+		inertia_tensor.e10 += mass * this.center_of_mass.x * this.center_of_mass.y;
+		inertia_tensor.e01 += mass * this.center_of_mass.x * this.center_of_mass.y;
 
-		inertia_tensor[5] += mass * this.center_of_mass[1] * this.center_of_mass[2];
-		inertia_tensor[7] += mass * this.center_of_mass[1] * this.center_of_mass[2];
+		inertia_tensor.e21 += mass * this.center_of_mass.y * this.center_of_mass.z;
+		inertia_tensor.e12 += mass * this.center_of_mass.y * this.center_of_mass.z;
 
-		inertia_tensor[2] += mass * this.center_of_mass[0] * this.center_of_mass[2];
-		inertia_tensor[6] += mass * this.center_of_mass[0] * this.center_of_mass[2];
+		inertia_tensor.e20 += mass * this.center_of_mass.x * this.center_of_mass.z;
+		inertia_tensor.e02 += mass * this.center_of_mass.x * this.center_of_mass.z;
 
 		return inertia_tensor;
 	};
@@ -318,14 +318,14 @@ Goblin.ConvexShape.prototype.findSupportPoint = function( direction, support_poi
 		dot;
 
 	for ( var i = 0; i < this.vertices.length; i++ ) {
-		dot = vec3.dot( this.vertices[i], direction );
+		dot = this.vertices[i].dot( direction );
 		if ( dot > best_dot ) {
 			best_dot = dot;
 			best = i;
 		}
 	}
 
-	vec3.set( this.vertices[best], support_point );
+	support_point.copy( this.vertices[best] );
 };
 
 /**
@@ -337,30 +337,30 @@ Goblin.ConvexShape.prototype.findSupportPoint = function( direction, support_poi
  * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
  */
 Goblin.ConvexShape.prototype.rayIntersect = (function(){
-	var direction = vec3.create(),
-		ab = vec3.create(),
-		ac = vec3.create(),
-		q = vec3.create(),
-		s = vec3.create(),
-		r = vec3.create(),
-		b = vec3.create(),
-		u = vec3.create(),
+	var direction = new Goblin.Vector3(),
+		ab = new Goblin.Vector3(),
+		ac = new Goblin.Vector3(),
+		q = new Goblin.Vector3(),
+		s = new Goblin.Vector3(),
+		r = new Goblin.Vector3(),
+		b = new Goblin.Vector3(),
+		u = new Goblin.Vector3(),
 		tmin, tmax;
 
 	return function( start, end ) {
 		tmin = 0;
 
-		vec3.subtract( end, start, direction );
-		tmax = vec3.length( direction );
-		vec3.scale( direction, 1 / tmax ); // normalize direction
+		direction.subtractVectors( end, start );
+		tmax = direction.length();
+		direction.scale( 1 / tmax ); // normalize direction
 
-		for ( var i = 0; i < this.faces.length; i++ ) {
+		for ( var i = 0; i < this.faces.length; i++  ) {
 			var face = this.faces[i];
 
-			vec3.subtract( face.b.point, face.a.point, ab );
-			vec3.subtract( face.c.point, face.a.point, ac );
-			vec3.cross( direction, ac, q );
-			var a = vec3.dot( ab, q );
+			ab.subtractVectors( face.b.point, face.a.point );
+			ac.subtractVectors( face.c.point, face.a.point );
+			q.crossVectors( direction, ac );
+			var a = ab.dot( q );
 
 			if ( a < Goblin.EPSILON ) {
 				// Ray does not point at face
@@ -368,22 +368,22 @@ Goblin.ConvexShape.prototype.rayIntersect = (function(){
 			}
 
 			var f = 1 / a;
-			vec3.subtract( start, face.a.point, s );
+			s.subtractVectors( start, face.a.point );
 
-			var u = f * vec3.dot( s, q );
+			var u = f * s.dot( q );
 			if ( u < 0 ) {
 				// Ray does not intersect face
 				continue;
 			}
 
-			vec3.cross( s, ab, r );
-			var v = f * vec3.dot( direction, r );
+			r.crossVectors( s, ab );
+			var v = f * direction.dot( r );
 			if ( v < 0 || u + v > 1 ) {
 				// Ray does not intersect face
 				continue;
 			}
 
-			var t = f * vec3.dot( ac, r );
+			var t = f * ac.dot( r );
 			if ( t < tmin || t > tmax ) {
 				// ray segment does not intersect face
 				continue;
@@ -393,9 +393,9 @@ Goblin.ConvexShape.prototype.rayIntersect = (function(){
 			var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 			intersection.object = this;
 			intersection.t = t;
-			vec3.scale( direction, t, intersection.point );
-			vec3.add( intersection.point, start );
-			vec3.set( face.normal, intersection.normal );
+			intersection.point.scaleVector( direction, t );
+			intersection.point.add( start );
+			intersection.normal.copy( face.normal );
 
 			// A convex object can have only one intersection with a line, we're done
 			return intersection;

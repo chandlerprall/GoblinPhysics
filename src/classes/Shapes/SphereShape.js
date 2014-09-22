@@ -17,13 +17,13 @@ Goblin.SphereShape = function( radius ) {
  * @param aabb {AABB}
  */
 Goblin.SphereShape.prototype.calculateLocalAABB = function( aabb ) {
-	aabb.min[0] = aabb.min[1] = aabb.min[2] = -this.radius;
-	aabb.max[0] = aabb.max[1] = aabb.max[2] = this.radius;
+	aabb.min.x = aabb.min.y = aabb.min.z = -this.radius;
+	aabb.max.x = aabb.max.y = aabb.max.z = this.radius;
 };
 
 Goblin.SphereShape.prototype.getInertiaTensor = function( mass ) {
 	var element = 0.4 * mass * this.radius * this.radius;
-	return mat3.createFrom(
+	return new Goblin.Matrix3(
 		element, 0, 0,
 		0, element, 0,
 		0, 0, element
@@ -39,10 +39,10 @@ Goblin.SphereShape.prototype.getInertiaTensor = function( mass ) {
  * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
  */
 Goblin.SphereShape.prototype.findSupportPoint = (function(){
-	var temp = vec3.create();
+	var temp = new Goblin.Vector3();
 	return function( direction, support_point ) {
-		vec3.normalize( direction, temp );
-		vec3.scale( temp, this.radius, support_point );
+		temp.normalizeVector( direction );
+		support_point.scaleVector( temp, this.radius );
 	};
 })();
 
@@ -55,16 +55,16 @@ Goblin.SphereShape.prototype.findSupportPoint = (function(){
  * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
  */
 Goblin.SphereShape.prototype.rayIntersect = (function(){
-	var direction = vec3.create(),
+	var direction = new Goblin.Vector3(),
 		length;
 
 	return function( start, end ) {
-		vec3.subtract( end, start, direction );
-		length = vec3.length( direction );
-		vec3.scale( direction, 1 / length ); // normalize direction
+		direction.subtractVectors( end, start );
+		length = direction.length();
+		direction.scale( 1 / length  ); // normalize direction
 
-		var a = vec3.dot( start, direction ),
-			b = vec3.dot( start, start ) - this.radius * this.radius;
+		var a = start.dot( direction ),
+			b = start.dot( start ) - this.radius * this.radius;
 
 		// if ray starts outside of sphere and points away, exit
 		if ( a >= 0 && b >= 0 ) {
@@ -92,11 +92,11 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
-		vec3.scale( direction, t, intersection.point );
+		intersection.point.scaleVector( direction, t );
 		intersection.t = t;
-		vec3.add( intersection.point, start );
+		intersection.point.add( start );
 
-        vec3.normalize( intersection.point, intersection.normal );
+        intersection.normal.normalizeVector( intersection.point );
 
 		return intersection;
 	};

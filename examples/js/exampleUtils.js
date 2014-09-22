@@ -101,15 +101,15 @@ window.exampleUtils = (function(){
             for ( i = 0; i < objects.length; i++ ) {
                 object = objects[i];
                 object.position.set(
-                    object.goblin.position[0],
-                    object.goblin.position[1],
-                    object.goblin.position[2]
+                    object.goblin.position.x,
+                    object.goblin.position.y,
+                    object.goblin.position.z
                 );
                 object.quaternion.set(
-                    object.goblin.rotation[0],
-                    object.goblin.rotation[1],
-                    object.goblin.rotation[2],
-                    object.goblin.rotation[3]
+                    object.goblin.rotation.x,
+                    object.goblin.rotation.y,
+                    object.goblin.rotation.z,
+                    object.goblin.rotation.w
                 );
             }
 
@@ -239,7 +239,7 @@ window.exampleUtils = (function(){
 		createConvex: function( vertices, mass, material ) {
 			var convex = new THREE.Mesh(
 				new THREE.ConvexGeometry(vertices.map(function( vertex ){
-					return new THREE.Vector3( vertex[0], vertex[1], vertex[2] );
+					return new THREE.Vector3( vertex.x, vertex.y, vertex.z );
 				})),
 				material
 			);

@@ -64,37 +64,37 @@ Goblin.PlaneShape.prototype.calculateLocalAABB = function( aabb ) {
         this._half_height = this.half_width;
         this._half_depth = this.half_length;
 
-        aabb.min[0] = 0;
-        aabb.min[1] = -this.half_width;
-        aabb.min[2] = -this.half_length;
+        aabb.min.x = 0;
+        aabb.min.y = -this.half_width;
+        aabb.min.z = -this.half_length;
 
-        aabb.max[0] = 0;
-        aabb.max[1] = this.half_width;
-        aabb.max[2] = this.half_length;
+        aabb.max.x = 0;
+        aabb.max.y = this.half_width;
+        aabb.max.z = this.half_length;
     } else if ( this.orientation === 1 ) {
         this._half_width = this.half_width;
         this._half_height = 0;
         this._half_depth = this.half_length;
 
-        aabb.min[0] = -this.half_width;
-        aabb.min[1] = 0;
-        aabb.min[2] = -this.half_length;
+        aabb.min.x = -this.half_width;
+        aabb.min.y = 0;
+        aabb.min.z = -this.half_length;
 
-        aabb.max[0] = this.half_width;
-        aabb.max[1] = 0;
-        aabb.max[2] = this.half_length;
+        aabb.max.x = this.half_width;
+        aabb.max.y = 0;
+        aabb.max.z = this.half_length;
     } else {
         this._half_width = this.half_width;
         this._half_height = this.half_length;
         this._half_depth = 0;
 
-        aabb.min[0] = -this.half_width;
-        aabb.min[1] = -this.half_length;
-        aabb.min[2] = 0;
+        aabb.min.x = -this.half_width;
+        aabb.min.y = -this.half_length;
+        aabb.min.z = 0;
 
-        aabb.max[0] = this.half_width;
-        aabb.max[1] = this.half_length;
-        aabb.max[2] = 0;
+        aabb.max.x = this.half_width;
+        aabb.max.y = this.half_length;
+        aabb.max.z = 0;
     }
 };
 
@@ -108,19 +108,19 @@ Goblin.PlaneShape.prototype.getInertiaTensor = function( mass ) {
 		z = element * width_squared;
 
 	if ( this.orientation === 0 ) {
-		return mat3.createFrom(
+		return new Goblin.Matrix3(
 			y, 0, 0,
 			0, x, 0,
 			0, 0, z
 		);
 	} else if ( this.orientation === 1 ) {
-		return mat3.createFrom(
+		return new Goblin.Matrix3(
 			x, 0, 0,
 			0, y, 0,
 			0, 0, z
 		);
 	} else {
-		return mat3.createFrom(
+		return new Goblin.Matrix3(
 			y, 0, 0,
 			0, z, 0,
 			0, 0, x
@@ -146,22 +146,22 @@ Goblin.PlaneShape.prototype.findSupportPoint = function( direction, support_poin
 	 */
 
 	// Calculate the support point in the local frame
-	if ( direction[0] < 0 ) {
-		support_point[0] = -this._half_width;
+	if ( direction.x < 0 ) {
+		support_point.x = -this._half_width;
 	} else {
-		support_point[0] = this._half_width;
+		support_point.x = this._half_width;
 	}
 
-	if ( direction[1] < 0 ) {
-		support_point[1] = -this._half_height;
+	if ( direction.y < 0 ) {
+		support_point.y = -this._half_height;
 	} else {
-		support_point[1] = this._half_height;
+		support_point.y = this._half_height;
 	}
 
-	if ( direction[2] < 0 ) {
-		support_point[2] = -this._half_depth;
+	if ( direction.z < 0 ) {
+		support_point.z = -this._half_depth;
 	} else {
-		support_point[2] = this._half_depth;
+		support_point.z = this._half_depth;
 	}
 };
 
@@ -174,50 +174,50 @@ Goblin.PlaneShape.prototype.findSupportPoint = function( direction, support_poin
  * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
  */
 Goblin.PlaneShape.prototype.rayIntersect = (function(){
-	var normal = vec3.create(),
-		ab = vec3.create(),
-		point = vec3.create(),
+	var normal = new Goblin.Vector3(),
+		ab = new Goblin.Vector3(),
+		point = new Goblin.Vector3(),
 		t;
 
 	return function( start, end ) {
 		if ( this.orientation === 0 ) {
-			normal[0] = 1;
-			normal[1] = normal[2] = 0;
+			normal.x = 1;
+			normal.y = normal.z = 0;
 		} else if ( this.orientation === 1 ) {
-			normal[1] = 1;
-			normal[0] = normal[2] = 0;
+			normal.y = 1;
+			normal.x = normal.z = 0;
 		} else {
-			normal[2] = 1;
-			normal[0] = normal[1] = 0;
+			normal.z = 1;
+			normal.x = normal.y = 0;
 		}
 
-		vec3.subtract( end, start, ab );
-		t = -vec3.dot( normal, start ) / vec3.dot( normal, ab );
+		ab.subtractVectors( end, start );
+		t = -normal.dot( start ) / normal.dot( ab );
 
 		if ( t < 0 || t > 1 ) {
 			return null;
 		}
 
-		vec3.scale( ab, t, point );
-		vec3.add( point, start );
+		point.scaleVector( ab, t );
+		point.add( start );
 
-		if ( point[0] < -this._half_width || point[0] > this._half_width ) {
+		if ( point.x < -this._half_width || point.x > this._half_width ) {
 			return null;
 		}
 
-		if ( point[1] < -this._half_height || point[1] > this._half_height ) {
+		if ( point.y < -this._half_height || point.y > this._half_height ) {
 			return null;
 		}
 
-		if ( point[2] < -this._half_depth || point[2] > this._half_depth ) {
+		if ( point.z < -this._half_depth || point.z > this._half_depth ) {
 			return null;
 		}
 
 		var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 		intersection.object = this;
-		intersection.t = t * vec3.length( ab );
-		vec3.set( point, intersection.point );
-		vec3.set( normal, intersection.normal );
+		intersection.t = t * ab.length();
+		intersection.point.copy( point );
+		intersection.normal.copy( normal );
 
 		return intersection;
 	};

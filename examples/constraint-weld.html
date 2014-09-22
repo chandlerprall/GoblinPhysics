@@ -5,7 +5,6 @@
 	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../lib/stats.min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/exampleUtils.js"></script>
@@ -14,38 +13,29 @@
 		window.onload = function() {
 			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
 
-			var box_material = exampleUtils.createMaterial( 'wood', 1, 1 ),
-				plank_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 );
+			var box_material = exampleUtils.createMaterial( 'wood', 1, 1 );
 
 			var ground = exampleUtils.createPlane( 1, 20, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
 			ground.castShadow = false;
 
 			var spawnBox = function() {
 				var base = exampleUtils.createBox( 1, 1, 1, 10, box_material );
-				base.goblin.position[1] = 2;
+				base.goblin.position.y = 2;
 
 				var top = exampleUtils.createBox( 1, 1, 1, 10, box_material );
-				top.goblin.position[1] = 4;
+				top.goblin.position.y = 4;
 
 				var constraint = new Goblin.WeldConstraint(
 					base.goblin,
-					vec3.createFrom( 0, 1, 0 ),
+					new Goblin.Vector3( 0, 1, 0 ),
 					top.goblin,
-					vec3.createFrom( 0, -1, 0 )
+					new Goblin.Vector3( 0, -1, 0 )
 				);
 				window.constraint = constraint;
 
 				exampleUtils.world.addConstraint( constraint );
 			};
 
-			exampleUtils.world.addListener(
-				'stepStart',
-				function( tick ) {
-					if ( tick % 60 === 1 ) {
-						//spawnBox();
-					}
-				}
-			);
 			spawnBox();
 
 			exampleUtils.run();

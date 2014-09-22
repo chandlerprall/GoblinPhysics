@@ -5,7 +5,6 @@
 	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../lib/stats.min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/exampleUtils.js"></script>
@@ -22,9 +21,9 @@
 			for ( i = 0; i < 5; i++ ) {
 				for ( j = 0; j < 5; j++ ) {
 					sphere = exampleUtils.createSphere( 1, 0, sphere_material_2 );
-					sphere.goblin.position[0] = i * 2 - 2.5;
-					sphere.goblin.position[1] = 0;
-					sphere.goblin.position[2] = j * 2 - 2.5;
+					sphere.goblin.position.x = i * 2 - 2.5;
+					sphere.goblin.position.y = 0;
+					sphere.goblin.position.z = j * 2 - 2.5;
 				}
 			}
 
@@ -32,9 +31,9 @@
 			for ( i = 0; i < 4; i++ ) {
 				for ( j = 0; j < 4; j++ ) {
 					sphere = exampleUtils.createSphere( 1, 10, sphere_material_2 );
-					sphere.goblin.position[0] = i * 2 - 1.5;
-					sphere.goblin.position[1] = 2;
-					sphere.goblin.position[2] = j * 2 - 1.5;
+					sphere.goblin.position.x = i * 2 - 1.5;
+					sphere.goblin.position.y = 2;
+					sphere.goblin.position.z = j * 2 - 1.5;
 				}
 			}
 
@@ -42,9 +41,9 @@
 			for ( i = 0; i < 3; i++ ) {
 				for ( j = 0; j < 3; j++ ) {
 					sphere = exampleUtils.createSphere( 1, 10, sphere_material_2 );
-					sphere.goblin.position[0] = i * 2 - 0.5;
-					sphere.goblin.position[1] = 4;
-					sphere.goblin.position[2] = j * 2 - 0.5;
+					sphere.goblin.position.x = i * 2 - 0.5;
+					sphere.goblin.position.y = 4;
+					sphere.goblin.position.z = j * 2 - 0.5;
 				}
 			}
 
@@ -52,9 +51,9 @@
 			for ( i = 0; i < 2; i++ ) {
 				for ( j = 0; j < 2; j++ ) {
 					sphere = exampleUtils.createSphere( 1, 10, sphere_material_2 );
-					sphere.goblin.position[0] = i * 2 + 0.5;
-					sphere.goblin.position[1] = 6;
-					sphere.goblin.position[2] = j * 2 + 0.5;
+					sphere.goblin.position.x = i * 2 + 0.5;
+					sphere.goblin.position.y = 6;
+					sphere.goblin.position.z = j * 2 + 0.5;
 				}
 			}
 
@@ -62,10 +61,10 @@
 			for ( i = 0; i < 1; i++ ) {
 				for ( j = 0; j < 1; j++ ) {
 					sphere = exampleUtils.createSphere( 1.5, 300, sphere_material_1 );
-					sphere.goblin.position[0] = i * 2 + 1.5;
-					sphere.goblin.position[1] = 20;
-					sphere.goblin.position[2] = j * 2 + 1.5;
-					sphere.goblin.applyImpulse( vec3.createFrom( 0, -10, 0 ) );
+					sphere.goblin.position.x = i * 2 + 1.5;
+					sphere.goblin.position.y = 20;
+					sphere.goblin.position.z = j * 2 + 1.5;
+					sphere.goblin.applyImpulse( new Goblin.Vector3( 0, -10, 0 ) );
 				}
 			}
 

@@ -10,7 +10,6 @@
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
 	<script type="text/javascript" src="../lib/ConvexGeometry.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/testUtils.js"></script>
 
@@ -23,27 +22,27 @@
 
 			var convexbox = testUtils.createConvex(
 				[
-					vec3.createFrom( -1, -1, -1 ),
-					vec3.createFrom( 1, -1, -1 ),
-					vec3.createFrom( 1, -1, 1 ),
-					vec3.createFrom( -1, -1, 1 ),
+					new Goblin.Vector3( -1, -1, -1 ),
+					new Goblin.Vector3( 1, -1, -1 ),
+					new Goblin.Vector3( 1, -1, 1 ),
+					new Goblin.Vector3( -1, -1, 1 ),
 
-					vec3.createFrom( -1, 1, -1 ),
-					vec3.createFrom( 1, 1, -1 ),
-					vec3.createFrom( 1, 1, 1 ),
-					vec3.createFrom( -1, 1, 1 )
+					new Goblin.Vector3( -1, 1, -1 ),
+					new Goblin.Vector3( 1, 1, -1 ),
+					new Goblin.Vector3( 1, 1, 1 ),
+					new Goblin.Vector3( -1, 1, 1 )
 				],
 				0
 			);
 
 			var convexpyramid = testUtils.createConvex(
 				[
-					vec3.createFrom( -1, -1, -1 ),
-					vec3.createFrom( 1, -1, -1 ),
-					vec3.createFrom( 1, -1, 1 ),
-					vec3.createFrom( -1, -1, 1 ),
+					new Goblin.Vector3( -1, -1, -1 ),
+					new Goblin.Vector3( 1, -1, -1 ),
+					new Goblin.Vector3( 1, -1, 1 ),
+					new Goblin.Vector3( -1, -1, 1 ),
 
-					vec3.createFrom( 0, 2, 0 )
+					new Goblin.Vector3( 0, 2, 0 )
 				],
 				0
 			);
@@ -55,25 +54,25 @@
 				});
 
 				it('Center of Mass',function(){
-					return assert( testUtils.withinEpsilon( vec3.dist( convexbox.goblin.shape.center_of_mass, vec3.createFrom( 0, 0, 0 ) ), 0 ) );
+					return assert( testUtils.withinEpsilon( convexbox.goblin.shape.center_of_mass.distanceTo( new Goblin.Vector3( 0, 0, 0 ) ), 0 ) );
 				});
 
 				it('Support Point, Corner',function(){
-					var support_point = vec3.create();
-					convexbox.goblin.findSupportPoint( vec3.createFrom( -1, -1, -1 ), support_point );
-					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( -1, -1, -1 ) ), 0 ) );
+					var support_point = new Goblin.Vector3();
+					convexbox.goblin.findSupportPoint( new Goblin.Vector3( -1, -1, -1 ), support_point );
+					return assert( testUtils.withinEpsilon( support_point.distanceTo( new Goblin.Vector3( -1, -1, -1 ) ), 0 ) );
 				});
 
 				it('Support Point, Face',function(){
-					var support_point = vec3.create();
-					convexbox.goblin.findSupportPoint( vec3.createFrom( 1, 0, 0 ), support_point );
-					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( 1, -1, 1 ) ), 0 ) );
+					var support_point = new Goblin.Vector3();
+					convexbox.goblin.findSupportPoint( new Goblin.Vector3( 1, 0, 0 ), support_point );
+					return assert( testUtils.withinEpsilon( support_point.distanceTo( new Goblin.Vector3( 1, -1, 1 ) ), 0 ) );
 				});
 
 				it('Support Point, Edge',function(){
-					var support_point = vec3.create();
-					convexbox.goblin.findSupportPoint( vec3.createFrom( 0, 1, 1 ), support_point );
-					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( 1, 1, 1 ) ), 0 ) );
+					var support_point = new Goblin.Vector3();
+					convexbox.goblin.findSupportPoint( new Goblin.Vector3( 0, 1, 1 ), support_point );
+					return assert( testUtils.withinEpsilon( support_point.distanceTo( new Goblin.Vector3( 1, 1, 1 ) ), 0 ) );
 				});
 
 			});
@@ -85,25 +84,25 @@
 				});
 
 				it('Center of Mass',function(){
-					return assert( testUtils.withinEpsilon( vec3.dist( convexpyramid.goblin.shape.center_of_mass, vec3.createFrom( 0, -0.25, 0 ) ), 0 ) );
+					return assert( testUtils.withinEpsilon( convexpyramid.goblin.shape.center_of_mass.distanceTo( new Goblin.Vector3( 0, -0.25, 0 ) ), 0 ) );
 				});
 
 				it('Support Point, Corner',function(){
-					var support_point = vec3.create();
-					convexpyramid.goblin.findSupportPoint( vec3.createFrom( -1, -1, -1 ), support_point );
-					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( -1, -1, -1 ) ), 0 ) );
+					var support_point = new Goblin.Vector3();
+					convexpyramid.goblin.findSupportPoint( new Goblin.Vector3( -1, -1, -1 ), support_point );
+					return assert( testUtils.withinEpsilon( support_point.distanceTo( new Goblin.Vector3( -1, -1, -1 ) ), 0 ) );
 				});
 
 				it('Support Point, Point',function(){
-					var support_point = vec3.create();
-					convexpyramid.goblin.findSupportPoint( vec3.createFrom( 0, 1, 0 ), support_point );
-					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( 0, 2, 0 ) ), 0 ) );
+					var support_point = new Goblin.Vector3();
+					convexpyramid.goblin.findSupportPoint( new Goblin.Vector3( 0, 1, 0 ), support_point );
+					return assert( testUtils.withinEpsilon( support_point.distanceTo( new Goblin.Vector3( 0, 2, 0 ) ), 0 ) );
 				});
 
 				it('Support Point, Edge',function(){
-					var support_point = vec3.create();
-					convexpyramid.goblin.findSupportPoint( vec3.createFrom( 0, -1, 1 ), support_point );
-					return assert( testUtils.withinEpsilon( vec3.dist( support_point, vec3.createFrom( 1, -1, 1 ) ), 0 ) );
+					var support_point = new Goblin.Vector3();
+					convexpyramid.goblin.findSupportPoint( new Goblin.Vector3( 0, -1, 1 ), support_point );
+					return assert( testUtils.withinEpsilon( support_point.distanceTo( new Goblin.Vector3( 1, -1, 1 ) ), 0 ) );
 				});
 
 			});

@@ -63,15 +63,15 @@ Goblin.DragForce.prototype.applyForce = function() {
 	for ( i = 0, affected_count = this.affected.length; i < affected_count; i++ ) {
 		object = this.affected[i];
 
-		vec3.set( object.linear_velocity, force );
+		force.copy( object.linear_velocity );
 
 		// Calculate the total drag coefficient.
-		drag = vec3.length( force );
+		drag = force.length();
 		drag = ( this.drag_coefficient * drag ) + ( this.squared_drag_coefficient * drag * drag );
 
 		// Calculate the final force and apply it.
-		vec3.normalize( force );
-		vec3.scale( force, -drag );
-		object.applyForce( force );
+		force.normalize();
+		force.scale( -drag );
+		object.applyForce( force  );
 	}
 };

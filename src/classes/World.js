@@ -40,16 +40,6 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	solver.world = this;
 
 	/**
-	 * Array of mass_points in the world
-	 *
-	 * @property mass_points
-	 * @type {Array}
-	 * @default []
-	 * @private
-	 */
-	this.mass_points = [];
-
-	/**
 	 * Array of rigid_bodies in the world
 	 *
 	 * @property rigid_bodies
@@ -66,7 +56,7 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	* @type {vec3}
 	* @default [ 0, -9.8, 0 ]
 	*/
-	this.gravity = vec3.createFrom( 0, -9.8, 0 );
+	this.gravity = new Goblin.Vector3( 0, -9.8, 0 );
 
 	/**
 	 * array of force generators in the world
@@ -113,8 +103,8 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
 
             // Objects of infinite mass don't move
             if ( body.mass !== Infinity ) {
-                vec3.scale( body.gravity || this.gravity, body.mass * delta, _tmp_vec3_1 );
-                vec3.add( body.accumulated_force, _tmp_vec3_1 );
+				_tmp_vec3_1.scaleVector( body.gravity || this.gravity, body.mass * delta );
+                body.accumulated_force.add( _tmp_vec3_1 );
             }
         }
 

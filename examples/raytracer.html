@@ -5,28 +5,63 @@
     <link rel="stylesheet" type="text/css" href="css/styles.css"/>
     <script type="text/javascript" src="../lib/three.min.js"></script>
     <script type="text/javascript" src="../lib/TrackballControls.js"></script>
-    <script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
     <script type="text/javascript" src="../build/goblin.js"></script>
 
     <script type="text/javascript">
+        // Adapted from gl-matrix
+        // https://github.com/toji/gl-matrix/blob/v1.3.7/gl-matrix.js
+        Goblin.Matrix4.prototype.frustum = function ( left, right, bottom, top, near, far ) {
+	        var rl = ( right - left ),
+		        tb = ( top - bottom ),
+		        fn = ( far - near );
+	        this.e00 = ( near * 2 ) / rl;
+	        this.e10 = 0;
+	        this.e20 = 0;
+	        this.e30 = 0;
+	        this.e01 = 0;
+	        this.e11 = ( near * 2 ) / tb;
+	        this.e21 = 0;
+	        this.e31 = 0;
+	        this.e02 = ( right + left ) / rl;
+	        this.e12 = ( top + bottom ) / tb;
+	        this.e22 = -( far + near ) / fn;
+	        this.e32 = -1;
+	        this.e03 = 0;
+	        this.e13 = 0;
+	        this.e23 = -( far * near * 2 ) / fn;
+	        this.e33 = 0;
+        };
+        Goblin.Matrix4.prototype.perspective = function ( fovy, aspect, near, far ) {
+	        var top = near * Math.tan( fovy * Math.PI / 360.0 ),
+		        right = top * aspect;
+	        this.frustum( -right, right, -top, top, near, far );
+        };
+        Goblin.Matrix4.prototype.transformVector4 = function ( v ) {
+	        var x = v[0], y = v[1], z = v[2], w = v[3];
+
+	        v[0] = this.e00 * x + this.e01 * y + this.e02 * z + this.e03 * w;
+	        v[1] = this.e10 * x + this.e11 * y + this.e12 * z + this.e13 * w;
+	        v[2] = this.e20 * x + this.e21 * y + this.e22 * z + this.e23 * w;
+	        v[3] = this.e30 * x + this.e31 * y + this.e32 * z + this.e33 * w;
+        };
+
         var canvas,
             ctx,
             canvas_data,
 	        width = window.innerWidth,
 	        height = window.innerHeight,
             world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NearPhase(), new Goblin.IterativeSolver() ),
-            camera = mat4.create(),
-            camera_inverse = mat4.create(),
+            camera = new Goblin.Matrix4(),
+            camera_inverse = new Goblin.Matrix4(),
 	        lights = [];
 
-        mat4.perspective(
+        camera.perspective(
             30, // FOV
             width / height, // Aspect
             1, // Near,
-            100, // Far
-            camera
+            100 // Far
         );
-        mat4.inverse( camera, camera_inverse );
+        camera.invertInto( camera_inverse );
 
         function TexturedBody( shape, diffuse, reflectivity ) {
             Goblin.RigidBody.call( this, shape );
@@ -38,34 +73,35 @@
         function initLights() {
 	        // Ambient light
 	        lights.push((function(){
-		        var light_color = vec3.createFrom( 0.3, 0.3, 0.3 ),
-			        temp = vec3.create(),
-			        local_point = vec3.create();
+		        var light_color = new Goblin.Vector3( 0.3, 0.3, 0.3 ),
+			        temp = new Goblin.Vector3(),
+			        local_point = new Goblin.Vector3();
 		        return function( intersection, out ) {
-			        mat4.multiplyVec3( intersection.object.transform_inverse, intersection.point, local_point );
-			        vec3.multiply( light_color, intersection.object.diffuse( local_point ), temp );
-			        vec3.add( out, temp );
+			        intersection.object.transform_inverse.transformVector3Into( intersection.point, local_point );
+			        temp.multiplyVectors( light_color, intersection.object.diffuse( local_point ) );
+			        out.add( temp );
 		        }
 	        })());
 
 	        // Directional light
 	        lights.push((function(){
-		        var light_color = vec3.createFrom( 0.7, 0.7, 0.7 ),
-			        direction = vec3.normalize( vec3.createFrom( -0.3, -0.7, -0.5 ) ),
-			        light_position = vec3.create(),
-			        temp1 = vec3.create(),
-			        local_point = vec3.create();
-		        vec3.scale( direction, -10, light_position );
+		        var light_color = new Goblin.Vector3( 0.7, 0.7, 0.7 ),
+			        direction = new Goblin.Vector3( -0.3, -0.7, -0.5 ),
+			        light_position = new Goblin.Vector3(),
+			        temp1 = new Goblin.Vector3(),
+			        local_point = new Goblin.Vector3();
+		        direction.normalize();
+		        light_position.scaleVector( direction, -10 );
 		        return function( intersection, out ) {
 			        // Cast shadow
-			        vec3.add( intersection.point, light_position, temp1 );
+			        temp1.addVectors( intersection.point, light_position );
 			        var intersections = world.rayIntersect( temp1, intersection.point );
 			        if ( intersections.length === 0 || intersections[0].object === intersection.object ) {
-				        var dot = Math.max( -1 * vec3.dot( intersection.normal, direction ), 0 );
-				        mat4.multiplyVec3( intersection.object.transform_inverse, intersection.point, local_point );
-				        vec3.multiply( light_color, intersection.object.diffuse( local_point ), temp1 );
-				        vec3.scale( temp1, dot );
-				        vec3.add( out, temp1 );
+				        var dot = Math.max( -1 * intersection.normal.dot( direction ), 0 );
+				        intersection.object.transform_inverse.transformVector3Into( intersection.point, local_point );
+				        temp1.multiplyVectors( light_color, intersection.object.diffuse( local_point ) );
+				        temp1.scale( dot );
+				        out.add( temp1 );
 			        }
 
 			        // Optimization to save a few seconds of rendering
@@ -80,18 +116,18 @@
 	        var wall_shape = new Goblin.BoxShape( 5, 3, 0.5 ),
 		        floor_shape = new Goblin.BoxShape( 5, 0.1, 8 ),
 		        wall_material = (function(){
-		        var color = vec3.createFrom( 0.2, 0.2, 0.6 );
+		        var color = new Goblin.Vector3( 0.2, 0.2, 0.6 );
 		        return function() {
 			        return color;
 		        }
 	        })();
 
 	        var back = new TexturedBody( wall_shape, wall_material );
-	        back.position[2] = -5;
+	        back.position.z = -5;
 	        world.addRigidBody( back );
 
 	        var floor = new TexturedBody( floor_shape, wall_material, 0.8 );
-	        floor.position[1] = -1.5;
+	        floor.position.y = -1.5;
 	        world.addRigidBody( floor );
         }
 
@@ -102,111 +138,107 @@
             var sphere1 = new TexturedBody(
 	            new Goblin.SphereShape( 1 ),
 	            (function(){
-		            var black = vec3.createFrom( 0, 0, 0 ),
-			            white = vec3.createFrom( 1, 1, 1 );
+		            var black = new Goblin.Vector3( 0, 0, 0 ),
+			            white = new Goblin.Vector3( 1, 1, 1 );
 		            return function( local_point ) {
 			            var is_black = true;
 
-			            if ( Math.abs( local_point[0] % 0.6 ) < 0.3 ) is_black = !is_black;
-			            if ( Math.abs( local_point[1] % 0.6 ) < 0.3 ) is_black = !is_black;
+			            if ( Math.abs( local_point.x % 0.6 ) < 0.3 ) is_black = !is_black;
+			            if ( Math.abs( local_point.y % 0.6 ) < 0.3 ) is_black = !is_black;
 
 			            return is_black ? black : white;
 		            };
 	            })(),
 	            0.8
             );
-	        sphere1.position[1] = -0.4;
+	        sphere1.position.y = -0.4;
 	        world.addRigidBody( sphere1 );
 
 	        var sphere2 = new TexturedBody(
 		        new Goblin.SphereShape( 0.7 ),
-		        (function() { var color = vec3.createFrom( 1, 1, 0 ); return function() { return color }; })()
+		        (function() { var color = new Goblin.Vector3( 1, 1, 0 ); return function() { return color }; })()
 	        );
-	        sphere2.position[0] = -1.75;
-	        sphere2.position[1] = -0.7;
-	        sphere2.position[2] = -1;
+	        sphere2.position.set( -1.75, -0.7, -1 );
 	        world.addRigidBody( sphere2 );
 
 	        var sphere3 = new TexturedBody(
 		        new Goblin.SphereShape( 0.4 ),
-		        (function() { var color = vec3.createFrom( 0, 0, 1 ); return function() { return color }; })()
+		        (function() { var color = new Goblin.Vector3( 0, 0, 1 ); return function() { return color }; })()
 	        );
-	        sphere3.position[0] = -0.5;
-	        sphere3.position[1] = -1;
-	        sphere3.position[2] = 1;
+	        sphere3.position.set( -0.5, -1, 1 );
 	        world.addRigidBody( sphere3 );
 
 	        var box = new TexturedBody(
 		        new Goblin.BoxShape( 0.7, 0.8, 1.2 ),
-		        (function() { var color = vec3.createFrom( 0, 1, 0 ); return function() { return color }; })(),
+		        (function() { var color = new Goblin.Vector3( 0, 1, 0 ); return function() { return color }; })(),
 		        0.1
 	        );
-	        box.position = vec3.createFrom( 2.5, -0.6, -1.5 );
-	        box.rotation = quat4.normalize( quat4.createFrom( 0, 0.3, 0, 1 ) );
+	        box.position.set( 2.5, -0.6, -1.5 );
+	        box.rotation = new Goblin.Quaternion( 0, 0.3, 0, 1 );
 	        world.addRigidBody( box );
 
 	        var cylinder = new TexturedBody(
 		        new Goblin.CylinderShape( 0.2, 0.74 ),
-		        (function() { var color = vec3.createFrom( 1, 0.3, 0.3 ); return function() { return color }; })(),
+		        (function() { var color = new Goblin.Vector3( 1, 0.3, 0.3 ); return function() { return color }; })(),
 		        0.6
 	        );
-	        cylinder.position = vec3.createFrom( 2, -0.66, -0.2 );
-	        cylinder.rotation = quat4.normalize( quat4.createFrom( 5, -0.5, 0.5, 1 ) );
+	        cylinder.position.set( 2, -0.66, -0.2 );
+	        cylinder.rotation = new Goblin.Quaternion( 5, -0.5, 0.5, 1 );
 	        world.addRigidBody( cylinder );
 
 	        var cone = new TexturedBody(
 		        new Goblin.ConeShape( 0.2, 0.4 ),
-		        (function() { var color = vec3.createFrom( 0, 1, 0 ); return function() { return color }; })(),
+		        (function() { var color = new Goblin.Vector3( 0, 1, 0 ); return function() { return color }; })(),
 		        0.5
 	        );
-	        cone.position = vec3.createFrom( -1, -1.31, 2 );
-	        cone.rotation = quat4.normalize( quat4.createFrom( 0.8, 0, -1, 1 ) );
+	        cone.position.set( -1, -1.31, 2 );
+	        cone.rotation = new Goblin.Quaternion( 0.8, 0, -1, 1 );
 	        world.addRigidBody( cone );
 
 	        var convex = new TexturedBody(
 		        new Goblin.ConvexShape(
 			        [
-				        vec3.createFrom( -0.7, 0, -0.7 ),
-				        vec3.createFrom( 0.7, 0, -0.7 ),
-				        vec3.createFrom( 0.7, 0, 0.7 ),
-				        vec3.createFrom( -0.7, 0, 0.7 ),
-				        vec3.createFrom( 0, 1.5, 0 )
+				        new Goblin.Vector3( -0.7, 0, -0.7 ),
+				        new Goblin.Vector3( 0.7, 0, -0.7 ),
+				        new Goblin.Vector3( 0.7, 0, 0.7 ),
+				        new Goblin.Vector3( -0.7, 0, 0.7 ),
+				        new Goblin.Vector3( 0, 1.5, 0 )
 			        ]
 		        ),
-		        (function() { var color = vec3.createFrom( 1, 0.7, 0.2 ); return function() { return color }; })(),
+		        (function() { var color = new Goblin.Vector3( 1, 0.7, 0.2 ); return function() { return color }; })(),
 		        0.2
 	        );
-	        convex.position = vec3.createFrom( -2.5, -1.4, 1 );
-	        convex.rotation = quat4.normalize( quat4.createFrom( 0, 0.8, 0, 1 ) );
+	        convex.position.set( -2.5, -1.4, 1 );
+	        convex.rotation = new Goblin.Quaternion( 0, 0.8, 0, 1 );
 	        world.addRigidBody( convex );
         }
 
         var reflectRay = (function(){
-	        var ri = vec3.create(),
-		        temp = vec3.create();
+	        var ri = new Goblin.Vector3(),
+		        temp = new Goblin.Vector3();
 	        return function( ray, normal ) {
-		        vec3.set( ray, ri );
-		        vec3.scale( normal, 2 * vec3.dot( ri, normal ), temp );
-		        vec3.subtract( ri, temp, ray );
+		        ri.set( ray.x, ray.y, ray.z );
+		        temp.scaleVector( normal, 2 * ri.dot( normal ) );
+		        ray.subtractVectors( ri, temp );
 	        };
         })();
 
         var rayToColor = (function(){
 	        var rays = 0,
 		        max_rays = 4,
-		        temp = vec3.create();
+		        temp = new Goblin.Vector3();
 	        return function rayToColor( ray_start, ray_end, color ) {
 		        rays++;
 
 		        if ( rays <= max_rays ) {
-			        color[0] = color[1] = color[2] = 0;
+			        color.x = color.y = color.z = 0;
 			        var intersections = world.rayIntersect( ray_start, ray_end );
 
 			        for ( i = 0; i < intersections.length; i++ ) {
 				        var intersection = intersections[i];
 				        // Make sure this intersection isn't at the ray start else we could be reflecting off ourself
-				        vec3.subtract( ray_start, intersection.point, temp );
-				        if ( vec3.squaredLength( temp ) <= Goblin.EPSILON ) continue;
+				        temp.subtractVectors( ray_start, intersection.point )
+				        if ( temp.lengthSquared() <= Goblin.EPSILON ) continue;
 
 				        // Get all light at the point
 				        for ( var i = 0; i < lights.length; i++ ) {
@@ -215,15 +247,15 @@
 
 				        // Reflections
 				        if ( intersection.object.reflectivity !== 0 ) {
-					        var reflected = vec3.create(), reflect_color = vec3.create();
+					        var reflected = new Goblin.Vector3(), reflect_color = new Goblin.Vector3();
 
-					        vec3.subtract( ray_end, ray_start, reflected );
+					        reflected.subtractVectors( ray_end, ray_start );
 					        reflectRay( reflected, intersection.normal );
-                            vec3.add( reflected, intersection.point );
+                            reflected.add( intersection.point );
 
 					        rayToColor( intersection.point, reflected, reflect_color );
-					        vec3.scale( reflect_color, intersection.object.reflectivity );
-					        vec3.add( color, reflect_color );
+					        reflect_color.scale( intersection.object.reflectivity );
+					        color.add( reflect_color );
 				        }
 
 				        break; // we found the first real intersection
@@ -243,10 +275,10 @@
 	        var y = 0,
 		        start = window.performance.now();
 
-	        var pixel = vec4.create(),
-		        pixel3 = vec3.create(),
-		        ray_end = vec3.create(),
-		        color = vec3.create();
+	        var pixel = new Float64Array( 4 ),
+		        pixel3 = new Goblin.Vector3(),
+		        ray_end = new Goblin.Vector3(),
+		        color = new Goblin.Vector3();
 
 	        return function() {
 		        for ( var i = 0; i < 5 && y < height; i++ && y++ ) {
@@ -257,21 +289,21 @@
 				        pixel[2] = 0;
 				        pixel[3] = 1;
 
-				        mat4.multiplyVec4( camera_inverse, pixel );
+				        camera_inverse.transformVector4( pixel );
 
-				        vec3.set( pixel, pixel3 );
-				        vec3.scale( pixel3, pixel[3] );
-				        vec3.normalize( pixel3 );
+				        pixel3.set( pixel[0], pixel[1], pixel[2] );
+				        pixel3.scale( pixel[3] );
+				        pixel3.normalize();
 
-				        vec3.scale( pixel3, 100, ray_end );
-				        pixel3[1] -= 1;
-				        pixel3[2] += 8;
+				        ray_end.scaleVector( pixel3, 100 );
+				        pixel3.y -= 1;
+				        pixel3.z += 8;
 
 				        rayToColor( pixel3, ray_end, color );
 				        var data_offset = ( y * width + x ) * 4;
-				        canvas_data.data[data_offset] = color[0] * 255;
-				        canvas_data.data[data_offset + 1] = color[1] * 255;
-				        canvas_data.data[data_offset + 2] = color[2] * 255;
+				        canvas_data.data[data_offset] = color.x * 255;
+				        canvas_data.data[data_offset + 1] = color.y * 255;
+				        canvas_data.data[data_offset + 2] = color.z * 255;
 				        canvas_data.data[data_offset + 3] = 255;
 			        }
 		        }

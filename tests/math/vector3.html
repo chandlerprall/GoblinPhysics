@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Math: Vector3 | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="../css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="../css/mocha.css"/>
+	<script type="text/javascript" src="../js/chai.js"></script>
+	<script type="text/javascript" src="../js/mocha.js"></script>
+	<script type="text/javascript" src="../../build/goblin.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var assert = chai.assert,
+			expect = chai.expect;
+		window.onload = function() {
+			describe('Vector3', function(){
+				it('Instantiate with no values', function(){
+					var vector = new Goblin.Vector3();
+					expect( vector ).property( 'x', 0 );
+					expect( vector ).property( 'y', 0 );
+					expect( vector ).property( 'z', 0 );
+				});
+
+				it('Instantiate with values', function(){
+					var vector = new Goblin.Vector3( 5, 3, 2.5 );
+					expect( vector ).property( 'x', 5 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', 2.5 );
+				});
+
+				it('copy', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3();
+					b.copy( a );
+					a.scale( 3 );
+					expect( a ).property( 'x', 3 );
+					expect( a ).property( 'y', 9 );
+					expect( a ).property( 'z', 16.5 );
+
+					expect( b ).property( 'x', 1 );
+					expect( b ).property( 'y', 3 );
+					expect( b ).property( 'z', 5.5 );
+				});
+
+				it('add', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 );
+					a.add( b );
+					expect( a ).property( 'x', -1 );
+					expect( a ).property( 'y', 3.5 );
+					expect( a ).property( 'z', 9.5 );
+				});
+
+				it('addVectors', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 ),
+						c = new Goblin.Vector3();
+					c.addVectors( a, b );
+					expect( c ).property( 'x', -1 );
+					expect( c ).property( 'y', 3.5 );
+					expect( c ).property( 'z', 9.5 );
+				});
+
+				it('subtract', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 );
+					a.subtract( b );
+					expect( a ).property( 'x', 3 );
+					expect( a ).property( 'y', 2.5 );
+					expect( a ).property( 'z', 1.5 );
+				});
+
+				it('subtractVectors', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 ),
+						c = new Goblin.Vector3();
+					c.subtractVectors( a, b );
+					expect( c ).property( 'x', 3 );
+					expect( c ).property( 'y', 2.5 );
+					expect( c ).property( 'z', 1.5 );
+				});
+
+				it('multiply', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 );
+					a.multiply( b );
+					expect( a ).property( 'x', -2 );
+					expect( a ).property( 'y', 1.5 );
+					expect( a ).property( 'z', 22 );
+				});
+
+				it('multiplyVectors', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 ),
+						c = new Goblin.Vector3();
+					c.multiplyVectors( a, b );
+					expect( c ).property( 'x', -2 );
+					expect( c ).property( 'y', 1.5 );
+					expect( c ).property( 'z', 22 );
+				});
+
+				it('scale', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 );
+					a.scale( 3.5 );
+					expect( a ).property( 'x', 3.5 );
+					expect( a ).property( 'y', 10.5 );
+					expect( a ).property( 'z', 19.25 );
+				});
+
+				it('scaleVector', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3();
+					b.scaleVector( a, 3.5 );
+					expect( b ).property( 'x', 3.5 );
+					expect( b ).property( 'y', 10.5 );
+					expect( b ).property( 'z', 19.25 );
+				});
+
+				it('lengthSquared', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 );
+					expect( a.lengthSquared() ).to.equal( 40.25 );
+				});
+
+				it('length', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 );
+					expect( a.length() ).to.equal( 6.34428877022476 );
+				});
+
+				it('normalize', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 );
+					a.normalize();
+					expect( a ).property( 'x', 0.15762208124782012 );
+					expect( a ).property( 'y', 0.47286624374346037 );
+					expect( a ).property( 'z', 0.8669214468630106 );
+
+					var b = new Goblin.Vector3();
+					b.normalize();
+					expect( b ).property( 'x', 0 );
+					expect( b ).property( 'y', 0 );
+					expect( b ).property( 'z', 0 );
+				});
+
+				it('dot', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 );
+					expect( a.dot( b ) ).to.equal( 21.5 );
+				});
+
+				it('cross', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 );
+					a.cross( b );
+					expect( a ).property( 'x', 9.25 );
+					expect( a ).property( 'y', -15 );
+					expect( a ).property( 'z', 6.5 );
+				});
+
+				it('crossVectors', function(){
+					var a = new Goblin.Vector3( 1, 3, 5.5 ),
+						b = new Goblin.Vector3( -2, 0.5, 4 ),
+						c = new Goblin.Vector3();
+					c.crossVectors( a, b );
+					expect( c ).property( 'x', 9.25 );
+					expect( c ).property( 'y', -15 );
+					expect( c ).property( 'z', 6.5 );
+				});
+
+				it('distanceTo', function(){
+					var a = new Goblin.Vector3( 1, 1, 1 ),
+						b = new Goblin.Vector3( 3, 3, 2 );
+					expect( a.distanceTo( b ) ).to.equal( 3 );
+				});
+			});
+
+			mocha.run();
+		};
+	</script>
+</head>
+
+<body>
+<div id="mocha"></div>
+</body>
+</html>

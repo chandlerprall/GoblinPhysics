@@ -9,7 +9,6 @@
 	<script type="text/javascript" src="js/mocha.js"></script>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/testUtils.js"></script>
 
@@ -18,18 +17,18 @@
 		var assert = (typeof chai !== "undefined" && chai !== null ? chai.assert : void 0) || require('chai').assert;
 		window.onload = function() {
 			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
-			testUtils.world.gravity[1] = -10;
+			testUtils.world.gravity.y = -10;
 
 			var sphere1 = testUtils.createSphere( 1, 1 );
 
 			var sphere2 = testUtils.createSphere( 1, 10 );
-			sphere2.goblin.position[0] = 3;
+			sphere2.goblin.position.x = 3;
 
 			var box1 = testUtils.createBox( 1, 1, 1, 1 );
-			box1.goblin.position[0] = 6;
+			box1.goblin.position.x = 6;
 
 			var box2 = testUtils.createBox( 1, 1, 1, 0.01 );
-			box2.goblin.position[0] = 9;
+			box2.goblin.position.x = 9;
 
 			var ticks = 0;
 			testUtils.ontick = function() {
@@ -39,19 +38,19 @@
 						Goblin.EPSILON = 0.00001;
 
 						it('Sphere 1', function(){
-							return assert( testUtils.withinEpsilon( sphere1.goblin.linear_velocity[1], -20 ) );
+							return assert( testUtils.withinEpsilon( sphere1.goblin.linear_velocity.y, -20 ) );
 						});
 
 						it('Sphere 2', function(){
-							return assert( testUtils.withinEpsilon( sphere2.goblin.linear_velocity[1], -20 ) );
+							return assert( testUtils.withinEpsilon( sphere2.goblin.linear_velocity.y, -20 ) );
 						});
 
 						it('Box 1', function(){
-							return assert( testUtils.withinEpsilon( box1.goblin.linear_velocity[1], -20 ) );
+							return assert( testUtils.withinEpsilon( box1.goblin.linear_velocity.y, -20 ) );
 						});
 
 						it('Box 2', function(){
-							return assert( testUtils.withinEpsilon( box1.goblin.linear_velocity[1], -20 ) );
+							return assert( testUtils.withinEpsilon( box1.goblin.linear_velocity.y, -20 ) );
 						});
 
 					});

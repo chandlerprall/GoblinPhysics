@@ -23,13 +23,13 @@ Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
 		this.B[1] = invmass * this.jacobian[1];
 		this.B[2] = invmass * this.jacobian[2];
 
-		_tmp_vec3_1[0] = this.jacobian[3];
-		_tmp_vec3_1[1] = this.jacobian[4];
-		_tmp_vec3_1[2] = this.jacobian[5];
-		mat3.multiplyVec3( constraint.object_a.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
-		this.B[3] = _tmp_vec3_1[0];
-		this.B[4] = _tmp_vec3_1[1];
-		this.B[5] = _tmp_vec3_1[2];
+		_tmp_vec3_1.x = this.jacobian[3];
+		_tmp_vec3_1.y = this.jacobian[4];
+		_tmp_vec3_1.z = this.jacobian[5];
+		constraint.object_a.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
+		this.B[3] = _tmp_vec3_1.x;
+		this.B[4] = _tmp_vec3_1.y;
+		this.B[5] = _tmp_vec3_1.z;
 	} else {
 		this.B[0] = this.B[1] = this.B[2] = 0;
 		this.B[3] = this.B[4] = this.B[5] = 0;
@@ -41,13 +41,13 @@ Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
 		this.B[7] = invmass * this.jacobian[7];
 		this.B[8] = invmass * this.jacobian[8];
 
-		_tmp_vec3_1[0] = this.jacobian[9];
-		_tmp_vec3_1[1] = this.jacobian[10];
-		_tmp_vec3_1[2] = this.jacobian[11];
-		mat3.multiplyVec3( constraint.object_b.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
-		this.B[9] = _tmp_vec3_1[0];
-		this.B[10] = _tmp_vec3_1[1];
-		this.B[11] = _tmp_vec3_1[2];
+		_tmp_vec3_1.x = this.jacobian[9];
+		_tmp_vec3_1.y = this.jacobian[10];
+		_tmp_vec3_1.z = this.jacobian[11];
+		constraint.object_b.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
+		this.B[9] = _tmp_vec3_1.x;
+		this.B[10] = _tmp_vec3_1.y;
+		this.B[11] = _tmp_vec3_1.z;
 	} else {
 		this.B[6] = this.B[7] = this.B[8] = 0;
 		this.B[9] = this.B[10] = this.B[11] = 0;
@@ -80,15 +80,15 @@ Goblin.ConstraintRow.prototype.computeEta = function( constraint, time_delta ) {
 	} else {
 		invmass = 1 / constraint.object_a.mass;
 
-		this.eta_row[0] = ( constraint.object_a.linear_velocity[0] + ( invmass * constraint.object_a.accumulated_force[0] ) ) * inverse_time_delta;
-		this.eta_row[1] = ( constraint.object_a.linear_velocity[1] + ( invmass * constraint.object_a.accumulated_force[1] ) ) * inverse_time_delta;
-		this.eta_row[2] = ( constraint.object_a.linear_velocity[2] + ( invmass * constraint.object_a.accumulated_force[2] ) ) * inverse_time_delta;
+		this.eta_row[0] = ( constraint.object_a.linear_velocity.x + ( invmass * constraint.object_a.accumulated_force.x ) ) * inverse_time_delta;
+		this.eta_row[1] = ( constraint.object_a.linear_velocity.y + ( invmass * constraint.object_a.accumulated_force.y ) ) * inverse_time_delta;
+		this.eta_row[2] = ( constraint.object_a.linear_velocity.z + ( invmass * constraint.object_a.accumulated_force.z ) ) * inverse_time_delta;
 
-		vec3.set( constraint.object_a.accumulated_torque, _tmp_vec3_1 );
-		mat3.multiplyVec3( constraint.object_a.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
-		this.eta_row[3] = ( constraint.object_a.angular_velocity[0] + _tmp_vec3_1[0] ) * inverse_time_delta;
-		this.eta_row[4] = ( constraint.object_a.angular_velocity[1] + _tmp_vec3_1[1] ) * inverse_time_delta;
-		this.eta_row[5] = ( constraint.object_a.angular_velocity[2] + _tmp_vec3_1[2] ) * inverse_time_delta;
+		_tmp_vec3_1.copy( constraint.object_a.accumulated_torque );
+		constraint.object_a.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
+		this.eta_row[3] = ( constraint.object_a.angular_velocity.x + _tmp_vec3_1.x ) * inverse_time_delta;
+		this.eta_row[4] = ( constraint.object_a.angular_velocity.y + _tmp_vec3_1.y ) * inverse_time_delta;
+		this.eta_row[5] = ( constraint.object_a.angular_velocity.z + _tmp_vec3_1.z ) * inverse_time_delta;
 	}
 
 	if ( constraint.object_b == null || constraint.object_b.mass === Infinity ) {
@@ -96,15 +96,15 @@ Goblin.ConstraintRow.prototype.computeEta = function( constraint, time_delta ) {
 	} else {
 		invmass = 1 / constraint.object_b.mass;
 
-		this.eta_row[6] = ( constraint.object_b.linear_velocity[0] + ( invmass * constraint.object_b.accumulated_force[0] ) ) * inverse_time_delta;
-		this.eta_row[7] = ( constraint.object_b.linear_velocity[1] + ( invmass * constraint.object_b.accumulated_force[1] ) ) * inverse_time_delta;
-		this.eta_row[8] = ( constraint.object_b.linear_velocity[2] + ( invmass * constraint.object_b.accumulated_force[2] ) ) * inverse_time_delta;
+		this.eta_row[6] = ( constraint.object_b.linear_velocity.x + ( invmass * constraint.object_b.accumulated_force.x ) ) * inverse_time_delta;
+		this.eta_row[7] = ( constraint.object_b.linear_velocity.y + ( invmass * constraint.object_b.accumulated_force.y ) ) * inverse_time_delta;
+		this.eta_row[8] = ( constraint.object_b.linear_velocity.z + ( invmass * constraint.object_b.accumulated_force.z ) ) * inverse_time_delta;
 
-		vec3.set( constraint.object_b.accumulated_torque, _tmp_vec3_1 );
-		mat3.multiplyVec3( constraint.object_b.inverseInertiaTensorWorldFrame, _tmp_vec3_1 );
-		this.eta_row[9] = ( constraint.object_b.angular_velocity[0] + _tmp_vec3_1[0] ) * inverse_time_delta;
-		this.eta_row[10] = ( constraint.object_b.angular_velocity[1] + _tmp_vec3_1[1] ) * inverse_time_delta;
-		this.eta_row[11] = ( constraint.object_b.angular_velocity[2] + _tmp_vec3_1[2] ) * inverse_time_delta;
+		_tmp_vec3_1.copy( constraint.object_b.accumulated_torque );
+		constraint.object_b.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
+		this.eta_row[9] = ( constraint.object_b.angular_velocity.x + _tmp_vec3_1.x ) * inverse_time_delta;
+		this.eta_row[10] = ( constraint.object_b.angular_velocity.y + _tmp_vec3_1.y ) * inverse_time_delta;
+		this.eta_row[11] = ( constraint.object_b.angular_velocity.z + _tmp_vec3_1.z ) * inverse_time_delta;
 	}
 
 	var jdotv = this.jacobian[0] * this.eta_row[0] +

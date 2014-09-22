@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Math: Matrix4 | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="../css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="../css/mocha.css"/>
+	<script type="text/javascript" src="../js/chai.js"></script>
+	<script type="text/javascript" src="../js/mocha.js"></script>
+	<script type="text/javascript" src="../../build/goblin.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var assert = chai.assert,
+			expect = chai.expect;
+		window.onload = function() {
+			describe('Matrix4', function(){
+				it('Instantiate with no values', function(){
+					var matrix = new Goblin.Matrix4();
+					expect( matrix ).property( 'e00', 0 );
+					expect( matrix ).property( 'e01', 0 );
+					expect( matrix ).property( 'e02', 0 );
+					expect( matrix ).property( 'e03', 0 );
+					expect( matrix ).property( 'e10', 0 );
+					expect( matrix ).property( 'e11', 0 );
+					expect( matrix ).property( 'e12', 0 );
+					expect( matrix ).property( 'e13', 0 );
+					expect( matrix ).property( 'e20', 0 );
+					expect( matrix ).property( 'e21', 0 );
+					expect( matrix ).property( 'e22', 0 );
+					expect( matrix ).property( 'e23', 0 );
+					expect( matrix ).property( 'e30', 0 );
+					expect( matrix ).property( 'e31', 0 );
+					expect( matrix ).property( 'e32', 0 );
+					expect( matrix ).property( 'e33', 0 );
+				});
+
+				it('identity', function(){
+					var matrix = new Goblin.Matrix4();
+					matrix.identity();
+					expect( matrix ).property( 'e00', 1 );
+					expect( matrix ).property( 'e01', 0 );
+					expect( matrix ).property( 'e02', 0 );
+					expect( matrix ).property( 'e03', 0 );
+					expect( matrix ).property( 'e10', 0 );
+					expect( matrix ).property( 'e11', 1 );
+					expect( matrix ).property( 'e12', 0 );
+					expect( matrix ).property( 'e13', 0 );
+					expect( matrix ).property( 'e20', 0 );
+					expect( matrix ).property( 'e21', 0 );
+					expect( matrix ).property( 'e22', 1 );
+					expect( matrix ).property( 'e23', 0 );
+					expect( matrix ).property( 'e30', 0 );
+					expect( matrix ).property( 'e31', 0 );
+					expect( matrix ).property( 'e32', 0 );
+					expect( matrix ).property( 'e33', 1 );
+				});
+
+				it('makeTransform', function(){
+					var matrix = new Goblin.Matrix4();
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( 0, 0, 0 )
+					);
+					expect( matrix ).property( 'e00', 1 );
+					expect( matrix ).property( 'e01', 0 );
+					expect( matrix ).property( 'e02', 0 );
+					expect( matrix ).property( 'e03', 0 );
+					expect( matrix ).property( 'e10', 0 );
+					expect( matrix ).property( 'e11', 1 );
+					expect( matrix ).property( 'e12', 0 );
+					expect( matrix ).property( 'e13', 0 );
+					expect( matrix ).property( 'e20', 0 );
+					expect( matrix ).property( 'e21', 0 );
+					expect( matrix ).property( 'e22', 1 );
+					expect( matrix ).property( 'e23', 0 );
+					expect( matrix ).property( 'e30', 0 );
+					expect( matrix ).property( 'e31', 0 );
+					expect( matrix ).property( 'e32', 0 );
+					expect( matrix ).property( 'e33', 1 );
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( 1, 3.5, 5 )
+					);
+					expect( matrix ).property( 'e00', 1 );
+					expect( matrix ).property( 'e01', 0 );
+					expect( matrix ).property( 'e02', 0 );
+					expect( matrix ).property( 'e03', 1 );
+					expect( matrix ).property( 'e10', 0 );
+					expect( matrix ).property( 'e11', 1 );
+					expect( matrix ).property( 'e12', 0 );
+					expect( matrix ).property( 'e13', 3.5 );
+					expect( matrix ).property( 'e20', 0 );
+					expect( matrix ).property( 'e21', 0 );
+					expect( matrix ).property( 'e22', 1 );
+					expect( matrix ).property( 'e23', 5 );
+					expect( matrix ).property( 'e30', 0 );
+					expect( matrix ).property( 'e31', 0 );
+					expect( matrix ).property( 'e32', 0 );
+					expect( matrix ).property( 'e33', 1 );
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 1, 0, 1 ),
+						new Goblin.Vector3( 1, 0, 0 )
+					);
+					expect( matrix ).property( 'e00', 2.220446049250313e-16 );
+					expect( matrix ).property( 'e01', 0 );
+					expect( matrix ).property( 'e02', 0.9999999999999998 );
+					expect( matrix ).property( 'e03', 1 );
+					expect( matrix ).property( 'e10', 0 );
+					expect( matrix ).property( 'e11', 1 );
+					expect( matrix ).property( 'e12', 0 );
+					expect( matrix ).property( 'e13', 0 );
+					expect( matrix ).property( 'e20', -0.9999999999999998 );
+					expect( matrix ).property( 'e21', 0 );
+					expect( matrix ).property( 'e22', 2.220446049250313e-16 );
+					expect( matrix ).property( 'e23', 0 );
+					expect( matrix ).property( 'e30', 0 );
+					expect( matrix ).property( 'e31', 0 );
+					expect( matrix ).property( 'e32', 0 );
+					expect( matrix ).property( 'e33', 1 );
+				});
+
+				it('transformVector3', function(){
+					var matrix = new Goblin.Matrix4(),
+						vector;
+					matrix.identity();
+
+					vector = new Goblin.Vector3( 1, 3, 5.5 );
+					matrix.transformVector3( vector );
+					expect( vector ).property( 'x', 1 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', 5.5 );
+
+
+					vector = new Goblin.Vector3( 1, 3, 5.5 );
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( 0, 0, 0 )
+					);
+					matrix.transformVector3( vector );
+					expect( vector ).property( 'x', 1 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', 5.5 );
+
+
+					vector = new Goblin.Vector3( 1, 3, 5.5 );
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( -1, 0, 0 )
+					);
+					matrix.transformVector3( vector );
+					expect( vector ).property( 'x', 0 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', 5.5 );
+
+
+					vector = new Goblin.Vector3( 1, 3, 5.5 );
+					var rotation = new Goblin.Quaternion( 0, 1, 0, 1 );
+					matrix.makeTransform(
+						rotation,
+						new Goblin.Vector3( -1, 0, 0 )
+					);
+					matrix.transformVector3( vector );
+					expect( vector ).property( 'x', 4.499999999999999 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', -0.9999999999999986 );
+				});
+
+				it('transformVector3Into', function(){
+					var matrix = new Goblin.Matrix4(),
+						vector = new Goblin.Vector3( 1, 3, 5.5 ),
+						dest = new Goblin.Vector3();
+					matrix.identity();
+
+					matrix.transformVector3Into( vector, dest );
+					expect( dest ).property( 'x', 1 );
+					expect( dest ).property( 'y', 3 );
+					expect( dest ).property( 'z', 5.5 );
+
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( 0, 0, 0 )
+					);
+					matrix.transformVector3Into( vector, dest );
+					expect( dest ).property( 'x', 1 );
+					expect( dest ).property( 'y', 3 );
+					expect( dest ).property( 'z', 5.5 );
+
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( -1, 0, 0 )
+					);
+					matrix.transformVector3Into( vector, dest );
+					expect( dest ).property( 'x', 0 );
+					expect( dest ).property( 'y', 3 );
+					expect( dest ).property( 'z', 5.5 );
+
+
+					var rotation = new Goblin.Quaternion( 0, 1, 0, 1 );
+					matrix.makeTransform(
+						rotation,
+						new Goblin.Vector3( -1, 0, 0 )
+					);
+					matrix.transformVector3Into( vector, dest );
+					expect( dest ).property( 'x', 4.499999999999999 );
+					expect( dest ).property( 'y', 3 );
+					expect( dest ).property( 'z', -0.9999999999999986 );
+				});
+
+				it('rotateVector3', function(){
+					var matrix = new Goblin.Matrix4(),
+						vector;
+					matrix.identity();
+
+					vector = new Goblin.Vector3( 1, 3, 5.5 );
+					matrix.rotateVector3( vector );
+					expect( vector ).property( 'x', 1 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', 5.5 );
+
+
+					vector = new Goblin.Vector3( 1, 3, 5.5 );
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( 0, 0, 0 )
+					);
+					matrix.rotateVector3( vector );
+					expect( vector ).property( 'x', 1 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', 5.5 );
+
+
+					vector = new Goblin.Vector3( 1, 3, 5.5 );
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( -1, 0, 0 )
+					);
+					matrix.rotateVector3( vector );
+					expect( vector ).property( 'x', 1 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', 5.5 );
+
+
+					vector = new Goblin.Vector3( 1, 3, 5.5 );
+					var rotation = new Goblin.Quaternion( 0, 1, 0, 1 );
+					matrix.makeTransform(
+						rotation,
+						new Goblin.Vector3( -1, 0, 0 )
+					);
+					matrix.rotateVector3( vector );
+					expect( vector ).property( 'x', 5.499999999999999 );
+					expect( vector ).property( 'y', 3 );
+					expect( vector ).property( 'z', -0.9999999999999986 );
+				});
+
+				it('invert', function(){
+					var matrix = new Goblin.Matrix4(),
+						vector;
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( 1, 3, 5.5 )
+					);
+					matrix.invert();
+					vector = new Goblin.Vector3( 0, 0, 0 );
+					expect( matrix ).property( 'e03', -1 );
+					expect( matrix ).property( 'e13', -3 );
+					expect( matrix ).property( 'e23', -5.5 );
+					matrix.transformVector3( vector );
+					expect( vector ).property( 'x', -1 );
+					expect( vector ).property( 'y', -3 );
+					expect( vector ).property( 'z', -5.5 );
+
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 1, 0, 0, 1 ),
+						new Goblin.Vector3( 1, 3, 5.5 )
+					);
+					matrix.invert();
+					vector = new Goblin.Vector3( 18, -3, 12 );
+					matrix.transformVector3( vector );
+					expect( vector ).property( 'x', 17 );
+					expect( vector ).property( 'y', 6.500000000000001 );
+					expect( vector ).property( 'z', 6.000000000000003 );
+				});
+
+				it('invertInto', function(){
+					var matrix = new Goblin.Matrix4(),
+						dest = new Goblin.Matrix4(),
+						vector;
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 0, 0, 0, 1 ),
+						new Goblin.Vector3( 1, 3, 5.5 )
+					);
+					matrix.invertInto( dest );
+					vector = new Goblin.Vector3( 0, 0, 0 );
+					expect( dest ).property( 'e03', -1 );
+					expect( dest ).property( 'e13', -3 );
+					expect( dest ).property( 'e23', -5.5 );
+					dest.transformVector3( vector );
+					expect( vector ).property( 'x', -1 );
+					expect( vector ).property( 'y', -3 );
+					expect( vector ).property( 'z', -5.5 );
+
+					matrix.makeTransform(
+						new Goblin.Quaternion( 1, 0, 0, 1 ),
+						new Goblin.Vector3( 1, 3, 5.5 )
+					);
+					matrix.invertInto( dest );
+					vector = new Goblin.Vector3( 18, -3, 12 );
+					dest.transformVector3( vector );
+					expect( vector ).property( 'x', 17 );
+					expect( vector ).property( 'y', 6.500000000000001 );
+					expect( vector ).property( 'z', 6.000000000000003 );
+				});
+			});
+
+			mocha.run();
+		};
+	</script>
+</head>
+
+<body>
+<div id="mocha"></div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 Goblin.RayIntersection = function() {
 	this.object = null;
-	this.point = vec3.create();
+	this.point = new Goblin.Vector3();
 	this.t = null;
-    this.normal = vec3.create();
+    this.normal = new Goblin.Vector3();
 };

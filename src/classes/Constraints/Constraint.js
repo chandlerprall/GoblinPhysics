@@ -9,7 +9,7 @@ Goblin.Constraint = function() {
 
 	this.factor = 1;
 
-	this.last_impulse = vec3.create();
+	this.last_impulse = new Goblin.Vector3();
 
 	this.breaking_threshold = 0;
 

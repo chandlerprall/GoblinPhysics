@@ -6,7 +6,6 @@
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
 	<script type="text/javascript" src="../lib/ConvexGeometry.js"></script>
-	<script type="text/javascript" src="../lib/gl-matrix-min.js"></script>
 	<script type="text/javascript" src="../lib/stats.min.js"></script>
 	<script type="text/javascript" src="../build/goblin.js"></script>
 	<script type="text/javascript" src="js/exampleUtils.js"></script>
@@ -24,14 +23,13 @@
 				var points = [],
 					pointcount = 15 + Math.random() * 20;
 				for ( i = 0; i < pointcount; i++ ) {
-					var point = vec3.createFrom(
+					var point = new Goblin.Vector3(
 						Math.random() * 2 - 1,
 						Math.random() * 2 - 1,
 						Math.random() * 2 - 1
 					);
-					if ( vec3.squaredLength( point ) > 1 ) {
-						vec3.normalize( point );
-						vec3.scale( point, 1 );
+					if ( point.lengthSquared() > 1 ) {
+						point.normalize();
 					}
 					points.push( point );
 				}
@@ -39,8 +37,8 @@
 				var convex = exampleUtils.createConvex( points, 5, convex_material );
 				convex.goblin.restitution = 0;
 				convex.goblin.friction = 0.5;
-				convex.goblin.position[1] = 10;
-				convex.goblin.applyImpulse(vec3.createFrom( 0, -5, 0 ));
+				convex.goblin.position.y = 10;
+				convex.goblin.applyImpulse( new Goblin.Vector3( 0, -5, 0 ) );
 			};
 
 			exampleUtils.world.addListener(
