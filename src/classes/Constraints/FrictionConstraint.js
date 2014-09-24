@@ -113,20 +113,45 @@ Goblin.FrictionConstraint.prototype.update = function() {
 	}
 
 	// Find total velocity between the two bodies along the contact normal
-	var velocity = this.object_a.linear_velocity.dot( this.contact.contact_normal );
-	velocity -= this.object_b.linear_velocity.dot( this.contact.contact_normal );
+	this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
 
-	var avg_mass = 0;
-	if ( this.object_a == null || this.object_a.mass === Infinity ) {
-		avg_mass = this.object_b.mass;
-	} else if ( this.object_b == null || this.object_b.mass === Infinity ) {
-		avg_mass = this.object_a.mass;
+	// Include accumulated forces
+	if ( this.object_a.mass !== Infinity ) {
+		// accumulated linear velocity
+		_tmp_vec3_1.scaleVector( this.object_a.accumulated_force, 1 / this.object_a.mass );
+		_tmp_vec3_1.add( this.object_a.linear_velocity );
+
+		// accumulated angular velocity
+		this.object_a.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_a.accumulated_torque, _tmp_vec3_3 );
+		_tmp_vec3_3.add( this.object_a.angular_velocity );
+
+		_tmp_vec3_3.cross( this.contact.contact_point_in_a );
+		_tmp_vec3_1.add( _tmp_vec3_3 );
+		_tmp_vec3_1.scale( this.object_a.mass );
 	} else {
-		avg_mass = ( this.object_a.mass + this.object_b.mass ) / 2;
+		_tmp_vec3_1.set( 0, 0, 0 );
 	}
 
-	velocity = 1; // @TODO velocity calculation above needs to be total external forces, not the velocity
-	var limit = this.contact.friction * velocity * avg_mass;
+	if ( this.object_b.mass !== Infinity ) {
+		// accumulated linear velocity
+		_tmp_vec3_2.scaleVector( this.object_b.accumulated_force, 1 / this.object_b.mass );
+		_tmp_vec3_2.add( this.object_b.linear_velocity );
+
+		// accumulated angular velocity
+		this.object_b.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_b.accumulated_torque, _tmp_vec3_3 );
+		_tmp_vec3_3.add( this.object_b.angular_velocity );
+
+		_tmp_vec3_3.cross( this.contact.contact_point_in_b );
+		_tmp_vec3_2.add( _tmp_vec3_3 );
+		_tmp_vec3_2.scale( this.object_b.mass );
+	} else {
+		_tmp_vec3_2.set( 0, 0, 0 );
+	}
+
+	_tmp_vec3_1.subtract( _tmp_vec3_2 ); // combine velocities
+	var velocity = _tmp_vec3_1.dot( this.contact.contact_normal ); // how much velocity exists along the contact normal
+
+	var limit = this.contact.friction * velocity * 10;
 	if ( limit < 0 ) {
 		limit = 0;
 	}

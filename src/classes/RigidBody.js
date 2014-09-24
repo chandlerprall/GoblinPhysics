@@ -374,9 +374,13 @@ Goblin.RigidBody.prototype.applyForceAtLocalPoint = function( force, point ) {
 };
 
 Goblin.RigidBody.prototype.getVelocityInLocalPoint = function( point, out ) {
-	out.copy( this.angular_velocity );
-	out.cross( point );
-	out.add( this.linear_velocity );
+	if ( this.mass === Infinity ) {
+		out.set( 0, 0, 0 );
+	} else {
+		out.copy( this.angular_velocity );
+		out.cross( point );
+		out.add( this.linear_velocity );
+	}
 };
 
 /**
