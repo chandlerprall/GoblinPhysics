@@ -146,15 +146,13 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 
 	manifold = contact_manifolds.first;
 
+	// @TODO this seems like it should be very optimizable
 	while( manifold ) {
 		contacts_length = manifold.points.length;
 
 		for ( i = 0; i < contacts_length; i++ ) {
 			contact = manifold.points[i];
 
-			// @TODO this seems like it should be very optimizable
-
-			/** Contact Constraints **/
 			var existing_constraint = null;
 			for ( j = 0; j < this.contact_constraints.length; j++ ) {
 				if ( this.contact_constraints[j].contact === contact ) {
@@ -163,26 +161,14 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 				}
 			}
 
-			// Build contact constraint
 			if ( !existing_constraint ) {
+				// Build contact constraint
 				constraint = Goblin.ObjectPool.getObject( 'ContactConstraint' );
 				constraint.buildFromContact( contact );
 				this.contact_constraints.push( constraint );
 				constraint.addListener( 'deactivate', this.onContactDeactivate );
-			}
 
-
-			/** Friction Constraints **/
-			existing_constraint = null;
-			for ( j = 0; j < this.friction_constraints.length; j++ ) {
-				if ( this.friction_constraints[j].contact === contact ) {
-					existing_constraint = this.friction_constraints[j];
-					break;
-				}
-			}
-
-			// Build friction constraint
-			if ( !existing_constraint ) {
+				// Build friction constraint
 				constraint = Goblin.ObjectPool.getObject( 'FrictionConstraint' );
 				constraint.buildFromContact( contact );
 				this.friction_constraints.push( constraint );

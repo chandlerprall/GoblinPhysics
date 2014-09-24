@@ -207,135 +207,6 @@ Goblin.Matrix3.prototype = {
 		this.e22 = b02 * a20 + b12 * a21 + b22 * a22;
 	}
 };
-
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'0',
-	{
-		get: function() {
-			debugger;
-			return this.e00;
-		},
-		set: function( val ) {
-			debugger;
-			this.e00 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'1',
-	{
-		get: function() {
-			debugger;
-			return this.e10;
-		},
-		set: function( val ) {
-			debugger;
-			this.e10 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'2',
-	{
-		get: function() {
-			debugger;
-			return this.e20;
-		},
-		set: function( val ) {
-			debugger;
-			this.e20 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'3',
-	{
-		get: function() {
-			debugger;
-			return this.e01;
-		},
-		set: function( val ) {
-			debugger;
-			this.e01 = val;
-		}
-	}
-);
-
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'4',
-	{
-		get: function() {
-			debugger;
-			return this.e11;
-		},
-		set: function( val ) {
-			debugger;
-			this.e11 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'5',
-	{
-		get: function() {
-			debugger;
-			return this.e21;
-		},
-		set: function( val ) {
-			debugger;
-			this.e21 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'6',
-	{
-		get: function() {
-			debugger;
-			return this.e02;
-		},
-		set: function( val ) {
-			debugger;
-			this.e02 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'7',
-	{
-		get: function() {
-			debugger;
-			return this.e12;
-		},
-		set: function( val ) {
-			debugger;
-			this.e12 = val;
-		}
-	}
-);
-
-Object.defineProperty(
-	Goblin.Matrix3.prototype,
-	'8',
-	{
-		get: function() {
-			debugger;
-			return this.e22;
-		},
-		set: function( val ) {
-			debugger;
-			this.e22 = val;
-		}
-	}
-);
 Goblin.Matrix4 = function() {
 	this.e00 = 0;
 	this.e01 = 0;
@@ -544,232 +415,6 @@ Goblin.Matrix4.prototype = {
 		m.e33 = (a20 * b03 - a21 * b01 + a22 * b00) * invDet;
 	}
 };
-
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'0',
-	{
-		get: function() {
-			return this.e00;
-		},
-		set: function( val ) {
-			this.e00 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'1',
-	{
-		get: function() {
-			debugger;
-			return this.e10;
-		},
-		set: function( val ) {
-			debugger;
-			this.e10 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'2',
-	{
-		get: function() {
-			debugger;
-			return this.e20;
-		},
-		set: function( val ) {
-			debugger;
-			this.e20 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'3',
-	{
-		get: function() {
-			debugger;
-			return this.e30;
-		},
-		set: function( val ) {
-			debugger;
-			this.e30 = val;
-		}
-	}
-);
-
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'4',
-	{
-		get: function() {
-			debugger;
-			return this.e01;
-		},
-		set: function( val ) {
-			debugger;
-			this.e01 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'5',
-	{
-		get: function() {
-			debugger;
-			return this.e11;
-		},
-		set: function( val ) {
-			debugger;
-			this.e11 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'6',
-	{
-		get: function() {
-			debugger;
-			return this.e21;
-		},
-		set: function( val ) {
-			debugger;
-			this.e21 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'7',
-	{
-		get: function() {
-			debugger;
-			return this.e31;
-		},
-		set: function( val ) {
-			debugger;
-			this.e31 = val;
-		}
-	}
-);
-
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'8',
-	{
-		get: function() {
-			debugger;
-			return this.e02;
-		},
-		set: function( val ) {
-			debugger;
-			this.e02 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'9',
-	{
-		get: function() {
-			debugger;
-			return this.e12;
-		},
-		set: function( val ) {
-			debugger;
-			this.e12 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'10',
-	{
-		get: function() {
-			debugger;
-			return this.e22;
-		},
-		set: function( val ) {
-			debugger;
-			this.e22 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'11',
-	{
-		get: function() {
-			debugger;
-			return this.e32;
-		},
-		set: function( val ) {
-			debugger;
-			this.e32 = val;
-		}
-	}
-);
-
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'12',
-	{
-		get: function() {
-			debugger;
-			return this.e03;
-		},
-		set: function( val ) {
-			debugger;
-			this.e03 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'13',
-	{
-		get: function() {
-			debugger;
-			return this.e13;
-		},
-		set: function( val ) {
-			debugger;
-			this.e13 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'14',
-	{
-		get: function() {
-			debugger;
-			return this.e23;
-		},
-		set: function( val ) {
-			debugger;
-			this.e23 = val;
-		}
-	}
-);
-Object.defineProperty(
-	Goblin.Matrix4.prototype,
-	'15',
-	{
-		get: function() {
-			debugger;
-			return this.e33;
-		},
-		set: function( val ) {
-			debugger;
-			this.e33 = val;
-		}
-	}
-);
 Goblin.Quaternion = function( x, y, z, w ) {
 	this.x = x || 0;
 	this.y = y || 0;
@@ -3585,15 +3230,13 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 
 	manifold = contact_manifolds.first;
 
+	// @TODO this seems like it should be very optimizable
 	while( manifold ) {
 		contacts_length = manifold.points.length;
 
 		for ( i = 0; i < contacts_length; i++ ) {
 			contact = manifold.points[i];
 
-			// @TODO this seems like it should be very optimizable
-
-			/** Contact Constraints **/
 			var existing_constraint = null;
 			for ( j = 0; j < this.contact_constraints.length; j++ ) {
 				if ( this.contact_constraints[j].contact === contact ) {
@@ -3602,26 +3245,14 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 				}
 			}
 
-			// Build contact constraint
 			if ( !existing_constraint ) {
+				// Build contact constraint
 				constraint = Goblin.ObjectPool.getObject( 'ContactConstraint' );
 				constraint.buildFromContact( contact );
 				this.contact_constraints.push( constraint );
 				constraint.addListener( 'deactivate', this.onContactDeactivate );
-			}
 
-
-			/** Friction Constraints **/
-			existing_constraint = null;
-			for ( j = 0; j < this.friction_constraints.length; j++ ) {
-				if ( this.friction_constraints[j].contact === contact ) {
-					existing_constraint = this.friction_constraints[j];
-					break;
-				}
-			}
-
-			// Build friction constraint
-			if ( !existing_constraint ) {
+				// Build friction constraint
 				constraint = Goblin.ObjectPool.getObject( 'FrictionConstraint' );
 				constraint.buildFromContact( contact );
 				this.friction_constraints.push( constraint );
