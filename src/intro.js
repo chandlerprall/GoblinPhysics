@@ -3,5 +3,5 @@
 *
 * @module Goblin
 */
-window.Goblin = (function(){
+(function(){
 	var Goblin = {};

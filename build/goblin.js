@@ -3,7 +3,7 @@
 *
 * @module Goblin
 */
-window.Goblin = (function(){
+(function(){
 	var Goblin = {};
 Goblin.Matrix3 = function( e00, e01, e02, e10, e11, e12, e20, e21, e22 ) {
 	this.e00 = e00 || 0;
@@ -6341,5 +6341,6 @@ Goblin.World.prototype.rayIntersect = (function(){
 		return intersections;
 	};
 })();
-	return Goblin;
+	if ( typeof window !== 'undefined' ) window.Goblin = Goblin;
+	if ( typeof module !== 'undefined' ) module.exports = Goblin;
 })();
