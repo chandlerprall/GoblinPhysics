@@ -19,7 +19,7 @@ Examples
 Features
 --------
 * Rigid body simulation
-* Sphere, Box, Cone, Cylinder, Plane, and Compound shapes
+* Sphere, Box, Cone, Cylinder, Plane, Convex, and Compound shapes
 * Weld, Slider, and Revolute constraints
 * Basic event callback system
 * Ray tracing
@@ -32,13 +32,7 @@ See `Building` below for how to generate documentation. Hosted version available
 
 Roadmap
 -------
-**Planned for v0.6**
-* node.js compatibilty + npm module
-* velocity damping / factors
-* convex hulls
-
 **Non-exhaustive list of planned features**
-* Convex hull shape
 * Sweep & Prune broad phase
 * More event callbacks
 * More constraints
@@ -65,4 +59,4 @@ Building
 
 License
 -------
-GoblinPhysics is distributed under the [zlib license](https://github.com/chandlerprall/GoblinPhysics/blob/master/LICENSE). This means you can use the library to do whatever you want, free of charge, with or without giving attribution (although attribution is always appreciated). There is a current dependency on [gl-matrix](https://github.com/toji/gl-matrix) which is also under the zlib license. [Three.js](https://github.com/mrdoob/three.js/) and [Stats.js](https://github.com/mrdoob/stats.js), used in GoblinPhysics' examples and tests, is distributed under the MIT license which requires attribution if used.
+GoblinPhysics is distributed under the [zlib license](https://github.com/chandlerprall/GoblinPhysics/blob/master/LICENSE). This means you can use the library to do whatever you want, free of charge, with or without giving attribution (although attribution is always appreciated). [Three.js](https://github.com/mrdoob/three.js/) and [Stats.js](https://github.com/mrdoob/stats.js), used in GoblinPhysics' examples and tests, is distributed under the MIT license which requires attribution if used.
