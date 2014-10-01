@@ -163,12 +163,13 @@ Goblin.GjkEpa2 = {
 
 					Goblin.GeometryMethods.findBarycentricCoordinates( polyhedron.closest_point, polyhedron.faces[polyhedron.closest_face].a.point, polyhedron.faces[polyhedron.closest_face].b.point, polyhedron.faces[polyhedron.closest_face].c.point, barycentric );
 
-					/*if ( isNaN( barycentric.x ) ) {
+					if ( isNaN( barycentric.x ) ) {
                         // @TODO: Avoid this degenerate case
 						//console.log( 'Point not in triangle' );
+						//debugger;
 						Goblin.GjkEpa2.freePolyhedron( polyhedron );
 						return null;
-					}*/
+					}
 
 					// Contact coordinates of object a
 					confirm.a.scaleVector( polyhedron.faces[polyhedron.closest_face].a.witness_a, barycentric.x );
@@ -437,10 +438,10 @@ Goblin.GjkEpa2.Face.prototype = {
 
 						Goblin.GeometryMethods.findBarycentricCoordinates( _tmp_vec3_1, this.points[0].point, this.points[1].point, this.points[2].point, barycentric );
 
-						//if ( isNaN( barycentric.x ) ) {
-							//return false;
+						if ( isNaN( barycentric.x ) ) {
 							//debugger;
-						//}
+							return false;
+						}
 
 						// Contact coordinates of object a
 						confirm.a.scaleVector( this.points[0].witness_a, barycentric.x );
