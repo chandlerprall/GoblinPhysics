@@ -5,6 +5,9 @@
  * @static
  */
 Goblin.GjkEpa2 = {
+	margins: 0.03,
+	result: null,
+
     max_iterations: 20,
     epa_condition: 0.001,
 
@@ -45,6 +48,15 @@ Goblin.GjkEpa2 = {
         };
     })(),
 
+	testCollision: function( object_a, object_b ) {
+		var simplex = Goblin.GjkEpa2.GJK( object_a, object_b );
+		if ( Goblin.GjkEpa2.result != null ) {
+			return Goblin.GjkEpa2.result;
+		} else if ( simplex != null ) {
+			return Goblin.GjkEpa2.EPA( simplex );
+		}
+	},
+
     /**
      * Perform GJK algorithm against two objects. Returns a ContactDetails object if there is a collision, else null
      *
@@ -57,6 +69,8 @@ Goblin.GjkEpa2 = {
         return function( object_a, object_b ) {
             var simplex = new Goblin.GjkEpa2.Simplex( object_a, object_b ),
                 last_point;
+
+			Goblin.GjkEpa2.result = null;
 
             while ( ( last_point = simplex.addPoint() ) ){}
 
@@ -180,7 +194,7 @@ Goblin.GjkEpa2 = {
 					contact.object_b.transform_inverse.transformVector3( contact.contact_point_in_b );
 
 					// Calculate penetration depth
-					contact.penetration_depth = polyhedron.closest_point.length();
+					contact.penetration_depth = polyhedron.closest_point.length() + Goblin.GjkEpa2.margins;
 
 					contact.restitution = ( simplex.object_a.restitution + simplex.object_b.restitution ) / 2;
 					contact.friction = ( simplex.object_a.friction + simplex.object_b.friction ) / 2;
@@ -363,7 +377,8 @@ Goblin.GjkEpa2.Face.prototype = {
 };
 
 (function(){
-    var ao = new Goblin.Vector3(),
+    var origin = new Goblin.Vector3(),
+		ao = new Goblin.Vector3(),
         ab = new Goblin.Vector3(),
         ac = new Goblin.Vector3(),
         ad = new Goblin.Vector3();
@@ -386,12 +401,82 @@ Goblin.GjkEpa2.Face.prototype = {
             Goblin.GjkEpa2.findSupportPoint( this.object_a, this.object_b, this.next_direction, support_point );
             this.points.push( support_point );
 
-            if ( this.points[this.points.length-1].point.dot( this.next_direction ) < 0 ) {
-                // if the last added point was not past the origin in the direction
-                // then the Minkowski difference cannot contain the origin because
-                // point added is past the edge of the Minkowski difference
-                return false;
-            }
+			if ( support_point.point.dot( this.next_direction ) < 0 && this.points.length > 1 ) {
+				// Check the margins first
+				// @TODO this can be expanded to support 1-simplex (2 points)
+				if ( this.points.length >= 3 ) {
+					Goblin.GeometryMethods.findClosestPointInTriangle(
+						origin,
+						this.points[0].point,
+						this.points[1].point,
+						this.points[2].point,
+						_tmp_vec3_1
+					);
+					var distanceSquared = _tmp_vec3_1.lengthSquared();
+
+					if ( distanceSquared <= Goblin.GjkEpa2.margins * Goblin.GjkEpa2.margins ) {
+						// Get a ContactDetails object and fill out its details
+						var contact = Goblin.ObjectPool.getObject( 'ContactDetails' );
+						contact.object_a = this.object_a;
+						contact.object_b = this.object_b;
+
+						contact.contact_normal.normalizeVector( _tmp_vec3_1 );
+						if ( contact.contact_normal.lengthSquared() === 0 ) {
+							contact.contact_normal.subtractVectors( contact.object_b.position, contact.object_a.position );
+						}
+						contact.contact_normal.normalize();
+						contact.contact_normal.scale( -1 );
+
+						contact.penetration_depth = Goblin.GjkEpa2.margins - Math.sqrt( distanceSquared );
+
+						var confirm = {
+							a: new Goblin.Vector3(),
+							b: new Goblin.Vector3(),
+							c: new Goblin.Vector3()
+						};
+
+						var barycentric = new Goblin.Vector3();
+						Goblin.GeometryMethods.findBarycentricCoordinates( _tmp_vec3_1, this.points[0].point, this.points[1].point, this.points[2].point, barycentric );
+
+						if ( isNaN( barycentric.x ) ) {
+							//return false;
+							debugger;
+						}
+
+						// Contact coordinates of object a
+						confirm.a.scaleVector( this.points[0].witness_a, barycentric.x );
+						confirm.b.scaleVector( this.points[1].witness_a, barycentric.y );
+						confirm.c.scaleVector( this.points[2].witness_a, barycentric.z );
+						contact.contact_point_in_a.addVectors( confirm.a, confirm.b );
+						contact.contact_point_in_a.add( confirm.c );
+
+						// Contact coordinates of object b
+						contact.contact_point_in_b.scaleVector( contact.contact_normal, -contact.penetration_depth );
+						contact.contact_point_in_b.add( contact.contact_point_in_a );
+
+						// Find actual contact point
+						contact.contact_point.addVectors( contact.contact_point_in_a, contact.contact_point_in_b );
+						contact.contact_point.scale( 0.5  );
+
+						// Set objects' local points
+						contact.object_a.transform_inverse.transformVector3( contact.contact_point_in_a );
+						contact.object_b.transform_inverse.transformVector3( contact.contact_point_in_b );
+
+						contact.restitution = ( this.object_a.restitution + this.object_b.restitution ) / 2;
+						contact.friction = ( this.object_a.friction + this.object_b.friction ) / 2;
+
+						//Goblin.GjkEpa2.freePolyhedron( polyhedron );
+
+						Goblin.GjkEpa2.result = contact;
+						return null;
+					}
+				}
+
+				// if the last added point was not past the origin in the direction
+				// then the Minkowski difference cannot contain the origin because
+				// point added is past the edge of the Minkowski difference
+				return false;
+			}
 
             if ( this.updateDirection() === true ) {
                 // Found a collision

@@ -129,8 +129,14 @@ Goblin.NearPhase.prototype.getContact = function( object_a, object_b ) {
 		contact = Goblin.BoxSphere( object_a, object_b );
 	} else {
 		// contact check based on GJK
-		if ( (contact = Goblin.GjkEpa2.GJK( object_a, object_b )) != null ) {
+		/*if ( (contact = Goblin.GjkEpa2.GJK( object_a, object_b )) != null ) {
 			contact = Goblin.GjkEpa2.EPA( contact );
+		}*/
+		var simplex = Goblin.GjkEpa2.GJK( object_a, object_b );
+		if ( Goblin.GjkEpa2.result != null ) {
+			contact = Goblin.GjkEpa2.result;
+		} else if ( simplex != null ) {
+			contact = Goblin.GjkEpa2.EPA( simplex );
 		}
 	}
 

@@ -12,6 +12,8 @@
 	<script type="text/javascript">
 		window.onload = function() {
 			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			// Some solver tweaking to optimize performance by removing some stability
 			exampleUtils.world.solver.warmstarting_factor = 1;
 			exampleUtils.world.solver.sor_weight = 0.8;
 			exampleUtils.world.solver.max_iterations = 1;
@@ -26,7 +28,8 @@
 			for ( i = 0; i < size; i++ ) {
 				for ( j = 0; j < size - i; j++ ) {
 					for ( k = 0; k < size - i; k++ ) {
-						box = exampleUtils.createBox( 1, 1, 1, 5, box_material );
+						box = exampleUtils.createBox( 1, 1, 1, 1, box_material );
+						box.goblin.friction = 2.5; // Higher than normal friction is required because of all the conflicting forces along the Y axis
 						box.goblin.position.x = 2 * j * 1.3 - size + i * 1.2;
 						box.goblin.position.y = i * 2.2 + 1;
 						box.goblin.position.z = 2 * k * 1.3 - size + i * 1.2;
