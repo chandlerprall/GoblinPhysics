@@ -34,14 +34,13 @@
 					sphere2.goblin.updateDerived();
 
 					// Set expected values
-					var pendepth = 0;
+					var pendepth = 0.03;
 					var contact_normal = new Goblin.Vector3( 0, -1, 0 );
 					var contact_point = new Goblin.Vector3( 0, 0, 0 );
 
-                    var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
-                        contact = Goblin.GjkEpa2.EPA( simplex );
+	                var contact = Goblin.GjkEpa2.testCollision( sphere1.goblin, sphere2.goblin );
 
-					it('Penetration Depth', function(){
+	                it('Penetration Depth', function(){
 						return assert( testUtils.withinEpsilon( pendepth, contact.penetration_depth ) );
 					});
 
@@ -63,12 +62,11 @@
 					sphere2.goblin.updateDerived();
 
 					// Set expected values
-					var pendepth = 0.48;
+					var pendepth = 0.52;
 					var contact_normal = new Goblin.Vector3( 0.2, -0.97, 0 );
 					var contact_point = new Goblin.Vector3( 0, -0.25, 0 );
 
-					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
-						contact = Goblin.GjkEpa2.EPA( simplex );
+					var contact = Goblin.GjkEpa2.testCollision( sphere1.goblin, sphere2.goblin );
 
 					it('Penetration Depth', function(){
 						return assert( testUtils.withinEpsilon( pendepth, contact.penetration_depth ) );
@@ -93,12 +91,11 @@
 					sphere2.goblin.updateDerived();
 
 					// Set expected values
-					var pendepth = 0.48;
+					var pendepth = 0.52;
 					var contact_normal = new Goblin.Vector3( 0.1486, -0.98, -0.1486 );
 					var contact_point = new Goblin.Vector3( -2, 0.25, 0 );
 
-					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
-						contact = Goblin.GjkEpa2.EPA( simplex );
+					var contact = Goblin.GjkEpa2.testCollision( sphere1.goblin, sphere2.goblin );
 
 					it('Penetration Depth', function(){
 						return assert( testUtils.withinEpsilon( pendepth, contact.penetration_depth ) );
@@ -123,12 +120,11 @@
 					sphere2.goblin.updateDerived();
 
 					// Set expected values
-					var pendepth = 0.48;
+					var pendepth = 0.52;
 					var contact_normal = new Goblin.Vector3( -0.1486, -0.98, 0.1486 );
 					var contact_point = new Goblin.Vector3( -2, 0, 0 );
 
-					var simplex = Goblin.GjkEpa2.GJK( sphere1.goblin, sphere2.goblin ),
-						contact = Goblin.GjkEpa2.EPA( simplex );
+					var contact = Goblin.GjkEpa2.testCollision( sphere1.goblin, sphere2.goblin );
 
 					it('Penetration Depth', function(){
 						return assert( testUtils.withinEpsilon( pendepth, contact.penetration_depth ) );
