@@ -131,6 +131,18 @@ Goblin.RigidBody = (function() {
 		this.friction = 0.5;
 
 		/**
+		 * bitmask indicating what collision groups this object belongs to
+		 * @type {number}
+		 */
+		this.collision_groups = 0;
+
+		/**
+		 * collision groups mask for the object, specifying what groups to not collide with (BIT 1=0) or which groups to only collide with (Bit 1=1)
+		 * @type {number}
+		 */
+		this.collision_mask = 0;
+
+		/**
 		 * the rigid body's custom gravity
 		 *
 		 * @property gravity

@@ -909,6 +909,36 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				continue;
 			}
 
+			// Check collision masks
+			if ( object_a.collision_mask !== 0 ) {
+				//debugger;
+				if ( ( object_a.collision_mask & 1 ) === 0 ) {
+					// object_b must not be in a matching group
+					if ( ( object_a.collision_mask & object_b.collision_groups ) !== 0 ) {
+						continue;
+					}
+				} else {
+					// object_b must be in a matching group
+					if ( ( object_a.collision_mask & object_b.collision_groups ) === 0 ) {
+						continue;
+					}
+				}
+			}
+			if ( object_b.collision_mask !== 0 ) {
+				//debugger;
+				if ( ( object_b.collision_mask & 1 ) === 0 ) {
+					// object_a must not be in a matching group
+					if ( ( object_b.collision_mask & object_a.collision_groups ) !== 0 ) {
+						continue;
+					}
+				} else {
+					// object_a must be in a matching group
+					if ( ( object_b.collision_mask & object_a.collision_groups ) === 0 ) {
+						continue;
+					}
+				}
+			}
+
             if ( object_a.aabb.intersects( object_b.aabb ) )
             {
 				this.collision_pairs.push([ object_a, object_b ]);
@@ -4108,6 +4138,18 @@ Goblin.RigidBody = (function() {
 		 * @default 0.5
 		 */
 		this.friction = 0.5;
+
+		/**
+		 * bitmask indicating what collision groups this object belongs to
+		 * @type {number}
+		 */
+		this.collision_groups = 0;
+
+		/**
+		 * collision groups mask for the object, specifying what groups to not collide with (BIT 1=0) or which groups to only collide with (Bit 1=1)
+		 * @type {number}
+		 */
+		this.collision_mask = 0;
 
 		/**
 		 * the rigid body's custom gravity

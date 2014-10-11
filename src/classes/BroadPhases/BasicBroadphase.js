@@ -82,6 +82,36 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				continue;
 			}
 
+			// Check collision masks
+			if ( object_a.collision_mask !== 0 ) {
+				//debugger;
+				if ( ( object_a.collision_mask & 1 ) === 0 ) {
+					// object_b must not be in a matching group
+					if ( ( object_a.collision_mask & object_b.collision_groups ) !== 0 ) {
+						continue;
+					}
+				} else {
+					// object_b must be in a matching group
+					if ( ( object_a.collision_mask & object_b.collision_groups ) === 0 ) {
+						continue;
+					}
+				}
+			}
+			if ( object_b.collision_mask !== 0 ) {
+				//debugger;
+				if ( ( object_b.collision_mask & 1 ) === 0 ) {
+					// object_a must not be in a matching group
+					if ( ( object_b.collision_mask & object_a.collision_groups ) !== 0 ) {
+						continue;
+					}
+				} else {
+					// object_a must be in a matching group
+					if ( ( object_b.collision_mask & object_a.collision_groups ) === 0 ) {
+						continue;
+					}
+				}
+			}
+
             if ( object_a.aabb.intersects( object_b.aabb ) )
             {
 				this.collision_pairs.push([ object_a, object_b ]);
