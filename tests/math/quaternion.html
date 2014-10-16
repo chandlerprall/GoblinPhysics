@@ -20,7 +20,7 @@
 					expect( quaternion ).property( 'x', 0 );
 					expect( quaternion ).property( 'y', 0 );
 					expect( quaternion ).property( 'z', 0 );
-					expect( quaternion ).property( 'w', 0 );
+					expect( quaternion ).property( 'w', 1 );
 				});
 
 				it('Instantiate with values', function(){
@@ -75,7 +75,7 @@
 					expect( quaternion ).property( 'x', 0 );
 					expect( quaternion ).property( 'y', 0 );
 					expect( quaternion ).property( 'z', 0 );
-					expect( quaternion ).property( 'w', 0 );
+					expect( quaternion ).property( 'w', 1 );
 
 					quaternion = new Goblin.Quaternion( 1, 0, 0, 1 );
 					quaternion.normalize();
@@ -100,7 +100,7 @@
 					expect( q2 ).property( 'x', 0 );
 					expect( q2 ).property( 'y', 0 );
 					expect( q2 ).property( 'z', 0 );
-					expect( q2 ).property( 'w', 0 );
+					expect( q2 ).property( 'w', 1 );
 
 					q1 = new Goblin.Quaternion( 1, 0, 0, 1 );
 					q2.invertQuaternion( q1 );
