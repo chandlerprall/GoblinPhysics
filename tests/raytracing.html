@@ -514,7 +514,7 @@
 						compound_body.rotation = new Goblin.Quaternion( 0, 1, 0, 0 ); // Rotated 180 degrees around Y axis
 						compound_body.updateDerived();
 						compound_body.rayIntersect( start, stop, intersection_list );
-
+						
 						return assert( testUtils.withinEpsilon( intersection_list[0].point.distanceTo( expected ), 0 ) );
 					});
 

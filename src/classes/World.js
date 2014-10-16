@@ -230,15 +230,7 @@ Goblin.World.prototype.removeConstraint = function( constraint ) {
 	this.solver.removeConstraint( constraint );
 };
 
-/**
- * Checks if a ray segment intersects with objects in the world
- *
- * @method rayIntersect
- * @property start {vec3} start point of the segment
- * @property end {vec3{ end point of the segment
- * @return {Array<RayIntersection>} an array of intersections, sorted by distance from `start`
- */
-Goblin.World.prototype.rayIntersect = (function(){
+(function(){
 	var tSort = function( a, b ) {
 		if ( a.t < b.t ) {
 			return -1;
@@ -248,8 +240,48 @@ Goblin.World.prototype.rayIntersect = (function(){
 			return 0;
 		}
 	};
-	return function( start, end ) {
+
+	/**
+	 * Checks if a ray segment intersects with objects in the world
+	 *
+	 * @method rayIntersect
+	 * @property start {vec3} start point of the segment
+	 * @property end {vec3{ end point of the segment
+	 * @return {Array<RayIntersection>} an array of intersections, sorted by distance from `start`
+	 */
+	Goblin.World.prototype.rayIntersect = function( start, end ) {
 		var intersections = this.broadphase.rayIntersect( start, end );
+		intersections.sort( tSort );
+		return intersections;
+	};
+
+	Goblin.World.prototype.shapeIntersect = function( shape, start, end ){
+		var swept_shape = new Goblin.LineSweptShape( start, end, shape ),
+			swept_body = new Goblin.RigidBody( swept_shape, 0 );
+		swept_body.updateDerived();
+
+		var possibilities = this.broadphase.intersectsWith( swept_body ),
+			intersections = [];
+
+		for ( var i = 0; i < possibilities.length; i++ ) {
+			var contact = this.nearphase.getContact( swept_body, possibilities[i] );
+			console.log( contact );
+			if ( contact != null ) {
+				var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+				intersection.object = contact.object_b;
+				intersection.normal.copy( contact.contact_normal );
+
+				// compute point
+				intersection.point.scaleVector( contact.contact_normal, -contact.penetration_depth );
+				intersection.point.add( contact.contact_point );
+
+				// compute time
+				intersection.t = intersection.point.distanceTo( start );
+
+				intersections.push( intersection );
+			}
+		}
+
 		intersections.sort( tSort );
 		return intersections;
 	};

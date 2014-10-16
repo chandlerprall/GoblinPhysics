@@ -416,10 +416,10 @@ Goblin.Matrix4.prototype = {
 	}
 };
 Goblin.Quaternion = function( x, y, z, w ) {
-	this.x = x || 0;
-	this.y = y || 0;
-	this.z = z || 0;
-	this.w = w || 0;
+	this.x = x != null ? x : 0;
+	this.y = y != null ? y : 0;
+	this.z = z != null ? z : 0;
+	this.w = w != null ? w : 1;
 	this.normalize();
 };
 
@@ -911,7 +911,6 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 
 			// Check collision masks
 			if ( object_a.collision_mask !== 0 ) {
-				//debugger;
 				if ( ( object_a.collision_mask & 1 ) === 0 ) {
 					// object_b must not be in a matching group
 					if ( ( object_a.collision_mask & object_b.collision_groups ) !== 0 ) {
@@ -925,7 +924,6 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				}
 			}
 			if ( object_b.collision_mask !== 0 ) {
-				//debugger;
 				if ( ( object_b.collision_mask & 1 ) === 0 ) {
 					// object_a must not be in a matching group
 					if ( ( object_b.collision_mask & object_a.collision_groups ) !== 0 ) {
@@ -939,12 +937,51 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				}
 			}
 
-            if ( object_a.aabb.intersects( object_b.aabb ) )
-            {
-				this.collision_pairs.push([ object_a, object_b ]);
+			if ( this.mightIntersect( object_a, object_b ) ) {
+				this.collision_pairs.push( [ object_a, object_b ] );
 			}
 		}
 	}
+};
+
+/**
+ * Returns an of objects the given body may be colliding with
+ *
+ * @method intersectsWith
+ * @param object_a {RigidBody}
+ * @return Array<RigidBody>
+ */
+Goblin.BasicBroadphase.prototype.intersectsWith = function( object_a ) {
+	var i, object_b,
+		bodies_count = this.bodies.length,
+		intersections = [];
+
+	// Loop over all collision objects and check for overlapping boundary spheres
+	for ( i = 0; i < bodies_count; i++ ) {
+		object_b = this.bodies[i];
+
+		if ( object_a === object_b ) {
+			continue;
+		}
+
+		if ( this.mightIntersect( object_a, object_b ) ) {
+			intersections.push( object_b );
+		}
+	}
+
+	return intersections;
+};
+
+/**
+ * Determines whether two objects may be colliding
+ *
+ * @method mightIntersect
+ * @param object_a {RigidBody}
+ * @param object_b {RigidBody}
+ * @returns {Boolean}
+ */
+Goblin.BasicBroadphase.prototype.mightIntersect = function( object_a, object_b ) {
+	return object_a.aabb.intersects( object_b.aabb );
 };
 
 /**
@@ -6056,6 +6093,122 @@ Goblin.SphereShape.prototype.rayIntersect = (function(){
 	};
 })();
 /**
+ * Extends a given shape by sweeping a line around it
+ *
+ * @class LineSweptShape
+ * @param start {Vector3} starting point of the line
+ * @param end {Vector3} line's end point
+ * @param shape any Goblin shape object
+ * @constructor
+ */
+Goblin.LineSweptShape = function( start, end, shape ) {
+	/**
+	 * starting point of the line
+	 *
+	 * @property start
+	 * @type {Vector3}
+	 */
+	this.start = start;
+
+	/**
+	 * line's end point
+	 *
+	 * @property end
+	 * @type {Vector3}
+	 */
+	this.end = end;
+
+	/**
+	 * shape being swept
+	 *
+	 * @property shape
+	 */
+	this.shape = shape;
+
+	/**
+	 * unit direction of the line
+	 *
+	 * @property direction
+	 * @type {Vector3}
+	 */
+	this.direction = new Goblin.Vector3();
+	this.direction.subtractVectors( end, start );
+
+	/**
+	 * length of the line
+	 *
+	 * @property length
+	 * @type {Number}
+	 */
+	this.length = this.direction.length();
+	this.direction.normalize();
+
+	/**
+	 * axis-aligned bounding box of this shape
+	 *
+	 * @property aabb
+	 * @type {AABB}
+	 */
+	this.aabb = new Goblin.AABB();
+	this.calculateLocalAABB( this.aabb );
+};
+
+/**
+ * Calculates this shape's local AABB and stores it in the passed AABB object
+ *
+ * @method calculateLocalAABB
+ * @param aabb {AABB}
+ */
+Goblin.LineSweptShape.prototype.calculateLocalAABB = function( aabb ) {
+	this.shape.calculateLocalAABB( aabb );
+
+	aabb.min.x = Math.min( aabb.min.x + this.start.x, aabb.min.x + this.end.x );
+	aabb.min.y = Math.min( aabb.min.y + this.start.y, aabb.min.y + this.end.y );
+	aabb.min.z = Math.min( aabb.min.z + this.start.z, aabb.min.z + this.end.z );
+
+	aabb.max.x = Math.max( aabb.max.x + this.start.x, aabb.max.x + this.end.x );
+	aabb.max.y = Math.max( aabb.max.y + this.start.y, aabb.max.y + this.end.y );
+	aabb.max.z = Math.max( aabb.max.z + this.start.z, aabb.max.z + this.end.z );
+};
+
+Goblin.LineSweptShape.prototype.getInertiaTensor = function( mass ) {
+	// this is wrong, but currently not used for anything
+	return this.shape.getInertiaTensor( mass );
+};
+
+/**
+ * Given `direction`, find the point in this body which is the most extreme in that direction.
+ * This support point is calculated in world coordinates and stored in the second parameter `support_point`
+ *
+ * @method findSupportPoint
+ * @param direction {vec3} direction to use in finding the support point
+ * @param support_point {vec3} vec3 variable which will contain the supporting point after calling this method
+ */
+Goblin.LineSweptShape.prototype.findSupportPoint = function( direction, support_point ) {
+	this.shape.findSupportPoint( direction, support_point );
+
+	// Add whichever point of this line lies in `direction`
+	var dot = this.direction.dot( direction );
+
+	if ( dot < 0 ) {
+		support_point.add( this.start );
+	} else {
+		support_point.add( this.end );
+	}
+};
+
+/**
+ * Checks if a ray segment intersects with the shape
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3} end point of the segment
+ * @return {RayIntersection|null} if the segment intersects, a RayIntersection is returned, else `null`
+ */
+Goblin.LineSweptShape.prototype.rayIntersect = function(){
+	return null;
+};
+/**
  * Provides methods useful for working with various types of geometries
  *
  * @class GeometryMethods
@@ -6450,15 +6603,7 @@ Goblin.World.prototype.removeConstraint = function( constraint ) {
 	this.solver.removeConstraint( constraint );
 };
 
-/**
- * Checks if a ray segment intersects with objects in the world
- *
- * @method rayIntersect
- * @property start {vec3} start point of the segment
- * @property end {vec3{ end point of the segment
- * @return {Array<RayIntersection>} an array of intersections, sorted by distance from `start`
- */
-Goblin.World.prototype.rayIntersect = (function(){
+(function(){
 	var tSort = function( a, b ) {
 		if ( a.t < b.t ) {
 			return -1;
@@ -6468,8 +6613,48 @@ Goblin.World.prototype.rayIntersect = (function(){
 			return 0;
 		}
 	};
-	return function( start, end ) {
+
+	/**
+	 * Checks if a ray segment intersects with objects in the world
+	 *
+	 * @method rayIntersect
+	 * @property start {vec3} start point of the segment
+	 * @property end {vec3{ end point of the segment
+	 * @return {Array<RayIntersection>} an array of intersections, sorted by distance from `start`
+	 */
+	Goblin.World.prototype.rayIntersect = function( start, end ) {
 		var intersections = this.broadphase.rayIntersect( start, end );
+		intersections.sort( tSort );
+		return intersections;
+	};
+
+	Goblin.World.prototype.shapeIntersect = function( shape, start, end ){
+		var swept_shape = new Goblin.LineSweptShape( start, end, shape ),
+			swept_body = new Goblin.RigidBody( swept_shape, 0 );
+		swept_body.updateDerived();
+
+		var possibilities = this.broadphase.intersectsWith( swept_body ),
+			intersections = [];
+
+		for ( var i = 0; i < possibilities.length; i++ ) {
+			var contact = this.nearphase.getContact( swept_body, possibilities[i] );
+			console.log( contact );
+			if ( contact != null ) {
+				var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
+				intersection.object = contact.object_b;
+				intersection.normal.copy( contact.contact_normal );
+
+				// compute point
+				intersection.point.scaleVector( contact.contact_normal, -contact.penetration_depth );
+				intersection.point.add( contact.contact_point );
+
+				// compute time
+				intersection.t = intersection.point.distanceTo( start );
+
+				intersections.push( intersection );
+			}
+		}
+
 		intersections.sort( tSort );
 		return intersections;
 	};

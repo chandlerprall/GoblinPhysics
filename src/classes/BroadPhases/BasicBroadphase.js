@@ -84,7 +84,6 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 
 			// Check collision masks
 			if ( object_a.collision_mask !== 0 ) {
-				//debugger;
 				if ( ( object_a.collision_mask & 1 ) === 0 ) {
 					// object_b must not be in a matching group
 					if ( ( object_a.collision_mask & object_b.collision_groups ) !== 0 ) {
@@ -98,7 +97,6 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				}
 			}
 			if ( object_b.collision_mask !== 0 ) {
-				//debugger;
 				if ( ( object_b.collision_mask & 1 ) === 0 ) {
 					// object_a must not be in a matching group
 					if ( ( object_b.collision_mask & object_a.collision_groups ) !== 0 ) {
@@ -112,12 +110,51 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				}
 			}
 
-            if ( object_a.aabb.intersects( object_b.aabb ) )
-            {
-				this.collision_pairs.push([ object_a, object_b ]);
+			if ( this.mightIntersect( object_a, object_b ) ) {
+				this.collision_pairs.push( [ object_a, object_b ] );
 			}
 		}
 	}
+};
+
+/**
+ * Returns an of objects the given body may be colliding with
+ *
+ * @method intersectsWith
+ * @param object_a {RigidBody}
+ * @return Array<RigidBody>
+ */
+Goblin.BasicBroadphase.prototype.intersectsWith = function( object_a ) {
+	var i, object_b,
+		bodies_count = this.bodies.length,
+		intersections = [];
+
+	// Loop over all collision objects and check for overlapping boundary spheres
+	for ( i = 0; i < bodies_count; i++ ) {
+		object_b = this.bodies[i];
+
+		if ( object_a === object_b ) {
+			continue;
+		}
+
+		if ( this.mightIntersect( object_a, object_b ) ) {
+			intersections.push( object_b );
+		}
+	}
+
+	return intersections;
+};
+
+/**
+ * Determines whether two objects may be colliding
+ *
+ * @method mightIntersect
+ * @param object_a {RigidBody}
+ * @param object_b {RigidBody}
+ * @returns {Boolean}
+ */
+Goblin.BasicBroadphase.prototype.mightIntersect = function( object_a, object_b ) {
+	return object_a.aabb.intersects( object_b.aabb );
 };
 
 /**

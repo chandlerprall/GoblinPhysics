@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Swept Shapes | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="css/mocha.css"/>
+	<script type="text/javascript" src="js/chai.js"></script>
+	<script type="text/javascript" src="js/mocha.js"></script>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/ConvexGeometry.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/testUtils.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var expect = chai.expect;
+		window.onload = function() {
+			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+			testUtils.render();
+
+			describe('Line Sweeping',function(){
+				var box = new Goblin.BoxShape( 1, 1, 1 ),
+					sphere = new Goblin.SphereShape( 2 );
+
+				var swept_box = new Goblin.LineSweptShape(
+					new Goblin.Vector3( 0, -2, 3 ),
+					new Goblin.Vector3( 5, 0, 0 ),
+					box
+				);
+
+				var swept_sphere = new Goblin.LineSweptShape(
+					new Goblin.Vector3( -2, 0, 3 ),
+					new Goblin.Vector3( -2, 1, -1 ),
+					sphere
+				);
+
+				it('Swept Box AABB',function(){
+					expect( swept_box.aabb.min ).property( 'x', -1 );
+					expect( swept_box.aabb.min ).property( 'y', -3 );
+					expect( swept_box.aabb.min ).property( 'z', -1 );
+
+					expect( swept_box.aabb.max ).property( 'x', 6 );
+					expect( swept_box.aabb.max ).property( 'y', 1 );
+					expect( swept_box.aabb.max ).property( 'z', 4 );
+				});
+
+				it('Swept Box Support Point',function(){
+					var point = new Goblin.Vector3();
+
+					swept_box.findSupportPoint( new Goblin.Vector3( 0, -1, 0 ), point );
+					expect( point.distanceTo( new Goblin.Vector3( 1, -3, 4 ) ) ).to.equal( 0 );
+
+					swept_box.findSupportPoint( new Goblin.Vector3( 0, 1, 0 ), point );
+					expect( point.distanceTo( new Goblin.Vector3( 6, 1, 1 ) ) ).to.equal( 0 );
+
+					swept_box.findSupportPoint( new Goblin.Vector3( -1, 0, 1 ), point );
+					expect( point.distanceTo( new Goblin.Vector3( -1, -1, 4 ) ) ).to.equal( 0 );
+				});
+
+				it('Swept Sphere AABB',function(){
+					expect( swept_sphere.aabb.min ).property( 'x', -4 );
+					expect( swept_sphere.aabb.min ).property( 'y', -2 );
+					expect( swept_sphere.aabb.min ).property( 'z', -3 );
+
+					expect( swept_sphere.aabb.max ).property( 'x', 0 );
+					expect( swept_sphere.aabb.max ).property( 'y', 3 );
+					expect( swept_sphere.aabb.max ).property( 'z', 5 );
+				});
+
+				it('Swept Sphere Support Point',function(){
+					var point = new Goblin.Vector3();
+
+					swept_sphere.findSupportPoint( new Goblin.Vector3( 0, -1, 0 ), point );
+					expect( point.distanceTo( new Goblin.Vector3( -2, -2, 3 ) ) ).to.equal( 0 );
+
+					swept_sphere.findSupportPoint( new Goblin.Vector3( 0, 1, 0 ), point );
+					expect( point.distanceTo( new Goblin.Vector3( -2, 3, -1 ) ) ).to.equal( 0 );
+
+					swept_sphere.findSupportPoint( new Goblin.Vector3( -1, 0, 1 ), point );
+					expect( point.distanceTo( new Goblin.Vector3( -3.414213562373095, 0, 4.414213562373095 ) ) ).to.equal( 0 );
+				});
+			});
+
+			mocha.run();
+		};
+	</script>
+</head>
+
+<body>
+<div id="mocha"></div>
+</body>
+</html>

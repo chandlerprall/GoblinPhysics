@@ -1,8 +1,8 @@
 Goblin.Quaternion = function( x, y, z, w ) {
-	this.x = x || 0;
-	this.y = y || 0;
-	this.z = z || 0;
-	this.w = w || 0;
+	this.x = x != null ? x : 0;
+	this.y = y != null ? y : 0;
+	this.z = z != null ? z : 0;
+	this.w = w != null ? w : 1;
 	this.normalize();
 };
 
