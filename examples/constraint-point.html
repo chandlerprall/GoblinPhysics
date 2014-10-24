@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Revolute Constraint | Goblin Physics</title>
+	<title>Point Constraint | Goblin Physics</title>
 	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
 	<script type="text/javascript" src="../lib/three.min.js"></script>
 	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
@@ -55,7 +55,7 @@
 				if ( previous_plank ) {
 					// Create two constraints per plank pair for a sturdy bridge
 					
-					constraint = new Goblin.RevoluteConstraint(
+					constraint = new Goblin.PointConstraint(
 						previous_plank.goblin,
 						right_point_back,
 						plank.goblin,
@@ -64,7 +64,7 @@
 					constraint.breaking_threshold = 8;
 					exampleUtils.world.addConstraint( constraint );
 
-					constraint = new Goblin.RevoluteConstraint(
+					constraint = new Goblin.PointConstraint(
 						previous_plank.goblin,
 						right_point_front,
 						plank.goblin,

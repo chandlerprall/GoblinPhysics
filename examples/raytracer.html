@@ -50,7 +50,7 @@
             canvas_data,
 	        width = window.innerWidth,
 	        height = window.innerHeight,
-            world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NearPhase(), new Goblin.IterativeSolver() ),
+            world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NarrowPhase(), new Goblin.IterativeSolver() ),
             camera = new Goblin.Matrix4(),
             camera_inverse = new Goblin.Matrix4(),
 	        lights = [];

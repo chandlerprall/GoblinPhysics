@@ -116,7 +116,7 @@ Goblin.ConvexShape.prototype.process = function( vertices ) {
 
 	// We have our starting tetrahedron, rejoice
 	// Now turn that into a polyhedron
-	var polyhedron = new Goblin.GjkEpa2.Polyhedron({ points:[
+	var polyhedron = new Goblin.GjkEpa.Polyhedron({ points:[
 		{ point: point_c }, { point: point_b }, { point: point_a }, { point: point_d }
 	]});
 

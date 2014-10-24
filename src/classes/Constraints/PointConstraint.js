@@ -1,4 +1,4 @@
-Goblin.RevoluteConstraint = function( object_a, point_a, object_b, point_b ) {
+Goblin.PointConstraint = function( object_a, point_a, object_b, point_b ) {
 	Goblin.Constraint.call( this );
 
 	this.object_a = object_a;
@@ -26,9 +26,9 @@ Goblin.RevoluteConstraint = function( object_a, point_a, object_b, point_b ) {
 			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
 	}
 };
-Goblin.RevoluteConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+Goblin.PointConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
-Goblin.RevoluteConstraint.prototype.update = (function(){
+Goblin.PointConstraint.prototype.update = (function(){
 	var r1 = new Goblin.Vector3(),
 		r2 = new Goblin.Vector3();
 

@@ -1,10 +1,10 @@
 /**
  * Takes possible contacts found by a broad phase and determines if they are legitimate contacts
  *
- * @class NearPhase
+ * @class NarrowPhase
  * @constructor
  */
-Goblin.NearPhase = function() {
+Goblin.NarrowPhase = function() {
 	/**
 	 * holds all contacts which currently exist in the scene
 	 *
@@ -19,7 +19,7 @@ Goblin.NearPhase = function() {
  *
  * @method updateContactManifolds
  */
-Goblin.NearPhase.prototype.updateContactManifolds = function() {
+Goblin.NarrowPhase.prototype.updateContactManifolds = function() {
 	var current = this.contact_manifolds.first,
 		prev = null;
 
@@ -41,7 +41,7 @@ Goblin.NearPhase.prototype.updateContactManifolds = function() {
 	}
 };
 
-Goblin.NearPhase.prototype.midPhase = function( object_a, object_b ) {
+Goblin.NarrowPhase.prototype.midPhase = function( object_a, object_b ) {
 	var compound,
 		other;
 
@@ -110,7 +110,7 @@ Goblin.NearPhase.prototype.midPhase = function( object_a, object_b ) {
  * @param {RigidBody} object_a
  * @param {RigidBody} object_b
  */
-Goblin.NearPhase.prototype.getContact = function( object_a, object_b ) {
+Goblin.NarrowPhase.prototype.getContact = function( object_a, object_b ) {
 	if ( object_a.shape instanceof Goblin.CompoundShape || object_b.shape instanceof Goblin.CompoundShape ) {
 		this.midPhase( object_a, object_b );
 		return;
@@ -129,21 +129,21 @@ Goblin.NearPhase.prototype.getContact = function( object_a, object_b ) {
 		contact = Goblin.BoxSphere( object_a, object_b );
 	} else {
 		// contact check based on GJK
-		/*if ( (contact = Goblin.GjkEpa2.GJK( object_a, object_b )) != null ) {
-			contact = Goblin.GjkEpa2.EPA( contact );
+		/*if ( (contact = Goblin.GjkEpa.GJK( object_a, object_b )) != null ) {
+			contact = Goblin.GjkEpa.EPA( contact );
 		}*/
-		var simplex = Goblin.GjkEpa2.GJK( object_a, object_b );
-		if ( Goblin.GjkEpa2.result != null ) {
-			contact = Goblin.GjkEpa2.result;
+		var simplex = Goblin.GjkEpa.GJK( object_a, object_b );
+		if ( Goblin.GjkEpa.result != null ) {
+			contact = Goblin.GjkEpa.result;
 		} else if ( simplex != null ) {
-			contact = Goblin.GjkEpa2.EPA( simplex );
+			contact = Goblin.GjkEpa.EPA( simplex );
 		}
 	}
 
 	return contact;
 };
 
-Goblin.NearPhase.prototype.addContact = function( object_a, object_b, contact ) {
+Goblin.NarrowPhase.prototype.addContact = function( object_a, object_b, contact ) {
 	this.contact_manifolds.getManifoldForObjects( object_a, object_b ).addContact( contact );
 };
 
@@ -153,7 +153,7 @@ Goblin.NearPhase.prototype.addContact = function( object_a, object_b, contact ) 
  *
  * @param possible_contacts {Array}
  */
-Goblin.NearPhase.prototype.generateContacts = function( possible_contacts ) {
+Goblin.NarrowPhase.prototype.generateContacts = function( possible_contacts ) {
 	var i,
 		contact,
 		possible_contacts_length = possible_contacts.length;

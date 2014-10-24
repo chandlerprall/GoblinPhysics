@@ -3,10 +3,10 @@
  *
  * @class World
  * @param broadphase {Goblin.Broadphase} the broadphase used by the world to find possible contacts
- * @param nearphase {Goblin.NearPhase} the nearphase used by the world to generate valid contacts
+ * @param narrowphase {Goblin.NarrowPhase} the narrowphase used by the world to generate valid contacts
  * @constructor
  */
-Goblin.World = function( broadphase, nearphase, solver ) {
+Goblin.World = function( broadphase, narrowphase, solver ) {
 	/**
 	 * How many time steps have been simulated. If the steps are always the same length then total simulation time = world.ticks * time_step
 	 *
@@ -24,12 +24,12 @@ Goblin.World = function( broadphase, nearphase, solver ) {
 	this.broadphase = broadphase;
 
 	/**
-	 * The nearphase used by the world to generate valid contacts
+	 * The narrowphase used by the world to generate valid contacts
 	 *
-	 * @property nearphasee
-	 * @type {Goblin.NearPhase}
+	 * @property narrowphasee
+	 * @type {Goblin.NarrowPhase}
 	 */
-	this.nearphase = nearphase;
+	this.narrowphase = narrowphase;
 
 	/**
 	 * The contact solver used by the world to calculate and apply impulses resulting from contacts
@@ -116,11 +116,11 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         // Check for contacts, broadphase
         this.broadphase.predictContactPairs();
 
-        // Find valid contacts, nearphase
-        this.nearphase.generateContacts( this.broadphase.collision_pairs );
+        // Find valid contacts, narrowphase
+        this.narrowphase.generateContacts( this.broadphase.collision_pairs );
 
         // Process contact manifolds into contact and friction constraints
-        this.solver.processContactManifolds( this.nearphase.contact_manifolds );
+        this.solver.processContactManifolds( this.narrowphase.contact_manifolds );
 
         // Prepare the constraints by precomputing some values
         this.solver.prepareConstraints( delta );
@@ -264,8 +264,8 @@ Goblin.World.prototype.removeConstraint = function( constraint ) {
 			intersections = [];
 
 		for ( var i = 0; i < possibilities.length; i++ ) {
-			var contact = this.nearphase.getContact( swept_body, possibilities[i] );
-			console.log( contact );
+			var contact = this.narrowphase.getContact( swept_body, possibilities[i] );
+
 			if ( contact != null ) {
 				var intersection = Goblin.ObjectPool.getObject( 'RayIntersection' );
 				intersection.object = contact.object_b;
