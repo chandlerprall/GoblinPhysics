@@ -169,6 +169,22 @@ Goblin.RigidBody = (function() {
 		this.angular_damping = 0;
 
 		/**
+		 * multiplier of linear force applied to this body
+		 *
+		 * @property linear_factor
+		 * @type {Goblin.Vector3}
+		 */
+		this.linear_factor = new Goblin.Vector3( 1, 1, 1 );
+
+		/**
+		 * multiplier of angular force applied to this body
+		 *
+		 * @property angular_factor
+		 * @type {Goblin.Vector3}
+		 */
+		this.angular_factor = new Goblin.Vector3( 1, 1, 1 );
+
+		/**
 		 * the world to which the rigid body has been added,
 		 * this is set when the rigid body is added to a world
 		 *
@@ -282,10 +298,12 @@ Goblin.RigidBody.prototype.integrate = function( timestep ) {
 
 	// Add accumulated linear force
 	_tmp_vec3_1.scaleVector( this.accumulated_force, invmass );
+	_tmp_vec3_1.multiply( this.linear_factor );
 	this.linear_velocity.add( _tmp_vec3_1 );
 
 	// Add accumulated angular force
 	this.inverseInertiaTensorWorldFrame.transformVector3Into( this.accumulated_torque, _tmp_vec3_1 );
+	_tmp_vec3_1.multiply( this.angular_factor );
 	this.angular_velocity.add( _tmp_vec3_1 );
 
 	// Apply damping
@@ -344,7 +362,8 @@ Goblin.RigidBody.prototype.setGravity = function( x, y, z ) {
  * @param impulse {vec3} linear velocity to add to the body
  */
 Goblin.RigidBody.prototype.applyImpulse = function( impulse ) {
-	this.linear_velocity.add( impulse );
+	_tmp_vec3_1.multiplyVectors( impulse, this.linear_factor );
+	this.linear_velocity.add( _tmp_vec3_1 );
 };
 
 /**

@@ -19,17 +19,17 @@ Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
 	if ( constraint.object_a != null && constraint.object_a.mass !== Infinity ) {
 		invmass = 1 / constraint.object_a.mass;
 
-		this.B[0] = invmass * this.jacobian[0];
-		this.B[1] = invmass * this.jacobian[1];
-		this.B[2] = invmass * this.jacobian[2];
+		this.B[0] = invmass * this.jacobian[0] * constraint.object_a.linear_factor.x;
+		this.B[1] = invmass * this.jacobian[1] * constraint.object_a.linear_factor.y;
+		this.B[2] = invmass * this.jacobian[2] * constraint.object_a.linear_factor.z;
 
 		_tmp_vec3_1.x = this.jacobian[3];
 		_tmp_vec3_1.y = this.jacobian[4];
 		_tmp_vec3_1.z = this.jacobian[5];
 		constraint.object_a.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
-		this.B[3] = _tmp_vec3_1.x;
-		this.B[4] = _tmp_vec3_1.y;
-		this.B[5] = _tmp_vec3_1.z;
+		this.B[3] = _tmp_vec3_1.x * constraint.object_a.angular_factor.x;
+		this.B[4] = _tmp_vec3_1.y * constraint.object_a.angular_factor.y;
+		this.B[5] = _tmp_vec3_1.z * constraint.object_a.angular_factor.z;
 	} else {
 		this.B[0] = this.B[1] = this.B[2] = 0;
 		this.B[3] = this.B[4] = this.B[5] = 0;
@@ -37,17 +37,17 @@ Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
 
 	if ( constraint.object_b != null && constraint.object_b.mass !== Infinity ) {
 		invmass = 1 / constraint.object_b.mass;
-		this.B[6] = invmass * this.jacobian[6];
-		this.B[7] = invmass * this.jacobian[7];
-		this.B[8] = invmass * this.jacobian[8];
+		this.B[6] = invmass * this.jacobian[6] * constraint.object_b.linear_factor.x;
+		this.B[7] = invmass * this.jacobian[7] * constraint.object_b.linear_factor.y;
+		this.B[8] = invmass * this.jacobian[8] * constraint.object_b.linear_factor.z;
 
 		_tmp_vec3_1.x = this.jacobian[9];
 		_tmp_vec3_1.y = this.jacobian[10];
 		_tmp_vec3_1.z = this.jacobian[11];
 		constraint.object_b.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
-		this.B[9] = _tmp_vec3_1.x;
-		this.B[10] = _tmp_vec3_1.y;
-		this.B[11] = _tmp_vec3_1.z;
+		this.B[9] = _tmp_vec3_1.x * constraint.object_b.linear_factor.x;
+		this.B[10] = _tmp_vec3_1.y * constraint.object_b.linear_factor.y;
+		this.B[11] = _tmp_vec3_1.z * constraint.object_b.linear_factor.z;
 	} else {
 		this.B[6] = this.B[7] = this.B[8] = 0;
 		this.B[9] = this.B[10] = this.B[11] = 0;
