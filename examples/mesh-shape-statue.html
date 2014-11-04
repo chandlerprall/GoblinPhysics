@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Mesh Shape, Statue | Goblin Physics</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/stats.min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/exampleUtils.js"></script>
+
+	<script type="text/javascript">
+		window.onload = function() {
+			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			var ground = exampleUtils.createPlane( 1, 20, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
+			ground.castShadow = false;
+
+			var mesh_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 ),
+				object_material = exampleUtils.createMaterial( 'scratched_metal', 1, 1 );
+
+			var spawnObject = function() {
+
+				var type = Math.random(),
+					object;
+
+				if ( type < 0.25 ) {
+					object = exampleUtils.createBox( 0.4, 0.4, 0.4, 1, object_material );
+				} else if ( type < 0.5 ) {
+					var radius = Math.random() / 4 + 0.2;
+					object = exampleUtils.createSphere( radius, 1, object_material );
+				} else if ( type < 0.75 ) {
+					var radius = Math.random() / 4 + 0.2,
+						half_height = Math.random() + 0.1;
+					object = exampleUtils.createCylinder( radius, half_height, 1, object_material );
+				} else {
+					var radius = Math.random() / 4 + 0.2,
+						half_height = Math.random() / 3 + 0.1;
+					object = exampleUtils.createCone( radius, half_height, 1, object_material );
+				}
+				object.goblin.position.y = 10 + Math.random();
+				object.goblin.position.x = Math.random() * 2 - 1;
+				object.goblin.position.z = 20;
+				object.goblin.linear_velocity.y = 2;
+				object.goblin.linear_velocity.z = -25;
+			};
+
+			var json_loader = new THREE.JSONLoader();
+			json_loader.load(
+				'models/statue.js',
+				function( geometry ) {
+					var mesh = new THREE.Mesh( geometry, mesh_material );
+					mesh.castShadow = mesh.receiveShadow = true;
+					exampleUtils.scene.add( mesh );
+
+					var shape = new Goblin.MeshShape(
+						mesh.geometry.vertices.map(function( vertex ){
+							return new Goblin.Vector3( vertex.x, vertex.y, vertex.z )
+						}),
+						mesh.geometry.faces.reduce(
+							function( faces, face ) {
+								faces.push( face.a, face.b, face.c );
+								return faces;
+							},
+							[]
+						)
+					);
+
+					mesh.goblin = new Goblin.RigidBody( shape, 0 );
+					mesh.goblin.position.y = 5.4;
+
+					exampleUtils.objects.push( mesh );
+					exampleUtils.scene.add( mesh );
+					exampleUtils.world.addRigidBody( mesh.goblin );
+
+					exampleUtils.world.addListener(
+						'stepStart',
+						function( tick ) {
+							if ( tick % 10 === 1 ) {
+								spawnObject();
+							}
+						}
+					);
+				}
+			);
+
+			exampleUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+
+</body>
+</html>

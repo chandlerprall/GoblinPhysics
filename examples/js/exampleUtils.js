@@ -13,10 +13,11 @@ window.exampleUtils = (function(){
 		renderer.setSize( window.innerWidth, window.innerHeight );
 		renderer.shadowMapEnabled = true;
 		document.body.appendChild( renderer.domElement );
+		exampleUtils.renderer = renderer;
 
 		exampleUtils.scene = new THREE.Scene();
 
-		camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 1, 1000 );
+		camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.01, 100 );
 		camera.position.set( 0, 15, 30 );
 		camera.lookAt( exampleUtils.scene.position );
 
@@ -44,6 +45,7 @@ window.exampleUtils = (function(){
 	return {
 		objects: objects,
 		scene: null,
+		renderer: null,
 		world: null,
 		ontick: null,
 

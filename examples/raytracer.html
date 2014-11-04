@@ -211,6 +211,38 @@
 	        convex.position.set( -2.5, -1.4, 1 );
 	        convex.rotation = new Goblin.Quaternion( 0, 0.8, 0, 1 );
 	        world.addRigidBody( convex );
+
+	        var json_loader = new THREE.JSONLoader();
+	        json_loader.load(
+		        'models/dromaeosaur_lowres.js',
+		        function( geometry ) {
+			        // Scale this down
+			        geometry.applyMatrix( new THREE.Matrix4().scale( new THREE.Vector3( 0.4, 0.4, 0.4 ) ) );
+
+			        var mesh = new TexturedBody(
+				        new Goblin.MeshShape(
+					        geometry.vertices.map(function( vertex ){
+						        return new Goblin.Vector3( vertex.x, vertex.y, vertex.z )
+					        }),
+					        geometry.faces.reduce(
+						        function( faces, face ) {
+							        faces.push( face.a, face.b, face.c );
+							        return faces;
+						        },
+						        []
+					        )
+				        ),
+				        (function() { var color = new Goblin.Vector3( 1, 0.3, 0.4 ); return function() { return color }; })(),
+				        0.4
+			        );
+			        mesh.position.set( 2.7, -0.5, 0.6 );
+			        mesh.rotation = new Goblin.Quaternion( 0, 1, 0, 0.5 );
+			        world.addRigidBody( mesh );
+
+			        // Everything is ready, kick of the render
+			        render();
+		        }
+	        )
         }
 
         var reflectRay = (function(){
@@ -225,7 +257,7 @@
 
         var rayToColor = (function(){
 	        var rays = 0,
-		        max_rays = 4,
+		        max_rays = 3,
 		        temp = new Goblin.Vector3();
 	        return function rayToColor( ray_start, ray_end, color ) {
 		        rays++;
@@ -281,7 +313,7 @@
 		        color = new Goblin.Vector3();
 
 	        return function() {
-		        for ( var i = 0; i < 5 && y < height; i++ && y++ ) {
+		        for ( var i = 0; i < 30 && y < height; i++ && y++ ) {
 			        for ( var x = 0; x < width; x++ ) {
 				        // Unproject pixel
 				        pixel[0] = x * 2 / width - 1;
@@ -296,8 +328,8 @@
 				        pixel3.normalize();
 
 				        ray_end.scaleVector( pixel3, 100 );
-				        pixel3.y -= 1;
-				        pixel3.z += 8;
+				        pixel3.y -= 0.5;
+				        pixel3.z += 6;
 
 				        rayToColor( pixel3, ray_end, color );
 				        var data_offset = ( y * width + x ) * 4;
@@ -328,8 +360,6 @@
             document.body.appendChild( canvas );
 
             initScene();
-
-            render();
         };
     </script>
 </head>

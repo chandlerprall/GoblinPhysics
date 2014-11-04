@@ -165,7 +165,7 @@ Goblin.ConvexShape.prototype.process = function( vertices ) {
 		}
 	});
 
-	this.computeVolume();
+	this.computeVolume( this.faces );
 };
 
 /**
@@ -190,7 +190,8 @@ Goblin.ConvexShape.prototype.calculateLocalAABB = function( aabb ) {
 };
 
 Goblin.ConvexShape.prototype.computeVolume = (function(){
-	var output = new Float32Array( 6 ),
+	var origin = { point: new Goblin.Vector3() },
+		output = new Float32Array( 6 ),
 		macro = function( a, b, c ) {
 			var temp0 = a + b,
 				temp1 = a * a,
@@ -204,9 +205,9 @@ Goblin.ConvexShape.prototype.computeVolume = (function(){
 			output[5] = output[1] + c * ( output[0] + c );
 		};
 
-	return function() {
-		for ( var i = 0; i < this.faces.length; i++ ) {
-			var face = this.faces[i],
+	return function( faces ) {
+		for ( var i = 0; i < faces.length; i++ ) {
+			var face = faces[i],
 				v0 = face.a.point,
 				v1 = face.b.point,
 				v2 = face.c.point;
@@ -245,16 +246,18 @@ Goblin.ConvexShape.prototype.computeVolume = (function(){
 				g1z = output[4],
 				g2z = output[5];
 
-			this._integral[0] += d0 * f1x;
-			this._integral[1] += d0 * f2x;
-			this._integral[2] += d1 * f2y;
-			this._integral[3] += d2 * f2z;
-			this._integral[4] += d0 * f3x;
-			this._integral[5] += d1 * f3y;
-			this._integral[6] += d2 * f3z;
-			this._integral[7] += d0 * ( v0.y * g0x + v1.y * g1x + v2.y * g2x );
-			this._integral[8] += d1 * ( v0.z * g0y + v1.z * g1y + v2.z * g2y );
-			this._integral[9] += d2 * ( v0.x * g0z + v1.x * g1z + v2.x * g2z );
+			var contributor = face.classifyVertex( origin ) > 0 ? -1 : 1;
+
+			this._integral[0] += contributor * d0 * f1x;
+			this._integral[1] += contributor * d0 * f2x;
+			this._integral[2] += contributor * d1 * f2y;
+			this._integral[3] += contributor * d2 * f2z;
+			this._integral[4] += contributor * d0 * f3x;
+			this._integral[5] += contributor * d1 * f3y;
+			this._integral[6] += contributor * d2 * f3z;
+			this._integral[7] += contributor * d0 * ( v0.y * g0x + v1.y * g1x + v2.y * g2x );
+			this._integral[8] += contributor * d1 * ( v0.z * g0y + v1.z * g1y + v2.z * g2y );
+			this._integral[9] += contributor * d2 * ( v0.x * g0z + v1.x * g1z + v2.x * g2z );
 		}
 
 		this._integral[0] *= 1 / 6;
@@ -279,6 +282,7 @@ Goblin.ConvexShape.prototype.computeVolume = (function(){
 Goblin.ConvexShape.prototype.getInertiaTensor = (function(){
 	return function( mass ) {
 		var	inertia_tensor = new Goblin.Matrix3();
+		mass /= this.volume;
 
 		inertia_tensor.e00 = ( this._integral[5] + this._integral[6] ) * mass;
 		inertia_tensor.e11 = ( this._integral[4] + this._integral[6] ) * mass;

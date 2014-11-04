@@ -43,6 +43,28 @@ Goblin.Matrix4.prototype = {
 		this.e33 = 1;
 	},
 
+	copy: function( m ) {
+		this.e00 = m.e00;
+		this.e01 = m.e01;
+		this.e02 = m.e02;
+		this.e03 = m.e03;
+
+		this.e10 = m.e10;
+		this.e11 = m.e11;
+		this.e12 = m.e12;
+		this.e13 = m.e13;
+
+		this.e20 = m.e20;
+		this.e21 = m.e21;
+		this.e22 = m.e22;
+		this.e23 = m.e23;
+
+		this.e30 = m.e30;
+		this.e31 = m.e31;
+		this.e32 = m.e32;
+		this.e33 = m.e33;
+	},
+
 	makeTransform: function( rotation, translation ) {
 		// Setup rotation
 		var x2 = rotation.x + rotation.x,
@@ -204,5 +226,47 @@ Goblin.Matrix4.prototype = {
 		m.e13 = (a00 * b09 - a01 * b07 + a02 * b06) * invDet;
 		m.e23 = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet;
 		m.e33 = (a20 * b03 - a21 * b01 + a22 * b00) * invDet;
+	},
+
+	multiply: function( m ) {
+		// Cache the matrix values (makes for huge speed increases!)
+		var a00 = this.e00, a01 = this.e10, a02 = this.e20, a03 = this.e30;
+		var a10 = this.e01, a11 = this.e11, a12 = this.e21, a13 = this.e31;
+		var a20 = this.e02, a21 = this.e12, a22 = this.e22, a23 = this.e32;
+		var a30 = this.e03, a31 = this.e13, a32 = this.e23, a33 = this.e33;
+
+		// Cache only the current line of the second matrix
+		var b0  = m.e00, b1 = m.e10, b2 = m.e20, b3 = m.e30;
+		this.e00 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+		this.e10 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+		this.e20 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+		this.e30 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+		b0 = m.e01;
+		b1 = m.e11;
+		b2 = m.e21;
+		b3 = m.e31;
+		this.e01 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+		this.e11 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+		this.e21 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+		this.e31 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+		b0 = m.e02;
+		b1 = m.e12;
+		b2 = m.e22;
+		b3 = m.e32;
+		this.e02 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+		this.e12 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+		this.e22 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+		this.e32 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
+
+		b0 = m.e03;
+		b1 = m.e13;
+		b2 = m.e23;
+		b3 = m.e33;
+		this.e03 = b0*a00 + b1*a10 + b2*a20 + b3*a30;
+		this.e13 = b0*a01 + b1*a11 + b2*a21 + b3*a31;
+		this.e23 = b0*a02 + b1*a12 + b2*a22 + b3*a32;
+		this.e33 = b0*a03 + b1*a13 + b2*a23 + b3*a33;
 	}
 };

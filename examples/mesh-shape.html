@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Mesh Shape | Goblin Physics</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/stats.min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/exampleUtils.js"></script>
+
+	<script type="text/javascript">
+		window.onload = function() {
+			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			var ground = exampleUtils.createPlane( 1, 20, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
+			ground.castShadow = false;
+
+			var mesh_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 ),
+				sphere_material = exampleUtils.createMaterial( 'scratched_metal', 1, 1 );
+
+			var spawnSphere = function() {
+				var sphere = exampleUtils.createSphere( 0.4, 1, sphere_material );
+				sphere.goblin.position.y = 10;
+				sphere.goblin.position.x = Math.random() * 2 - 1;
+				sphere.goblin.position.z = Math.random() * 2 - 1;
+				sphere.goblin.restitution = 0.3;
+				sphere.goblin.linear_velocity.y = -20;
+			};
+
+			Goblin.BVH.AAC = 100; // increases time needed to build but yields higher quality BVH
+			var json_loader = new THREE.JSONLoader();
+			json_loader.load(
+				'models/vase.js',
+				function( geometry ) {
+					var mesh = new THREE.Mesh( geometry, mesh_material );
+					mesh.castShadow = mesh.receiveShadow = true;
+					exampleUtils.scene.add( mesh );
+
+					var shape = new Goblin.MeshShape(
+						mesh.geometry.vertices.map(function( vertex ){
+							return new Goblin.Vector3( vertex.x, vertex.y, vertex.z )
+						}),
+						mesh.geometry.faces.reduce(
+							function( faces, face ) {
+								faces.push( face.a, face.b, face.c );
+								return faces;
+							},
+							[]
+						)
+					);
+
+					mesh.goblin = new Goblin.RigidBody( shape, 0 );
+					mesh.goblin.position.y = 1.85;
+
+					exampleUtils.objects.push( mesh );
+					exampleUtils.scene.add( mesh );
+					exampleUtils.world.addRigidBody( mesh.goblin );
+					window.mesh = mesh;
+				}
+			);
+
+			exampleUtils.world.addListener(
+				'stepStart',
+				function( tick ) {
+					if ( tick % 20 === 1 ) {
+						spawnSphere();
+					}
+				}
+			);
+
+			exampleUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+
+</body>
+</html>

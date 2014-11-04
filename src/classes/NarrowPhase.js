@@ -103,6 +103,156 @@ Goblin.NarrowPhase.prototype.midPhase = function( object_a, object_b ) {
 	Goblin.ObjectPool.freeObject( 'RigidBodyProxy', proxy );
 };
 
+Goblin.NarrowPhase.prototype.meshCollision = (function(){
+	var b_to_a = new Goblin.Matrix4(),
+		tri_b;
+
+	function meshMesh( object_a, object_b, addContact ) {
+		tri_b = tri_b || new Goblin.TriangleShape( new Goblin.Vector3(), new Goblin.Vector3(), new Goblin.Vector3() );
+
+		// get matrix which converts from object_b's space to object_a
+		b_to_a.copy( object_a.transform_inverse );
+		b_to_a.multiply( object_b.transform );
+
+		// traverse both objects' AABBs while they overlap, if two overlapping leaves are found then perform Triangle/Triangle intersection test
+		var nodes = [ object_a.shape.hierarchy, object_b.shape.hierarchy ];
+
+		while ( nodes.length ) {
+			var a_node = nodes.shift(),
+				b_node = nodes.shift();
+
+			if ( a_node.isLeaf() && b_node.isLeaf() ) {
+				// Both sides are triangles, do intersection test
+                // convert node_b's triangle into node_a's frame
+                b_to_a.transformVector3Into( b_node.object.a, tri_b.a );
+                b_to_a.transformVector3Into( b_node.object.b, tri_b.b );
+                b_to_a.transformVector3Into( b_node.object.c, tri_b.c );
+                _tmp_vec3_1.subtractVectors( tri_b.b, tri_b.a );
+                _tmp_vec3_2.subtractVectors( tri_b.c, tri_b.a );
+                tri_b.normal.crossVectors( _tmp_vec3_1, _tmp_vec3_2 );
+                tri_b.normal.normalize();
+
+				var contact = Goblin.TriangleTriangle( a_node.object, tri_b );
+                if ( contact != null ) {
+					object_a.transform.rotateVector3( contact.contact_normal );
+
+                    object_a.transform.transformVector3( contact.contact_point );
+
+                    object_a.transform.transformVector3( contact.contact_point_in_b );
+                    object_b.transform_inverse.transformVector3( contact.contact_point_in_b );
+
+                    contact.object_a = object_a;
+                    contact.object_b = object_b;
+
+                    contact.restitution = ( object_a.restitution + object_b.restitution ) / 2;
+                    contact.friction = ( object_a.friction + object_b.friction ) / 2;
+                    /*console.log( contact );
+                    debugger;*/
+
+                    addContact( object_a, object_b, contact );
+                }
+			} else if ( a_node.isLeaf() ) {
+				// just a_node is a leaf
+				if ( a_node.aabb.intersects( b_node.left.aabb ) ) {
+					nodes.push( a_node, b_node.left );
+				}
+				if ( a_node.aabb.intersects( b_node.right.aabb ) ) {
+					nodes.push( a_node, b_node.right );
+				}
+			} else if ( b_node.isLeaf() ) {
+				// just b_node is a leaf
+				if ( b_node.aabb.intersects( a_node.left.aabb ) ) {
+					nodes.push( a_node.left, b_node );
+				}
+				if ( b_node.aabb.intersects( a_node.right.aabb ) ) {
+					nodes.push( a_node.right, b_node );
+				}
+			} else {
+				// neither node is a branch
+				if ( a_node.left.aabb.intersects( b_node.left.aabb ) ) {
+					nodes.push( a_node.left, b_node.left );
+				}
+				if ( a_node.left.aabb.intersects( b_node.right.aabb ) ) {
+					nodes.push( a_node.left, b_node.right );
+				}
+				if ( a_node.right.aabb.intersects( b_node.left.aabb ) ) {
+					nodes.push( a_node.right, b_node.left );
+				}
+				if ( a_node.right.aabb.intersects( b_node.right.aabb ) ) {
+					nodes.push( a_node.right, b_node.right );
+				}
+			}
+		}
+	}
+
+	function triangleConvex( triangle, mesh, convex ) {
+		// Create proxy to convert convex into mesh's space
+		var proxy = Goblin.ObjectPool.getObject( 'RigidBodyProxy' );
+
+		var child_shape = new Goblin.CompoundShapeChild( triangle, new Goblin.Vector3(), new Goblin.Quaternion() );
+		proxy.setFrom( mesh, child_shape );
+
+		var simplex = Goblin.GjkEpa.GJK( proxy, convex ),
+			contact;
+		if ( Goblin.GjkEpa.result != null ) {
+			contact = Goblin.GjkEpa.result;
+		} else if ( simplex != null ) {
+			contact = Goblin.GjkEpa.EPA( simplex );
+		}
+
+		Goblin.ObjectPool.freeObject( 'RigidBodyProxy', proxy );
+
+		return contact;
+	}
+
+	var meshConvex = (function(){
+		var convex_to_mesh = new Goblin.Matrix4(),
+			convex_aabb_in_mesh = new Goblin.AABB();
+
+		return function meshConvex( mesh, convex, addContact ) {
+			// Find matrix that converts convex into mesh space
+			convex_to_mesh.copy( convex.transform );
+			convex_to_mesh.multiply( mesh.transform_inverse );
+
+			convex_aabb_in_mesh.transform( convex.aabb, mesh.transform_inverse );
+
+			// Traverse the BHV in mesh
+			var pending_nodes = [ mesh.shape.hierarchy ],
+				node;
+			while ( ( node = pending_nodes.shift() ) ) {
+				if ( node.aabb.intersects( convex_aabb_in_mesh ) ) {
+					if ( node.isLeaf() ) {
+						// Check node for collision
+						var contact = triangleConvex( node.object, mesh, convex );
+						if ( contact != null ) {
+							contact.object_a = mesh;
+							addContact( mesh, convex, contact );
+						}
+					} else {
+						pending_nodes.push( node.left, node.right );
+					}
+				}
+			}
+		};
+	})();
+
+	return function meshCollision( object_a, object_b ) {
+		var a_is_mesh = object_a.shape instanceof Goblin.MeshShape,
+			b_is_mesh = object_b.shape instanceof Goblin.MeshShape;
+
+		if ( a_is_mesh && b_is_mesh ) {
+			// doesn't yet work
+			//meshMesh( object_a, object_b, this.addContact.bind( this ) );
+		} else {
+			if ( a_is_mesh ) {
+				meshConvex( object_a, object_b, this.addContact.bind( this ) );
+			} else {
+				meshConvex( object_b, object_a, this.addContact.bind( this ) );
+			}
+		}
+	};
+})();
+
 /**
  * Tests two objects for contact
  *
@@ -113,6 +263,11 @@ Goblin.NarrowPhase.prototype.midPhase = function( object_a, object_b ) {
 Goblin.NarrowPhase.prototype.getContact = function( object_a, object_b ) {
 	if ( object_a.shape instanceof Goblin.CompoundShape || object_b.shape instanceof Goblin.CompoundShape ) {
 		this.midPhase( object_a, object_b );
+		return;
+	}
+
+	if ( object_a.shape instanceof Goblin.MeshShape || object_b.shape instanceof Goblin.MeshShape ) {
+		this.meshCollision( object_a, object_b );
 		return;
 	}
 
@@ -129,9 +284,6 @@ Goblin.NarrowPhase.prototype.getContact = function( object_a, object_b ) {
 		contact = Goblin.BoxSphere( object_a, object_b );
 	} else {
 		// contact check based on GJK
-		/*if ( (contact = Goblin.GjkEpa.GJK( object_a, object_b )) != null ) {
-			contact = Goblin.GjkEpa.EPA( contact );
-		}*/
 		var simplex = Goblin.GjkEpa.GJK( object_a, object_b );
 		if ( Goblin.GjkEpa.result != null ) {
 			contact = Goblin.GjkEpa.result;

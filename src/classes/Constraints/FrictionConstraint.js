@@ -41,26 +41,25 @@ Goblin.FrictionConstraint.prototype.update = function() {
 		// choose p in y-z plane
 		a = -this.contact.contact_normal.y * this.contact.contact_normal.y + this.contact.contact_normal.z * this.contact.contact_normal.z;
 		k = 1 / Math.sqrt( a );
-		u1.x = 0;
-		u1.y = -this.contact.contact_normal.z * k;
-		u1.z = this.contact.contact_normal.y * k;
+		u1.set( 0, -this.contact.contact_normal.z * k, this.contact.contact_normal.y * k );
 		// set q = n x p
-		u2.x = a * k;
-		u2.y = -this.contact.contact_normal.x * u1.z;
-		u2.z = this.contact.contact_normal.x * u1.y;
+		u2.set( a * k, -this.contact.contact_normal.x * u1.z, this.contact.contact_normal.x * u1.y );
 	}
 	else {
 		// choose p in x-y plane
 		a = this.contact.contact_normal.x * this.contact.contact_normal.x + this.contact.contact_normal.y * this.contact.contact_normal.y;
 		k = 1 / Math.sqrt( a );
-		u1.x = -this.contact.contact_normal.y * k;
-		u1.y = this.contact.contact_normal.x * k;
-		u1.z = 0;
+		u1.set( -this.contact.contact_normal.y * k, this.contact.contact_normal.x * k, 0 );
 		// set q = n x p
-		u2.x = -this.contact.contact_normal.z * u1.y;
-		u2.y = this.contact.contact_normal.z * u1.x;
-		u2.z = a*k;
+		u2.set( -this.contact.contact_normal.z * u1.y, this.contact.contact_normal.z * u1.x, a * k );
 	}
+
+	/*if ( Math.abs( this.contact.contact_normal.x ) >= 0.57735 ) {
+		u1.set( this.contact.contact_normal.y, -this.contact.contact_normal.x, 0 );
+	} else {
+		u1.set( 0, this.contact.contact_normal.z, -this.contact.contact_normal.y );
+	}
+	u2.crossVectors( this.contact.contact_normal, u1 );*/
 
 	if ( this.object_a == null || this.object_a._mass === Infinity ) {
 		row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;

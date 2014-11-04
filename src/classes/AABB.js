@@ -18,6 +18,26 @@ Goblin.AABB = function( min, max ) {
 	this.max = max || new Goblin.Vector3();
 };
 
+Goblin.AABB.prototype.copy = function( aabb ) {
+	this.min.x = aabb.min.x;
+	this.min.y = aabb.min.y;
+	this.min.z = aabb.min.z;
+
+	this.max.x = aabb.max.x;
+	this.max.y = aabb.max.y;
+	this.max.z = aabb.max.z;
+};
+
+Goblin.AABB.prototype.combineAABBs = function( a, b ) {
+	this.min.x = Math.min( a.min.x, b.min.x );
+	this.min.y = Math.min( a.min.y, b.min.y );
+	this.min.z = Math.min( a.min.z, b.min.z );
+
+	this.max.x = Math.max( a.max.x, b.max.x );
+	this.max.y = Math.max( a.max.y, b.max.y );
+	this.max.z = Math.max( a.max.z, b.max.z );
+};
+
 Goblin.AABB.prototype.transform = (function(){
 	var local_half_extents = new Goblin.Vector3(),
 		local_center = new Goblin.Vector3(),
@@ -92,8 +112,7 @@ Goblin.AABB.prototype.intersects = function( aabb ) {
 Goblin.AABB.prototype.testRayIntersect = (function(){
 	var direction = new Goblin.Vector3(),
 		tmin, tmax,
-		ood, t1, t2,
-		axis;
+		ood, t1, t2;
 
 	return function( start, end ) {
 		tmin = 0;
@@ -102,35 +121,88 @@ Goblin.AABB.prototype.testRayIntersect = (function(){
 		tmax = direction.length();
 		direction.scale( 1 / tmax ); // normalize direction
 
-		for ( var i = 0; i < 3; i++ ) {
-			axis = i === 0 ? 'x' : ( i === 1 ? 'y' : 'z' );
-			var extent_min = ( i === 0 ? this.min.x : (  i === 1 ? this.min.y : this.min.z )  ),
-				extent_max = ( i === 0 ? this.max.x : (  i === 1 ? this.max.y : this.max.z ) );
+		var extent_min, extent_max;
 
-			if ( Math.abs( direction[axis] ) < Goblin.EPSILON ) {
-				// Ray is parallel to axis
-				if ( start[axis] < extent_min || start[axis] > extent_max ) {
-					return false;
-				}
-			} else {
-				ood = 1 / direction[axis];
-				t1 = ( extent_min - start[axis] ) * ood;
-				t2 = ( extent_max - start[axis] ) * ood;
-				if ( t1 > t2 ) {
-					ood = t1; // ood is a convenient temp variable as it's not used again
-					t1 = t2;
-					t2 = ood;
-				}
+        // Check X axis
+        extent_min = this.min.x;
+        extent_max = this.max.x;
+        if ( Math.abs( direction.x ) < Goblin.EPSILON ) {
+            // Ray is parallel to axis
+            if ( start.x < extent_min || start.x > extent_max ) {
+                return false;
+            }
+        } else {
+            ood = 1 / direction.x;
+            t1 = ( extent_min - start.x ) * ood;
+            t2 = ( extent_max - start.x ) * ood;
+            if ( t1 > t2 ) {
+                ood = t1; // ood is a convenient temp variable as it's not used again
+                t1 = t2;
+                t2 = ood;
+            }
 
-				// Find intersection intervals
-				tmin = Math.max( tmin, t1 );
-				tmax = Math.min( tmax, t2 );
+            // Find intersection intervals
+            tmin = Math.max( tmin, t1 );
+            tmax = Math.min( tmax, t2 );
 
-				if ( tmin > tmax ) {
-					return false;
-				}
-			}
-		}
+            if ( tmin > tmax ) {
+                return false;
+            }
+        }
+
+        // Check Y axis
+        extent_min = this.min.y;
+        extent_max = this.max.y;
+        if ( Math.abs( direction.y ) < Goblin.EPSILON ) {
+            // Ray is parallel to axis
+            if ( start.y < extent_min || start.y > extent_max ) {
+                return false;
+            }
+        } else {
+            ood = 1 / direction.y;
+            t1 = ( extent_min - start.y ) * ood;
+            t2 = ( extent_max - start.y ) * ood;
+            if ( t1 > t2 ) {
+                ood = t1; // ood is a convenient temp variable as it's not used again
+                t1 = t2;
+                t2 = ood;
+            }
+
+            // Find intersection intervals
+            tmin = Math.max( tmin, t1 );
+            tmax = Math.min( tmax, t2 );
+
+            if ( tmin > tmax ) {
+                return false;
+            }
+        }
+
+        // Check Z axis
+        extent_min = this.min.z;
+        extent_max = this.max.z;
+        if ( Math.abs( direction.z ) < Goblin.EPSILON ) {
+            // Ray is parallel to axis
+            if ( start.z < extent_min || start.z > extent_max ) {
+                return false;
+            }
+        } else {
+            ood = 1 / direction.z;
+            t1 = ( extent_min - start.z ) * ood;
+            t2 = ( extent_max - start.z ) * ood;
+            if ( t1 > t2 ) {
+                ood = t1; // ood is a convenient temp variable as it's not used again
+                t1 = t2;
+                t2 = ood;
+            }
+
+            // Find intersection intervals
+            tmin = Math.max( tmin, t1 );
+            tmax = Math.min( tmax, t2 );
+
+            if ( tmin > tmax ) {
+                return false;
+            }
+        }
 
 		return true;
 	};

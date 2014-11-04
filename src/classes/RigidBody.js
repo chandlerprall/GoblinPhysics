@@ -415,7 +415,7 @@ Goblin.RigidBody.prototype.applyForceAtWorldPoint = function( force, point ) {
  */
 Goblin.RigidBody.prototype.applyForceAtLocalPoint = function( force, point ) {
 	this.transform.transformVector3Into( point, _tmp_vec3_1 );
-	this.applyForceAtWorldPoint( force, _vec3 );
+	this.applyForceAtWorldPoint( force, _tmp_vec3_1 );
 };
 
 Goblin.RigidBody.prototype.getVelocityInLocalPoint = function( point, out ) {
