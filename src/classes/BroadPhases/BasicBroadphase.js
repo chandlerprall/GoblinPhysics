@@ -77,7 +77,7 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 
 			object_b = this.bodies[j];
 
-			if ( object_a.mass === Infinity && object_b.mass === Infinity ) {
+			if ( object_a._mass === Infinity && object_b._mass === Infinity ) {
 				// Two static objects aren't considered to be in contact
 				continue;
 			}

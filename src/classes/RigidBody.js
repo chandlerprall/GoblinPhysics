@@ -40,7 +40,8 @@ Goblin.RigidBody = (function() {
 		 * @type {Number}
 		 * @default Infinity
 		 */
-		this.mass = mass || Infinity;
+		this._mass = mass || Infinity;
+		this._mass_inverted = 1 / mass;
 
 		/**
 		 * the rigid body's current position
@@ -229,6 +230,21 @@ Goblin.RigidBody = (function() {
 })();
 Goblin.EventEmitter.apply( Goblin.RigidBody );
 
+Object.defineProperty(
+	Goblin.RigidBody.prototype,
+	'mass',
+	{
+		get: function() {
+			return this._mass;
+		},
+		set: function( n ) {
+			this._mass = n;
+			this._mass_inverted = 1 / n;
+			this.inertiaTensor = this.shape.getInertiaTensor( n );
+		}
+	}
+);
+
 /**
  * Given `direction`, find the point in this body which is the most extreme in that direction.
  * This support point is calculated in world coordinates and stored in the second parameter `support_point`
@@ -290,14 +306,12 @@ Goblin.RigidBody.prototype.rayIntersect = (function(){
  * @param timestep {Number} time, in seconds, to use in integration
  */
 Goblin.RigidBody.prototype.integrate = function( timestep ) {
-	if ( this.mass === Infinity ) {
+	if ( this._mass === Infinity ) {
 		return;
 	}
 
-	var invmass = 1 / this.mass;
-
 	// Add accumulated linear force
-	_tmp_vec3_1.scaleVector( this.accumulated_force, invmass );
+	_tmp_vec3_1.scaleVector( this.accumulated_force, this._mass_inverted );
 	_tmp_vec3_1.multiply( this.linear_factor );
 	this.linear_velocity.add( _tmp_vec3_1 );
 
@@ -405,7 +419,7 @@ Goblin.RigidBody.prototype.applyForceAtLocalPoint = function( force, point ) {
 };
 
 Goblin.RigidBody.prototype.getVelocityInLocalPoint = function( point, out ) {
-	if ( this.mass === Infinity ) {
+	if ( this._mass === Infinity ) {
 		out.set( 0, 0, 0 );
 	} else {
 		out.copy( this.angular_velocity );
@@ -428,7 +442,7 @@ Goblin.RigidBody.prototype.updateDerived = function() {
 	this.transform.invertInto( this.transform_inverse );
 
 	// Update the world frame inertia tensor and inverse
-	if ( this.mass !== Infinity ) {
+	if ( this._mass !== Infinity ) {
 		_tmp_mat3_1.fromMatrix4( this.transform_inverse );
 		_tmp_mat3_1.transposeInto( _tmp_mat3_2 );
 		_tmp_mat3_2.multiply( this.inertiaTensor );

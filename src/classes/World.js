@@ -102,8 +102,8 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
             body = this.rigid_bodies[i];
 
             // Objects of infinite mass don't move
-            if ( body.mass !== Infinity ) {
-				_tmp_vec3_1.scaleVector( body.gravity || this.gravity, body.mass * delta );
+            if ( body._mass !== Infinity ) {
+				_tmp_vec3_1.scaleVector( body.gravity || this.gravity, body._mass * delta );
                 body.accumulated_force.add( _tmp_vec3_1 );
             }
         }

@@ -6,7 +6,8 @@ Goblin.RigidBodyProxy = function() {
 
 	this.aabb = new Goblin.AABB();
 
-	this.mass = null;
+	this._mass = null;
+	this._mass_inverted = null;
 
 	this.position = new Goblin.Vector3();
 	this.rotation = new Goblin.Quaternion();
@@ -18,6 +19,21 @@ Goblin.RigidBodyProxy = function() {
 	this.friction = null;
 };
 
+Object.defineProperty(
+	Goblin.RigidBodyProxy.prototype,
+	'mass',
+	{
+		get: function() {
+			return this._mass;
+		},
+		set: function( n ) {
+			this._mass = n;
+			this._mass_inverted = 1 / n;
+			this.inertiaTensor = this.shape.getInertiaTensor( n );
+		}
+	}
+);
+
 Goblin.RigidBodyProxy.prototype.setFrom = function( parent, shape_data ) {
 	this.parent = parent;
 
@@ -26,7 +42,7 @@ Goblin.RigidBodyProxy.prototype.setFrom = function( parent, shape_data ) {
 	this.shape = shape_data.shape;
 	this.shape_data = shape_data;
 
-	this.mass = parent.mass;
+	this._mass = parent._mass;
 
 	parent.transform.transformVector3Into( shape_data.position, this.position );
 	this.rotation.multiplyQuaternions( parent.rotation, shape_data.rotation );

@@ -28,7 +28,7 @@ Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
 Goblin.ContactConstraint.prototype.update = function() {
 	var row = this.rows[0];
 
-	if ( this.object_a == null || this.object_a.mass === Infinity ) {
+	if ( this.object_a == null || this.object_a._mass === Infinity ) {
 		row.jacobian[0] = row.jacobian[1] = row.jacobian[2] = 0;
 		row.jacobian[3] = row.jacobian[4] = row.jacobian[5] = 0;
 	} else {
@@ -43,7 +43,7 @@ Goblin.ContactConstraint.prototype.update = function() {
 		row.jacobian[5] = -_tmp_vec3_1.z;
 	}
 
-	if ( this.object_b == null || this.object_b.mass === Infinity ) {
+	if ( this.object_b == null || this.object_b._mass === Infinity ) {
 		row.jacobian[6] = row.jacobian[7] = row.jacobian[8] = 0;
 		row.jacobian[9] = row.jacobian[10] = row.jacobian[11] = 0;
 	} else {
@@ -63,11 +63,11 @@ Goblin.ContactConstraint.prototype.update = function() {
 
 	// Apply restitution
 	var velocity_along_normal = 0;
-	if ( this.object_a.mass !== Infinity ) {
+	if ( this.object_a._mass !== Infinity ) {
 		this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
 		velocity_along_normal += _tmp_vec3_1.dot( this.contact.contact_normal );
 	}
-	if ( this.object_b.mass !== Infinity ) {
+	if ( this.object_b._mass !== Infinity ) {
 		this.object_b.getVelocityInLocalPoint( this.contact.contact_point_in_b, _tmp_vec3_1 );
 		velocity_along_normal -= _tmp_vec3_1.dot( this.contact.contact_normal );
 	}

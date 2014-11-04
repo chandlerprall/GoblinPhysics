@@ -62,7 +62,7 @@ Goblin.FrictionConstraint.prototype.update = function() {
 		u2.z = a*k;
 	}
 
-	if ( this.object_a == null || this.object_a.mass === Infinity ) {
+	if ( this.object_a == null || this.object_a._mass === Infinity ) {
 		row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
 		row_1.jacobian[3] = row_1.jacobian[4] = row_1.jacobian[5] = 0;
 		row_2.jacobian[0] = row_2.jacobian[1] = row_2.jacobian[2] = 0;
@@ -87,7 +87,7 @@ Goblin.FrictionConstraint.prototype.update = function() {
 		row_2.jacobian[5] = -_tmp_vec3_1.z;
 	}
 
-	if ( this.object_b == null || this.object_b.mass === Infinity ) {
+	if ( this.object_b == null || this.object_b._mass === Infinity ) {
 		row_1.jacobian[6] = row_1.jacobian[7] = row_1.jacobian[8] = 0;
 		row_1.jacobian[9] = row_1.jacobian[10] = row_1.jacobian[11] = 0;
 		row_2.jacobian[6] = row_2.jacobian[7] = row_2.jacobian[8] = 0;
@@ -116,9 +116,9 @@ Goblin.FrictionConstraint.prototype.update = function() {
 	this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
 
 	// Include accumulated forces
-	if ( this.object_a.mass !== Infinity ) {
+	if ( this.object_a._mass !== Infinity ) {
 		// accumulated linear velocity
-		_tmp_vec3_1.scaleVector( this.object_a.accumulated_force, 1 / this.object_a.mass );
+		_tmp_vec3_1.scaleVector( this.object_a.accumulated_force, 1 / this.object_a._mass );
 		_tmp_vec3_1.add( this.object_a.linear_velocity );
 
 		// accumulated angular velocity
@@ -127,14 +127,14 @@ Goblin.FrictionConstraint.prototype.update = function() {
 
 		_tmp_vec3_3.cross( this.contact.contact_point_in_a );
 		_tmp_vec3_1.add( _tmp_vec3_3 );
-		_tmp_vec3_1.scale( this.object_a.mass );
+		_tmp_vec3_1.scale( this.object_a._mass );
 	} else {
 		_tmp_vec3_1.set( 0, 0, 0 );
 	}
 
-	if ( this.object_b.mass !== Infinity ) {
+	if ( this.object_b._mass !== Infinity ) {
 		// accumulated linear velocity
-		_tmp_vec3_2.scaleVector( this.object_b.accumulated_force, 1 / this.object_b.mass );
+		_tmp_vec3_2.scaleVector( this.object_b.accumulated_force, 1 / this.object_b._mass );
 		_tmp_vec3_2.add( this.object_b.linear_velocity );
 
 		// accumulated angular velocity
@@ -143,7 +143,7 @@ Goblin.FrictionConstraint.prototype.update = function() {
 
 		_tmp_vec3_3.cross( this.contact.contact_point_in_b );
 		_tmp_vec3_2.add( _tmp_vec3_3 );
-		_tmp_vec3_2.scale( this.object_b.mass );
+		_tmp_vec3_2.scale( this.object_b._mass );
 	} else {
 		_tmp_vec3_2.set( 0, 0, 0 );
 	}
