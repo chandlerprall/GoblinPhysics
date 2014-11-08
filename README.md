@@ -1,17 +1,18 @@
 GoblinPhysics
 ==============
 
-GoblinPhysics is an open source physics engine written from the ground up in JavaScript. It aims to provide a fast and dependable physics simulation regardless of platform (desktop vs. mobile, browser vs. nodejs). The current version is in its infancy but on the way to achieving that goal. Because GoblinPhysics is still early in its development it is not production ready, although supported functionality is considered stable.
+GoblinPhysics is an open source physics engine written from the ground up in JavaScript. It aims to provide a fast and dependable physics simulation regardless of platform (desktop vs. mobile, browser vs. nodejs).
 
 Examples
 --------
+* [Mesh Shape](http://www.goblinphysics.com/examples/mesh-shape-statue.html)
 * [Boxes](http://www.goblinphysics.com/examples/boxes.html)
 * [Box Stack](http://www.goblinphysics.com/examples/stack.html)
 * [Sphere Stack](http://www.goblinphysics.com/examples/spheres.html)
 * [Shapes](http://www.goblinphysics.com/examples/shapes.html)
 * [Compound Shapes](http://www.goblinphysics.com/examples/compound-shapes.html)
 * [Infinite Boxes](http://www.goblinphysics.com/examples/boxes.html)
-* [Revolute Constraint](http://www.goblinphysics.com/examples/constraint-revolute.html)
+* [Point Constraint](http://www.goblinphysics.com/examples/constraint-point.html)
 * [Slider Constraint](http://www.goblinphysics.com/examples/constraint-slider.html)
 * [Weld Constraint](http://www.goblinphysics.com/examples/constraint-weld.html)
 * [Ray Traycer](http://www.goblinphysics.com/examples/raytracer.html)
@@ -19,8 +20,8 @@ Examples
 Features
 --------
 * Rigid body simulation
-* Sphere, Box, Cone, Cylinder, Plane, Convex, and Compound shapes
-* Weld, Slider, and Revolute constraints
+* Sphere, Box, Cone, Cylinder, Plane, Convex, Mesh, and Compound shapes
+* Weld, Slider, and Point constraints
 * Basic event callback system
 * Ray tracing
 * Example scripts
@@ -28,7 +29,7 @@ Features
 
 Documentation
 -------------
-See `Building` below for how to generate documentation. Hosted version available at [http://www.goblinphysics.com](http://www.goblinphysics.com/).
+See `Building` below for how to generate documentation. Hosted version available at [http://www.goblinphysics.com/documentation](http://www.goblinphysics.com/documentation).
 
 Roadmap
 -------
@@ -59,4 +60,4 @@ Building
 
 License
 -------
-GoblinPhysics is distributed under the [zlib license](https://github.com/chandlerprall/GoblinPhysics/blob/master/LICENSE). This means you can use the library to do whatever you want, free of charge, with or without giving attribution (although attribution is always appreciated). [Three.js](https://github.com/mrdoob/three.js/) and [Stats.js](https://github.com/mrdoob/stats.js), used in GoblinPhysics' examples and tests, is distributed under the MIT license which requires attribution if used.
+GoblinPhysics is distributed under the [zlib license](https://github.com/chandlerprall/GoblinPhysics/blob/master/LICENSE). This means you can use the library to do whatever you want, free of charge, with or without giving attribution (although attribution is always appreciated). [Three.js](https://github.com/mrdoob/three.js/) and [Stats.js](https://github.com/mrdoob/stats.js), used in GoblinPhysics' examples and tests, are distributed under the MIT license which requires attribution if used.
