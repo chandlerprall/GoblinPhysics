@@ -40,13 +40,53 @@ window.exampleUtils = (function(){
 
 	var startGoblin = function() {
 		exampleUtils.world = world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NarrowPhase(), new Goblin.IterativeSolver() );
+		exampleUtils.world.addListener(
+			'stepStart',
+			displayContacts
+		);
 	};
+
+	var displayContacts = (function(){
+		var contacts = [],
+			sphere = new THREE.SphereGeometry( 0.2 ),
+			material = new THREE.MeshNormalMaterial(),
+			normal_material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+
+		return function() {
+			while ( contacts.length ) {
+				exampleUtils.scene.remove( contacts.pop() );
+			}
+
+			if ( exampleUtils.show_contacts === false ) {
+				return;
+			}
+
+			var manifold = exampleUtils.world.narrowphase.contact_manifolds.first;
+			while ( manifold ) {
+				for ( var i = 0; i < manifold.points.length; i++ ) {
+					var mesh = new THREE.Mesh( sphere, material );
+					mesh.position.copy( manifold.points[i].contact_point );
+					exampleUtils.scene.add( mesh );
+					contacts.push( mesh );
+
+					var normal_geometry = new THREE.Geometry();
+					normal_geometry.vertices.push( mesh.position.clone() );
+					normal_geometry.vertices.push( new THREE.Vector3().copy( manifold.points[i].contact_normal ).add( mesh.position ) );
+					var normal = new THREE.Line( normal_geometry, normal_material );
+					exampleUtils.scene.add( normal );
+					contacts.push( normal );
+				}
+				manifold = manifold.next;
+			}
+		};
+	})();
 
 	return {
 		objects: objects,
 		scene: null,
 		renderer: null,
 		world: null,
+		show_contacts: false,
 		ontick: null,
 
 		initialize: function() {
