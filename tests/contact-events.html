@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Contact Events | Goblin Physics</title>
+
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<link rel="stylesheet" type="text/css" href="css/mocha.css"/>
+	<script type="text/javascript" src="js/chai.js"></script>
+	<script type="text/javascript" src="js/mocha.js"></script>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/testUtils.js"></script>
+
+	<script type="text/javascript">
+		mocha.ui('bdd');
+		var expect = (typeof chai !== "undefined" && chai !== null ? chai.expect : void 0) || require('chai').expect;
+		window.onload = function() {
+			testUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+			testUtils.world.gravity.y = 0;
+
+			(function(){
+				var sphere1 = testUtils.createSphere( 1, 0 ),
+					sphere2 = testUtils.createSphere( 1, 1 );
+
+				sphere2.goblin.position.y = 5;
+				sphere2.goblin.linear_velocity.y = -10;
+
+				describe(
+					'Contact',
+					function() {
+						it('Should be preventable & fall through to contact', function( done ){
+							var hasPreventedOne = false,
+								seenSpeculative = 0;
+
+							sphere1.goblin.addListener(
+								'speculativeContact',
+								function() {
+									seenSpeculative += 1;
+
+									if ( hasPreventedOne === false ) {
+										hasPreventedOne = true;
+										return false;
+									}
+								}
+							);
+
+							sphere1.goblin.addListener(
+								'contact',
+								function() {
+									expect( hasPreventedOne ).to.be.true;
+									expect( seenSpeculative ).to.equal( 2 );
+									done();
+								}
+							);
+						});
+
+						it('Should end contacts', function( done ){
+							sphere1.goblin.addListener(
+								'endContact',
+								function() {
+									done();
+								}
+							);
+						})
+					}
+				);
+
+				mocha.run();
+			})();
+
+			testUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+	<div id="mocha"></div>
+</body>
+</html>

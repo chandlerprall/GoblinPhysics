@@ -3575,15 +3575,17 @@ Goblin.ContactManifold.prototype.addContact = function( contact ) {
 
 	var use_contact = false;
 	if ( contact != null ) {
-		use_contact = contact.object_a.emit( 'newContact', contact.object_b, contact );
+		use_contact = contact.object_a.emit( 'speculativeContact', contact.object_b, contact );
 		if ( use_contact !== false ) {
-			use_contact = contact.object_b.emit( 'newContact', contact.object_a, contact );
+			use_contact = contact.object_b.emit( 'speculativeContact', contact.object_a, contact );
 		}
 
 		if ( use_contact === false ) {
-			contact.emit( 'destroy' );
-			Goblin.ObjectPool.freeObject( 'ContactDetails', contact );
+			contact.destroy();
 			return;
+		} else {
+			contact.object_a.emit( 'contact', contact.object_b, contact );
+			contact.object_b.emit( 'contact', contact.object_a, contact );
 		}
 	}
 
@@ -3650,6 +3652,11 @@ Goblin.ContactManifold.prototype.update = function() {
 				this.points.length = this.points.length - 1;
 			}
 		}
+	}
+
+	if ( this.points.length === 0 ) {
+		this.object_a.emit( 'endContact', this.object_b );
+		this.object_b.emit( 'endContact', this.object_a );
 	}
 };
 /**
