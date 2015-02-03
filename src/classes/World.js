@@ -40,7 +40,7 @@ Goblin.World = function( broadphase, narrowphase, solver ) {
 	solver.world = this;
 
 	/**
-	 * Array of rigid_bodies in the world
+	 * Array of rigid bodies in the world
 	 *
 	 * @property rigid_bodies
 	 * @type {Array}
@@ -48,6 +48,16 @@ Goblin.World = function( broadphase, narrowphase, solver ) {
 	 * @private
 	 */
 	this.rigid_bodies = [];
+
+	/**
+	 * Array of ghost bodies in the world
+	 *
+	 * @property ghost_bodies
+	 * @type {Array}
+	 * @default []
+	 * @private
+	 */
+	this.ghost_bodies = [];
 
 	/**
 	* the world's gravity, applied by default to all objects in the world
@@ -140,6 +150,12 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
             body.integrate( delta );
         }
 
+		// Uppdate ghost bodies
+		for ( i = 0; i < this.ghost_bodies.length; i++ ) {
+			body = this.ghost_bodies[i];
+			body.checkForEndedContacts();
+		}
+
 		this.emit( 'stepEnd', this.ticks, delta );
     }
 };
@@ -171,6 +187,35 @@ Goblin.World.prototype.removeRigidBody = function( rigid_body ) {
 		if ( this.rigid_bodies[i] === rigid_body ) {
 			this.rigid_bodies.splice( i, 1 );
 			this.broadphase.removeBody( rigid_body );
+			break;
+		}
+	}
+};
+
+/**
+ * Adds a ghost body to the world
+ *
+ * @method addGhostBody
+ * @param ghost_body {Goblin.GhostBody} ghost body to add to the world
+ */
+Goblin.World.prototype.addGhostBody = function( ghost_body ) {
+	ghost_body.world = this;
+	ghost_body.updateDerived();
+	this.ghost_bodies.push( ghost_body );
+	this.broadphase.addBody( ghost_body );
+};
+
+/**
+ * Removes a ghost body from the world
+ *
+ * @method removeGhostBody
+ * @param ghost_body {Goblin.GhostBody} ghost body to remove from the world
+ */
+Goblin.World.prototype.removeGhostBody = function( ghost_body ) {
+	for ( var i = 0; i < this.ghost_bodies.length; i++ ) {
+		if ( this.ghost_bodies[i] === ghost_body ) {
+			this.ghost_bodies.splice( i, 1 );
+			this.broadphase.removeBody( ghost_body );
 			break;
 		}
 	}

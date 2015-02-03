@@ -37,6 +37,7 @@ module.exports = function ( grunt ) {
 					'src/classes/Math/**.js',
 					'src/libglobals.js',
 					'src/classes/EventEmitter.js',
+					'src/classes/RigidBody.js',
 					'src/classes/**/*.js',
 					'src/outro.js'
 				],
