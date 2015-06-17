@@ -56,7 +56,7 @@ Tests
 
 Building
 --------
-[grunt](http://gruntjs.com/) is used to build the library and generate documenation. Follow grunt's [getting started](http://gruntjs.com/getting-started) page for a quick setup. To install the packages necessary to build GoblinPhysics, run `npm install` in the git checkout directory. Once all of the packages have been downloaded you can build by running `grunt`. To generate documenation, run `grunt docs`.
+[gulp](http://gulpjs.com/) is used to build the library and generate documentation. Follow gulp's [getting started](https://github.com/gulpjs/gulp/blob/master/docs/getting-started.md) page for a quick setup. To install the packages necessary to build GoblinPhysics, run `npm install` in the git checkout directory. Once all of the packages have been downloaded you can build by running `gulp default`. To generate documenation, run `gulp docs`.
 
 License
 -------
