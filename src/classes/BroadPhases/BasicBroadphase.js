@@ -14,7 +14,7 @@ Goblin.BasicBroadphase = function() {
 	this.bodies = [];
 
 	/**
-	 * Array of all (current) collision pairs between the broadphase's bodies
+	 * Array of all (current) collision pairs between the broadphases' bodies
 	 *
 	 * @property collision_pairs
 	 * @type {Array}
@@ -26,7 +26,7 @@ Goblin.BasicBroadphase = function() {
  * Adds a body to the broadphase for contact checking
  *
  * @method addBody
- * @param body {MassPoint|RigidBody} body to add to the broadphase contact checking
+ * @param body {RigidBody} body to add to the broadphase contact checking
  */
 Goblin.BasicBroadphase.prototype.addBody = function( body ) {
 	this.bodies.push( body );
@@ -36,7 +36,7 @@ Goblin.BasicBroadphase.prototype.addBody = function( body ) {
  * Removes a body from the broadphase contact checking
  *
  * @method removeBody
- * @param body {MassPoint|RigidBody} body to remove from the broadphase contact checking
+ * @param body {RigidBody} body to remove from the broadphase contact checking
  */
 Goblin.BasicBroadphase.prototype.removeBody = function( body ) {
 	var i,
@@ -54,9 +54,9 @@ Goblin.BasicBroadphase.prototype.removeBody = function( body ) {
  * Checks all collision objects to find any which are possibly in contact
  *  resulting contact pairs are held in the object's `collision_pairs` property
  *
- * @method predictContactPairs
+ * @method update
  */
-Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
+Goblin.BasicBroadphase.prototype.update = function() {
 	var i, j,
 		object_a, object_b,
 		bodies_count = this.bodies.length;
@@ -110,15 +110,15 @@ Goblin.BasicBroadphase.prototype.predictContactPairs = function() {
 				}
 			}
 
-			if ( this.mightIntersect( object_a, object_b ) ) {
-				this.collision_pairs.push( [ object_a, object_b ] );
+			if ( object_a.aabb.intersects( object_b.aabb ) ) {
+				this.collision_pairs.push( [ object_b, object_a ] );
 			}
 		}
 	}
 };
 
 /**
- * Returns an of objects the given body may be colliding with
+ * Returns an array of objects the given body may be colliding with
  *
  * @method intersectsWith
  * @param object_a {RigidBody}
@@ -143,18 +143,6 @@ Goblin.BasicBroadphase.prototype.intersectsWith = function( object_a ) {
 	}
 
 	return intersections;
-};
-
-/**
- * Determines whether two objects may be colliding
- *
- * @method mightIntersect
- * @param object_a {RigidBody}
- * @param object_b {RigidBody}
- * @returns {Boolean}
- */
-Goblin.BasicBroadphase.prototype.mightIntersect = function( object_a, object_b ) {
-	return object_a.aabb.intersects( object_b.aabb );
 };
 
 /**

@@ -107,7 +107,7 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
             this.rigid_bodies[i].updateDerived();
         }
 
-        // Apply gravity
+		// Apply gravity
         for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
             body = this.rigid_bodies[i];
 
@@ -124,7 +124,7 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
         }
 
         // Check for contacts, broadphase
-        this.broadphase.predictContactPairs();
+        this.broadphase.update();
 
         // Find valid contacts, narrowphase
         this.narrowphase.generateContacts( this.broadphase.collision_pairs );

@@ -39,7 +39,7 @@ window.exampleUtils = (function(){
 	};
 
 	var startGoblin = function() {
-		exampleUtils.world = world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NarrowPhase(), new Goblin.IterativeSolver() );
+		exampleUtils.world = world = new Goblin.World( new Goblin.SAPBroadphase(), new Goblin.NarrowPhase(), new Goblin.IterativeSolver() );
 		exampleUtils.world.addListener(
 			'stepStart',
 			displayContacts

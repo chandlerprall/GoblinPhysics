@@ -25,7 +25,7 @@ window.testUtils = (function(){
 	};
 
 	var startGoblin = function() {
-		testUtils.world = world = new Goblin.World( new Goblin.BasicBroadphase(), new Goblin.NarrowPhase(), new Goblin.IterativeSolver() );
+		testUtils.world = world = new Goblin.World( new Goblin.SAPBroadphase(), new Goblin.NarrowPhase(), new Goblin.IterativeSolver() );
 	};
 
 	return {

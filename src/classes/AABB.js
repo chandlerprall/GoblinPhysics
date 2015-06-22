@@ -114,7 +114,7 @@ Goblin.AABB.prototype.testRayIntersect = (function(){
 		tmin, tmax,
 		ood, t1, t2;
 
-	return function( start, end ) {
+	return function AABB_testRayIntersect( start, end ) {
 		tmin = 0;
 
 		direction.subtractVectors( end, start );

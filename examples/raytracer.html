@@ -313,6 +313,7 @@
 		        color = new Goblin.Vector3();
 
 	        return function() {
+		        //var x = 726, y = 63;
 		        for ( var i = 0; i < 30 && y < height; i++ && y++ ) {
 			        for ( var x = 0; x < width; x++ ) {
 				        // Unproject pixel
@@ -337,7 +338,7 @@
 				        canvas_data.data[data_offset + 1] = color.y * 255;
 				        canvas_data.data[data_offset + 2] = color.z * 255;
 				        canvas_data.data[data_offset + 3] = 255;
-			        }
+			       }
 		        }
 
 		        ctx.putImageData( canvas_data, 0, 0 );
