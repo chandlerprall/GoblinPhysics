@@ -1,8 +1,17 @@
 var gulp = require( 'gulp' ),
 	uglify = require('gulp-uglify' ),
-	concat = require( 'gulp-concat' );
+	concat = require( 'gulp-concat' ),
+	jshint = require( 'gulp-jshint' );
 
-gulp.task('build', function(){
+gulp.task('lint', function(){
+	gulp.src([
+		'src/classes/**/*.js'
+	])
+	.pipe( jshint() )
+	.pipe( jshint.reporter( 'default' ) );
+});
+
+gulp.task('build', ['lint'], function(){
 	gulp.src([
 		'src/intro.js',
 		'src/classes/Math/**.js',
@@ -16,7 +25,7 @@ gulp.task('build', function(){
 	.pipe( gulp.dest( 'build' ) );
 });
 
-gulp.task('build-minified', function(){
+gulp.task('build-minified', ['lint'], function(){
 	gulp.src([
 		'src/intro.js',
 		'src/classes/Math/**.js',

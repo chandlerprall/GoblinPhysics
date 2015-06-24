@@ -20,6 +20,7 @@
   "devDependencies": {
     "gulp": "3.9.x",
     "gulp-concat": "2.5.x",
-    "gulp-uglify": "1.2.x"
+    "gulp-uglify": "1.2.x",
+    "gulp-jshint": "1.11.0"
   }
 }

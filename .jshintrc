@@ -1,0 +1,28 @@
+{
+  "typed": true,
+  "curly": true,
+  "eqeqeq": true,
+  "latedef": true,
+  "newcap": true,
+  "noarg": true,
+  "sub": true,
+  "undef": true,
+  "boss": true,
+  "eqnull": true,
+  "smarttabs": true,
+  "globals": {
+    "vec3": false,
+    "quat4": true,
+    "mat4": false,
+    "mat3": false,
+    "Goblin": true,
+    "_tmp_vec3_1": true,
+    "_tmp_vec3_2": true,
+    "_tmp_vec3_3": true,
+    "_tmp_quat4_1": true,
+    "_tmp_quat4_2": true,
+    "_tmp_mat3_1": true,
+    "_tmp_mat3_2": true,
+    "_tmp_mat4_1": true
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "goblinphysics",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "3D physics engine for JavaScript",
   "homepage": "https://github.com/chandlerprall/GoblinPhysics",
   "repository": {
