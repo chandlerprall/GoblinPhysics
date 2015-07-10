@@ -18,6 +18,7 @@ gulp.task('build', ['lint'], function(){
 		'src/libglobals.js',
 		'src/classes/EventEmitter.js',
 		'src/classes/RigidBody.js',
+		'src/classes/ForceGenerator.js',
 		'src/classes/**/*.js',
 		'src/outro.js'
 	])
@@ -32,6 +33,7 @@ gulp.task('build-minified', ['lint'], function(){
 		'src/libglobals.js',
 		'src/classes/EventEmitter.js',
 		'src/classes/RigidBody.js',
+		'src/classes/ForceGenerator.js',
 		'src/classes/**/*.js',
 		'src/outro.js'
 	])

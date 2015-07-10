@@ -110,5 +110,25 @@ Goblin.Vector3.prototype = {
 			y = v.y - this.y,
 			z = v.z - this.z;
 		return Math.sqrt( x*x + y*y + z*z );
+	},
+
+	findOrthogonal: function( o1, o2 ) {
+		var a, k;
+		if ( Math.abs( this.z ) > 0.7071067811865475 ) {
+			// choose p in y-z plane
+			a = -this.y * this.y + this.z * this.z;
+			k = 1 / Math.sqrt( a );
+			o1.set( 0, -this.z * k, this.y * k );
+			// set q = n x p
+			o2.set( a * k, -this.x * o1.z, this.x * o1.y );
+		}
+		else {
+			// choose p in x-y plane
+			a = this.x * this.x + this.y * this.y;
+			k = 1 / Math.sqrt( a );
+			o1.set( -this.y * k, this.x * k, 0 );
+			// set q = n x p
+			o2.set( -this.z * o1.y, this.z * o1.x, a * k );
+		}
 	}
 };

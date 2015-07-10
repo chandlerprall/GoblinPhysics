@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Hinge Constraint | Goblin Physics</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/stats.min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/exampleUtils.js"></script>
+
+	<script type="text/javascript">
+		window.onload = function() {
+			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			var plank_material = exampleUtils.createMaterial( 'wood', 1, 1 );
+			var ball_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 );
+
+			var ground = exampleUtils.createPlane( 1, 20, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
+			ground.goblin.position.y = -5;
+			ground.castShadow = false;
+
+			var plank = exampleUtils.createBox(
+				4,
+				2,
+				0.3,
+				100,
+				plank_material
+			);
+			plank.goblin.position.y = -2;
+			//plank.goblin.rotation.set( 0, 0, 1, 1 );
+			//plank.goblin.rotation.normalize();
+
+			var sphere = exampleUtils.createSphere(
+				0.5, Infinity, plank_material
+			);
+			sphere.goblin.position.set( 0, 1, 0 );
+
+			constraint = new Goblin.HingeConstraint(
+				plank.goblin, // object_a
+				new Goblin.Vector3( 1, 0, 0 ), // vector of allowed rotation in plank's reference frame
+				new Goblin.Vector3( 0, 2, 0 ), // point on plank that is the hinge
+				sphere.goblin,
+				new Goblin.Vector3( 0, -1, 0 ) // point in sphere that is the hinge
+			);
+			exampleUtils.world.addConstraint( constraint );
+
+			var spawnBall = function() {
+				var ball = exampleUtils.createSphere( 1, 3, ball_material );
+				ball.goblin.position.set( 0, -2, 20 );
+				ball.goblin.linear_velocity.set ( Math.random() * 10 - 5, -5, -50 );
+			};
+			exampleUtils.world.addListener(
+				'stepStart',
+				function( tick ) {
+					if ( tick % 30 === 1 ) {
+						spawnBall();
+					}
+				}
+			);
+
+			exampleUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+
+</body>
+</html>
