@@ -3514,25 +3514,6 @@ Goblin.FrictionConstraint.prototype.update = (function(){
 			_tmp_vec3_1.set( 0, 0, 0 );
 		}
 
-		/*if ( this.object_b._mass !== Infinity ) {
-		 // accumulated linear velocity
-		 _tmp_vec3_2.scaleVector( this.object_b.accumulated_force, 1 / this.object_b._mass );
-		 _tmp_vec3_2.add( this.object_b.linear_velocity );
-
-		 // accumulated angular velocity
-		 this.object_b.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_b.accumulated_torque, _tmp_vec3_3 );
-		 _tmp_vec3_3.add( this.object_b.angular_velocity );
-
-		 _tmp_vec3_3.cross( this.contact.contact_point_in_b );
-		 _tmp_vec3_2.add( _tmp_vec3_3 );
-		 _tmp_vec3_2.scale( this.object_b._mass );
-		 } else {
-		 _tmp_vec3_2.set( 0, 0, 0 );
-		 }
-
-		 _tmp_vec3_1.subtract( _tmp_vec3_2 ); // combine velocities
-		 var velocity = _tmp_vec3_1.dot( this.contact.contact_normal ); // how much velocity exists along the contact normal*/
-
 		var limit = this.contact.friction * 25;
 		if ( limit < 0 ) {
 			limit = 0;
@@ -3830,12 +3811,7 @@ Goblin.SliderConstraint.prototype.update = (function(){
 		this.object_a.rotation.transformVector3Into( this.axis, _axis );
 
 		// Find two vectors that are orthogonal to `axis`
-		// @TODO, this doesn't work well, use the same logic that FrictionConstraint has
-		n1.x = _axis.y;
-		n1.y = -_axis.x;
-		n1.z = 0;
-		n1.normalize();
-		n2.crossVectors( _axis, n1 );
+		_axis.findOrthogonal( n1, n2 );
 
 		this._updateLinearConstraints( time_delta, n1, n2 );
 		this._updateAngularConstraints( time_delta, n1, n2 );

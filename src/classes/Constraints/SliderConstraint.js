@@ -45,12 +45,7 @@ Goblin.SliderConstraint.prototype.update = (function(){
 		this.object_a.rotation.transformVector3Into( this.axis, _axis );
 
 		// Find two vectors that are orthogonal to `axis`
-		// @TODO, this doesn't work well, use the same logic that FrictionConstraint has
-		n1.x = _axis.y;
-		n1.y = -_axis.x;
-		n1.z = 0;
-		n1.normalize();
-		n2.crossVectors( _axis, n1 );
+		_axis.findOrthogonal( n1, n2 );
 
 		this._updateLinearConstraints( time_delta, n1, n2 );
 		this._updateAngularConstraints( time_delta, n1, n2 );
