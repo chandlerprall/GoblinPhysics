@@ -1327,6 +1327,621 @@ Goblin.ForceGenerator.prototype.unaffect = function( object ) {
 		}
 	}
 };
+/**
+ * Performs a n^2 check of all collision objects to see if any could be in contact
+ *
+ * @class BasicBroadphase
+ * @constructor
+ */
+Goblin.BasicBroadphase = function() {
+	/**
+	 * Holds all of the collision objects that the broadphase is responsible for
+	 *
+	 * @property bodies
+	 * @type {Array}
+	 */
+	this.bodies = [];
+
+	/**
+	 * Array of all (current) collision pairs between the broadphases' bodies
+	 *
+	 * @property collision_pairs
+	 * @type {Array}
+	 */
+	this.collision_pairs = [];
+};
+
+/**
+ * Adds a body to the broadphase for contact checking
+ *
+ * @method addBody
+ * @param body {RigidBody} body to add to the broadphase contact checking
+ */
+Goblin.BasicBroadphase.prototype.addBody = function( body ) {
+	this.bodies.push( body );
+};
+
+/**
+ * Removes a body from the broadphase contact checking
+ *
+ * @method removeBody
+ * @param body {RigidBody} body to remove from the broadphase contact checking
+ */
+Goblin.BasicBroadphase.prototype.removeBody = function( body ) {
+	var i,
+		body_count = this.bodies.length;
+
+	for ( i = 0; i < body_count; i++ ) {
+		if ( this.bodies[i] === body ) {
+			this.bodies.splice( i, 1 );
+			break;
+		}
+	}
+};
+
+/**
+ * Checks all collision objects to find any which are possibly in contact
+ *  resulting contact pairs are held in the object's `collision_pairs` property
+ *
+ * @method update
+ */
+Goblin.BasicBroadphase.prototype.update = function() {
+	var i, j,
+		object_a, object_b,
+		bodies_count = this.bodies.length;
+
+	// Clear any old contact pairs
+	this.collision_pairs.length = 0;
+
+	// Loop over all collision objects and check for overlapping boundary spheres
+	for ( i = 0; i < bodies_count; i++ ) {
+		object_a = this.bodies[i];
+
+		for ( j = 0; j < bodies_count; j++ ) {
+			if ( i <= j ) {
+				// if i < j then we have already performed this check
+				// if i === j then the two objects are the same and can't be in contact
+				continue;
+			}
+
+			object_b = this.bodies[j];
+
+			if ( object_a._mass === Infinity && object_b._mass === Infinity ) {
+				// Two static objects aren't considered to be in contact
+				continue;
+			}
+
+			// Check collision masks
+			if ( object_a.collision_mask !== 0 ) {
+				if ( ( object_a.collision_mask & 1 ) === 0 ) {
+					// object_b must not be in a matching group
+					if ( ( object_a.collision_mask & object_b.collision_groups ) !== 0 ) {
+						continue;
+					}
+				} else {
+					// object_b must be in a matching group
+					if ( ( object_a.collision_mask & object_b.collision_groups ) === 0 ) {
+						continue;
+					}
+				}
+			}
+			if ( object_b.collision_mask !== 0 ) {
+				if ( ( object_b.collision_mask & 1 ) === 0 ) {
+					// object_a must not be in a matching group
+					if ( ( object_b.collision_mask & object_a.collision_groups ) !== 0 ) {
+						continue;
+					}
+				} else {
+					// object_a must be in a matching group
+					if ( ( object_b.collision_mask & object_a.collision_groups ) === 0 ) {
+						continue;
+					}
+				}
+			}
+
+			if ( object_a.aabb.intersects( object_b.aabb ) ) {
+				this.collision_pairs.push( [ object_b, object_a ] );
+			}
+		}
+	}
+};
+
+/**
+ * Returns an array of objects the given body may be colliding with
+ *
+ * @method intersectsWith
+ * @param object_a {RigidBody}
+ * @return Array<RigidBody>
+ */
+Goblin.BasicBroadphase.prototype.intersectsWith = function( object_a ) {
+	var i, object_b,
+		bodies_count = this.bodies.length,
+		intersections = [];
+
+	// Loop over all collision objects and check for overlapping boundary spheres
+	for ( i = 0; i < bodies_count; i++ ) {
+		object_b = this.bodies[i];
+
+		if ( object_a === object_b ) {
+			continue;
+		}
+
+		if ( this.mightIntersect( object_a, object_b ) ) {
+			intersections.push( object_b );
+		}
+	}
+
+	return intersections;
+};
+
+/**
+ * Checks if a ray segment intersects with objects in the world
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {Array<RayIntersection>} an unsorted array of intersections
+ */
+Goblin.BasicBroadphase.prototype.rayIntersect = function( start, end ) {
+	var bodies_count = this.bodies.length,
+		i, body,
+		intersections = [];
+	for ( i = 0; i < bodies_count; i++ ) {
+		body = this.bodies[i];
+		if ( body.aabb.testRayIntersect( start, end ) ) {
+			body.rayIntersect( start, end, intersections );
+		}
+	}
+
+	return intersections;
+};
+(function(){
+	/**
+	 * @class SAPMarker
+	 * @private
+	 * @param {SAPMarker.TYPES} marker_type
+	 * @param {RigidBody} body
+	 * @param {Number} position
+	 * @constructor
+	 */
+	var SAPMarker = function( marker_type, body, position ) {
+		this.type = marker_type;
+		this.body = body;
+		this.position = position;
+		
+		this.prev = null;
+		this.next = null;
+	};
+	SAPMarker.TYPES = {
+		START: 0,
+		END: 1
+	};
+
+	var LinkedList = function() {
+		this.first = null;
+		this.last = null;
+	};
+
+	/**
+	 * Sweep and Prune broadphase
+	 *
+	 * @class SAPBroadphase
+	 * @constructor
+	 */
+	Goblin.SAPBroadphase = function() {
+		/**
+		 * linked list of the start/end markers along the X axis
+		 *
+		 * @property bodies
+		 * @type {SAPMarker<SAPMarker>}
+		 */
+		this.markers_x = new LinkedList();
+
+		/**
+		 * linked list of the start/end markers along the Y axis
+		 *
+		 * @property bodies
+		 * @type {SAPMarker<SAPMarker>}
+		 */
+		this.markers_y = new LinkedList();
+
+		/**
+		 * linked list of the start/end markers along the Z axis
+		 *
+		 * @property bodies
+		 * @type {SAPMarker<SAPMarker>}
+		 */
+		this.markers_z = new LinkedList();
+
+		/**
+		 * maintains count of axis over which two bodies overlap; if count is three, their AABBs touch/penetrate
+		 *
+		 * @type {Object}
+		 */
+		this.overlap_counter = {};
+
+		/**
+		 * array of all (current) collision pairs between the broadphases' bodies
+		 *
+		 * @property collision_pairs
+		 * @type {Array}
+		 */
+		this.collision_pairs = [];
+
+		/**
+		 * array of bodies which have been added to the broadphase since the last update
+		 *
+		 * @type {Array<RigidBody>}
+		 */
+		this.pending_bodies = [];
+	};
+
+	Goblin.SAPBroadphase.prototype = {
+		incrementOverlaps: function( body_a, body_b ) {
+			if ( body_a._mass === Infinity && body_b._mass === Infinity ) {
+				return;
+			}
+
+			var key = body_a.id < body_b.id ? body_a.id + '-' + body_b.id : body_b.id + '-' + body_a.id;
+
+			if ( !this.overlap_counter.hasOwnProperty( key ) ) {
+				this.overlap_counter[key] = 0;
+			}
+
+			this.overlap_counter[key]++;
+
+			if ( this.overlap_counter[key] === 3 ) {
+				// The AABBs are touching, add to potential contacts
+				this.collision_pairs.push([ body_a.id < body_b.id ? body_a : body_b, body_a.id < body_b.id ? body_b : body_a ]);
+			}
+		},
+
+		decrementOverlaps: function( body_a, body_b ) {
+			var key = body_a.id < body_b.id ? body_a.id + '-' + body_b.id : body_b.id + '-' + body_a.id;
+
+			if ( !this.overlap_counter.hasOwnProperty( key ) ) {
+				this.overlap_counter[key] = 0;
+			}
+
+			this.overlap_counter[key]--;
+
+			if ( this.overlap_counter[key] === 0 ) {
+				delete this.overlap_counter[key];
+			} else if ( this.overlap_counter[key] === 2 ) {
+				// These are no longer touching, remove from potential contacts
+				this.collision_pairs = this.collision_pairs.filter(function( pair ){
+					if ( pair[0] === body_a && pair[1] === body_b ) {
+						return false;
+					}
+					if ( pair[0] === body_b && pair[1] === body_a ) {
+						return false;
+					}
+					return true;
+				});
+			}
+		},
+
+		/**
+		 * Adds a body to the broadphase for contact checking
+		 *
+		 * @method addBody
+		 * @param body {RigidBody} body to add to the broadphase contact checking
+		 */
+		addBody: function( body ) {
+			this.pending_bodies.push( body );
+		},
+
+		removeBody: function( body ) {
+			// first, check if the body is pending
+			var pending_index = this.pending_bodies.indexOf( body );
+			if ( pending_index !== -1 ) {
+				this.pending_bodies.splice( pending_index, 1 );
+				return;
+			}
+
+			// body was already added, find & remove
+			var next, previous;
+			var marker = this.markers_x.first;
+			while ( marker ) {
+				if ( marker.body === body ) {
+					next = marker.next;
+					previous = marker.previous;
+					if ( next != null ) {
+						next.previous = previous;
+						if ( previous != null ) {
+							previous.next = next;
+						}
+					} else {
+						this.markers_x.last = previous;
+					}
+					if ( previous != null ) {
+						previous.next = next;
+						if ( next != null ) {
+							next.previous = previous;
+						}
+					} else {
+						this.markers_x.first = next;
+					}
+				}
+				marker = marker.next;
+			}
+
+			marker = this.markers_y.first;
+			while ( marker ) {
+				if ( marker.body === body ) {
+					next = marker.next;
+					previous = marker.previous;
+					if ( next != null ) {
+						next.previous = previous;
+						if ( previous != null ) {
+							previous.next = next;
+						}
+					} else {
+						this.markers_y.last = previous;
+					}
+					if ( previous != null ) {
+						previous.next = next;
+						if ( next != null ) {
+							next.previous = previous;
+						}
+					} else {
+						this.markers_y.first = next;
+					}
+				}
+				marker = marker.next;
+			}
+
+			marker = this.markers_z.first;
+			while ( marker ) {
+				if ( marker.body === body ) {
+					next = marker.next;
+					previous = marker.previous;
+					if ( next != null ) {
+						next.previous = previous;
+						if ( previous != null ) {
+							previous.next = next;
+						}
+					} else {
+						this.markers_z.last = previous;
+					}
+					if ( previous != null ) {
+						previous.next = next;
+						if ( next != null ) {
+							next.previous = previous;
+						}
+					} else {
+						this.markers_z.first = next;
+					}
+				}
+				marker = marker.next;
+			}
+
+			// remove any collisions
+			this.collision_pairs = this.collision_pairs.filter(function( pair ){
+				if ( pair[0] === body || pair[1] === body ) {
+					return false;
+				}
+				return true;
+			});
+		},
+
+		insertPending: function() {
+			var body;
+			while ( ( body = this.pending_bodies.pop() ) ) {
+				body.updateDerived();
+				var start_marker_x = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.x ),
+					start_marker_y = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.y ),
+					start_marker_z = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.z ),
+					end_marker_x = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.x ),
+					end_marker_y = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.y ),
+					end_marker_z = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.z );
+
+				// Insert these markers, incrementing overlap counter
+				this.insert( this.markers_x, start_marker_x );
+				this.insert( this.markers_x, end_marker_x );
+				this.insert( this.markers_y, start_marker_y );
+				this.insert( this.markers_y, end_marker_y );
+				this.insert( this.markers_z, start_marker_z );
+				this.insert( this.markers_z, end_marker_z );
+			}
+		},
+
+		insert: function( list, marker ) {
+			if ( list.first == null ) {
+				list.first = list.last = marker;
+			} else {
+				// Insert at the end of the list & sort
+				marker.prev = list.last;
+				list.last.next = marker;
+				list.last = marker;
+				this.sort( list, marker );
+			}
+		},
+
+		sort: function( list, marker ) {
+			var prev;
+			while (
+				marker.prev != null &&
+				(
+					marker.position < marker.prev.position ||
+					( marker.position === marker.prev.position && marker.type === SAPMarker.TYPES.START && marker.prev.type === SAPMarker.TYPES.END )
+				)
+			) {
+				prev = marker.prev;
+
+				// check if this swap changes overlap counters
+				if ( marker.type !== prev.type ) {
+					if ( marker.type === SAPMarker.TYPES.START ) {
+						// marker is START, moving into an overlap
+						this.incrementOverlaps( marker.body, prev.body );
+					} else {
+						// marker is END, leaving an overlap
+						this.decrementOverlaps( marker.body, prev.body );
+					}
+				}
+
+				marker.prev = prev.prev;
+				prev.next = marker.next;
+
+				marker.next = prev;
+				prev.prev = marker;
+
+				if ( marker.prev == null ) {
+					list.first = marker;
+				} else {
+					marker.prev.next = marker;
+				}
+				if ( prev.next == null ) {
+					list.last = prev;
+				} else {
+					prev.next.prev = prev;
+				}
+			}
+		},
+
+		/**
+		 * Updates the broadphase's internal representation and current predicted contacts
+		 *
+		 * @method update
+		 */
+		update: function() {
+			this.insertPending();
+
+			var marker = this.markers_x.first;
+			while ( marker ) {
+				if ( marker.type === SAPMarker.TYPES.START ) {
+					marker.position = marker.body.aabb.min.x;
+				} else {
+					marker.position = marker.body.aabb.max.x;
+				}
+				this.sort( this.markers_x, marker );
+				marker = marker.next;
+			}
+
+			marker = this.markers_y.first;
+			while ( marker ) {
+				if ( marker.type === SAPMarker.TYPES.START ) {
+					marker.position = marker.body.aabb.min.y;
+				} else {
+					marker.position = marker.body.aabb.max.y;
+				}
+				this.sort( this.markers_y, marker );
+				marker = marker.next;
+			}
+
+			marker = this.markers_z.first;
+			while ( marker ) {
+				if ( marker.type === SAPMarker.TYPES.START ) {
+					marker.position = marker.body.aabb.min.z;
+				} else {
+					marker.position = marker.body.aabb.max.z;
+				}
+				this.sort( this.markers_z, marker );
+				marker = marker.next;
+			}
+		},
+
+		/**
+		 * Returns an array of objects the given body may be colliding with
+		 *
+		 * @method intersectsWith
+		 * @param body {RigidBody}
+		 * @return Array<RigidBody>
+		 */
+		intersectsWith: function( body ) {
+			return this.collision_pairs.filter(function( pair ){
+				if ( pair[0] === body || pair[1] === body ) {
+					return true;
+				}
+				return false;
+			});
+		},
+
+		/**
+		 * Checks if a ray segment intersects with objects in the world
+		 *
+		 * @method rayIntersect
+		 * @property start {vec3} start point of the segment
+		 * @property end {vec3{ end point of the segment
+         * @return {Array<RayIntersection>} an unsorted array of intersections
+		 */
+		rayIntersect: function( start, end ) {
+			// It's assumed that raytracing will be performed through a proxy like Goblin.World,
+			// thus that the only time this broadphase cares about updating itself is if an object was added
+			if ( this.pending_bodies.length > 0 ) {
+				this.update();
+			}
+
+			// This implementation only scans the X axis because the overall process gets slower the more axes you add
+			// thanks JavaScript
+
+			var active_bodies = {},
+				intersections = [],
+				id_body_map = {},
+				id_intersection_count = {},
+				ordered_start, ordered_end,
+				marker, has_encountered_start,
+				i, body, key, keys;
+
+			// X axis
+			marker = this.markers_x.first;
+			has_encountered_start = false;
+			active_bodies = {};
+			ordered_start = start.x < end.x ? start.x : end.x;
+			ordered_end = start.x < end.x ? end.x : start.x;
+			while ( marker ) {
+				if ( marker.type === SAPMarker.TYPES.START ) {
+					active_bodies[marker.body.id] = marker.body;
+				}
+
+				if ( marker.position >= ordered_start ) {
+					if ( has_encountered_start === false ) {
+						has_encountered_start = true;
+						keys = Object.keys( active_bodies );
+						for ( i = 0; i < keys.length; i++ ) {
+							key = keys[i];
+							body = active_bodies[key];
+							if ( body == null ) { // needed because we don't delete but set to null, see below comment
+								continue;
+							}
+							// The next two lines are piss-slow
+							id_body_map[body.id] = body;
+							id_intersection_count[body.id] = id_intersection_count[body.id] ? id_intersection_count[body.id] + 1 : 1;
+						}
+					} else if ( marker.type === SAPMarker.TYPES.START ) {
+						// The next two lines are piss-slow
+						id_body_map[marker.body.id] = marker.body;
+						id_intersection_count[marker.body.id] = id_intersection_count[marker.body.id] ? id_intersection_count[marker.body.id] + 1 : 1;
+					}
+				}
+
+				if ( marker.type === SAPMarker.TYPES.END ) {
+					active_bodies[marker.body.id] = null; // this is massively faster than deleting the association
+					//delete active_bodies[marker.body.id];
+				}
+
+				if ( marker.position > ordered_end ) {
+					// no more intersections to find on this axis
+					break;
+				}
+
+				marker = marker.next;
+			}
+
+			keys = Object.keys( id_intersection_count );
+			for ( i = 0; i < keys.length; i++ ) {
+				var body_id = keys[i];
+				if ( id_intersection_count[body_id] === 1 ) {
+					if ( id_body_map[body_id].aabb.testRayIntersect( start, end ) ) {
+						id_body_map[body_id].rayIntersect( start, end, intersections );
+					}
+				}
+			}
+
+			return intersections;
+		}
+	};
+})();
 Goblin.BoxSphere = function( object_a, object_b ) {
 	var sphere = object_a.shape instanceof Goblin.SphereShape ? object_a : object_b,
 		box = object_a.shape instanceof Goblin.SphereShape ? object_b : object_a,
@@ -2813,121 +3428,124 @@ Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
 	this.update();
 };
 
-Goblin.FrictionConstraint.prototype.update = function() {
-	var row_1 = this.rows[0],
-		row_2 = this.rows[1];
-
-	// Find the contact point relative to object_a and object_b
+Goblin.FrictionConstraint.prototype.update = (function(){
 	var rel_a = new Goblin.Vector3(),
-		rel_b = new Goblin.Vector3();
-	rel_a.subtractVectors( this.contact.contact_point, this.object_a.position );
-	rel_b.subtractVectors( this.contact.contact_point, this.object_b.position );
-
-	var u1 = new Goblin.Vector3(),
+		rel_b = new Goblin.Vector3(),
+		u1 = new Goblin.Vector3(),
 		u2 = new Goblin.Vector3();
-	this.contact.contact_normal.findOrthogonal( u1, u2 );
 
-	if ( this.object_a == null || this.object_a._mass === Infinity ) {
-		row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
-		row_1.jacobian[3] = row_1.jacobian[4] = row_1.jacobian[5] = 0;
-		row_2.jacobian[0] = row_2.jacobian[1] = row_2.jacobian[2] = 0;
-		row_2.jacobian[3] = row_2.jacobian[4] = row_2.jacobian[5] = 0;
-	} else {
-		row_1.jacobian[0] = -u1.x;
-		row_1.jacobian[1] = -u1.y;
-		row_1.jacobian[2] = -u1.z;
+	return function updateFrictionConstraint() {
+		var row_1 = this.rows[0],
+			row_2 = this.rows[1];
 
-		_tmp_vec3_1.crossVectors( rel_a, u1 );
-		row_1.jacobian[3] = -_tmp_vec3_1.x;
-		row_1.jacobian[4] = -_tmp_vec3_1.y;
-		row_1.jacobian[5] = -_tmp_vec3_1.z;
+		// Find the contact point relative to object_a and object_b
+		rel_a.subtractVectors( this.contact.contact_point, this.object_a.position );
+		rel_b.subtractVectors( this.contact.contact_point, this.object_b.position );
 
-		row_2.jacobian[0] = -u2.x;
-		row_2.jacobian[1] = -u2.y;
-		row_2.jacobian[2] = -u2.z;
+		this.contact.contact_normal.findOrthogonal( u1, u2 );
 
-		_tmp_vec3_1.crossVectors( rel_a, u2 );
-		row_2.jacobian[3] = -_tmp_vec3_1.x;
-		row_2.jacobian[4] = -_tmp_vec3_1.y;
-		row_2.jacobian[5] = -_tmp_vec3_1.z;
-	}
+		if ( this.object_a == null || this.object_a._mass === Infinity ) {
+			row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
+			row_1.jacobian[3] = row_1.jacobian[4] = row_1.jacobian[5] = 0;
+			row_2.jacobian[0] = row_2.jacobian[1] = row_2.jacobian[2] = 0;
+			row_2.jacobian[3] = row_2.jacobian[4] = row_2.jacobian[5] = 0;
+		} else {
+			row_1.jacobian[0] = -u1.x;
+			row_1.jacobian[1] = -u1.y;
+			row_1.jacobian[2] = -u1.z;
 
-	if ( this.object_b == null || this.object_b._mass === Infinity ) {
-		row_1.jacobian[6] = row_1.jacobian[7] = row_1.jacobian[8] = 0;
-		row_1.jacobian[9] = row_1.jacobian[10] = row_1.jacobian[11] = 0;
-		row_2.jacobian[6] = row_2.jacobian[7] = row_2.jacobian[8] = 0;
-		row_2.jacobian[9] = row_2.jacobian[10] = row_2.jacobian[11] = 0;
-	} else {
-		row_1.jacobian[6] = u1.x;
-		row_1.jacobian[7] = u1.y;
-		row_1.jacobian[8] = u1.z;
+			_tmp_vec3_1.crossVectors( rel_a, u1 );
+			row_1.jacobian[3] = -_tmp_vec3_1.x;
+			row_1.jacobian[4] = -_tmp_vec3_1.y;
+			row_1.jacobian[5] = -_tmp_vec3_1.z;
 
-		_tmp_vec3_1.crossVectors( rel_b, u1 );
-		row_1.jacobian[9] = _tmp_vec3_1.x;
-		row_1.jacobian[10] = _tmp_vec3_1.y;
-		row_1.jacobian[11] = _tmp_vec3_1.z;
+			row_2.jacobian[0] = -u2.x;
+			row_2.jacobian[1] = -u2.y;
+			row_2.jacobian[2] = -u2.z;
 
-		row_2.jacobian[6] = u2.x;
-		row_2.jacobian[7] = u2.y;
-		row_2.jacobian[8] = u2.z;
+			_tmp_vec3_1.crossVectors( rel_a, u2 );
+			row_2.jacobian[3] = -_tmp_vec3_1.x;
+			row_2.jacobian[4] = -_tmp_vec3_1.y;
+			row_2.jacobian[5] = -_tmp_vec3_1.z;
+		}
 
-		_tmp_vec3_1.crossVectors( rel_b, u2 );
-		row_2.jacobian[9] = _tmp_vec3_1.x;
-		row_2.jacobian[10] = _tmp_vec3_1.y;
-		row_2.jacobian[11] = _tmp_vec3_1.z;
-	}
+		if ( this.object_b == null || this.object_b._mass === Infinity ) {
+			row_1.jacobian[6] = row_1.jacobian[7] = row_1.jacobian[8] = 0;
+			row_1.jacobian[9] = row_1.jacobian[10] = row_1.jacobian[11] = 0;
+			row_2.jacobian[6] = row_2.jacobian[7] = row_2.jacobian[8] = 0;
+			row_2.jacobian[9] = row_2.jacobian[10] = row_2.jacobian[11] = 0;
+		} else {
+			row_1.jacobian[6] = u1.x;
+			row_1.jacobian[7] = u1.y;
+			row_1.jacobian[8] = u1.z;
 
-	// Find total velocity between the two bodies along the contact normal
-	this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
+			_tmp_vec3_1.crossVectors( rel_b, u1 );
+			row_1.jacobian[9] = _tmp_vec3_1.x;
+			row_1.jacobian[10] = _tmp_vec3_1.y;
+			row_1.jacobian[11] = _tmp_vec3_1.z;
 
-	// Include accumulated forces
-	if ( this.object_a._mass !== Infinity ) {
-		// accumulated linear velocity
-		_tmp_vec3_1.scaleVector( this.object_a.accumulated_force, 1 / this.object_a._mass );
-		_tmp_vec3_1.add( this.object_a.linear_velocity );
+			row_2.jacobian[6] = u2.x;
+			row_2.jacobian[7] = u2.y;
+			row_2.jacobian[8] = u2.z;
 
-		// accumulated angular velocity
-		this.object_a.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_a.accumulated_torque, _tmp_vec3_3 );
-		_tmp_vec3_3.add( this.object_a.angular_velocity );
+			_tmp_vec3_1.crossVectors( rel_b, u2 );
+			row_2.jacobian[9] = _tmp_vec3_1.x;
+			row_2.jacobian[10] = _tmp_vec3_1.y;
+			row_2.jacobian[11] = _tmp_vec3_1.z;
+		}
 
-		_tmp_vec3_3.cross( this.contact.contact_point_in_a );
-		_tmp_vec3_1.add( _tmp_vec3_3 );
-		_tmp_vec3_1.scale( this.object_a._mass );
-	} else {
-		_tmp_vec3_1.set( 0, 0, 0 );
-	}
+		// Find total velocity between the two bodies along the contact normal
+		this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
 
-	if ( this.object_b._mass !== Infinity ) {
-		// accumulated linear velocity
-		_tmp_vec3_2.scaleVector( this.object_b.accumulated_force, 1 / this.object_b._mass );
-		_tmp_vec3_2.add( this.object_b.linear_velocity );
+		// Include accumulated forces
+		if ( this.object_a._mass !== Infinity ) {
+			// accumulated linear velocity
+			_tmp_vec3_1.scaleVector( this.object_a.accumulated_force, 1 / this.object_a._mass );
+			_tmp_vec3_1.add( this.object_a.linear_velocity );
 
-		// accumulated angular velocity
-		this.object_b.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_b.accumulated_torque, _tmp_vec3_3 );
-		_tmp_vec3_3.add( this.object_b.angular_velocity );
+			// accumulated angular velocity
+			this.object_a.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_a.accumulated_torque, _tmp_vec3_3 );
+			_tmp_vec3_3.add( this.object_a.angular_velocity );
 
-		_tmp_vec3_3.cross( this.contact.contact_point_in_b );
-		_tmp_vec3_2.add( _tmp_vec3_3 );
-		_tmp_vec3_2.scale( this.object_b._mass );
-	} else {
-		_tmp_vec3_2.set( 0, 0, 0 );
-	}
+			_tmp_vec3_3.cross( this.contact.contact_point_in_a );
+			_tmp_vec3_1.add( _tmp_vec3_3 );
+			_tmp_vec3_1.scale( this.object_a._mass );
+		} else {
+			_tmp_vec3_1.set( 0, 0, 0 );
+		}
 
-	_tmp_vec3_1.subtract( _tmp_vec3_2 ); // combine velocities
-	var velocity = _tmp_vec3_1.dot( this.contact.contact_normal ); // how much velocity exists along the contact normal
+		/*if ( this.object_b._mass !== Infinity ) {
+		 // accumulated linear velocity
+		 _tmp_vec3_2.scaleVector( this.object_b.accumulated_force, 1 / this.object_b._mass );
+		 _tmp_vec3_2.add( this.object_b.linear_velocity );
 
-	var limit = this.contact.friction * velocity * 10;
-	if ( limit < 0 ) {
-		limit = 0;
-	}
-	row_1.lower_limit = row_2.lower_limit = -limit;
-	row_1.upper_limit = row_2.upper_limit = limit;
+		 // accumulated angular velocity
+		 this.object_b.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_b.accumulated_torque, _tmp_vec3_3 );
+		 _tmp_vec3_3.add( this.object_b.angular_velocity );
 
-	row_1.bias = row_2.bias = 0;
+		 _tmp_vec3_3.cross( this.contact.contact_point_in_b );
+		 _tmp_vec3_2.add( _tmp_vec3_3 );
+		 _tmp_vec3_2.scale( this.object_b._mass );
+		 } else {
+		 _tmp_vec3_2.set( 0, 0, 0 );
+		 }
 
-	this.rows[0] = row_1;
-	this.rows[1] = row_2;
-};
+		 _tmp_vec3_1.subtract( _tmp_vec3_2 ); // combine velocities
+		 var velocity = _tmp_vec3_1.dot( this.contact.contact_normal ); // how much velocity exists along the contact normal*/
+
+		var limit = this.contact.friction * 25;
+		if ( limit < 0 ) {
+			limit = 0;
+		}
+		row_1.lower_limit = row_2.lower_limit = -limit;
+		row_1.upper_limit = row_2.upper_limit = limit;
+
+		row_1.bias = row_2.bias = 0;
+
+		this.rows[0] = row_1;
+		this.rows[1] = row_2;
+	};
+})();
 Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b ) {
 	Goblin.Constraint.call( this );
 
@@ -3441,621 +4059,6 @@ Goblin.WeldConstraint.prototype.update = (function(){
 		this.rows[5].bias = error.z;
 	};
 })( );
-/**
- * Performs a n^2 check of all collision objects to see if any could be in contact
- *
- * @class BasicBroadphase
- * @constructor
- */
-Goblin.BasicBroadphase = function() {
-	/**
-	 * Holds all of the collision objects that the broadphase is responsible for
-	 *
-	 * @property bodies
-	 * @type {Array}
-	 */
-	this.bodies = [];
-
-	/**
-	 * Array of all (current) collision pairs between the broadphases' bodies
-	 *
-	 * @property collision_pairs
-	 * @type {Array}
-	 */
-	this.collision_pairs = [];
-};
-
-/**
- * Adds a body to the broadphase for contact checking
- *
- * @method addBody
- * @param body {RigidBody} body to add to the broadphase contact checking
- */
-Goblin.BasicBroadphase.prototype.addBody = function( body ) {
-	this.bodies.push( body );
-};
-
-/**
- * Removes a body from the broadphase contact checking
- *
- * @method removeBody
- * @param body {RigidBody} body to remove from the broadphase contact checking
- */
-Goblin.BasicBroadphase.prototype.removeBody = function( body ) {
-	var i,
-		body_count = this.bodies.length;
-
-	for ( i = 0; i < body_count; i++ ) {
-		if ( this.bodies[i] === body ) {
-			this.bodies.splice( i, 1 );
-			break;
-		}
-	}
-};
-
-/**
- * Checks all collision objects to find any which are possibly in contact
- *  resulting contact pairs are held in the object's `collision_pairs` property
- *
- * @method update
- */
-Goblin.BasicBroadphase.prototype.update = function() {
-	var i, j,
-		object_a, object_b,
-		bodies_count = this.bodies.length;
-
-	// Clear any old contact pairs
-	this.collision_pairs.length = 0;
-
-	// Loop over all collision objects and check for overlapping boundary spheres
-	for ( i = 0; i < bodies_count; i++ ) {
-		object_a = this.bodies[i];
-
-		for ( j = 0; j < bodies_count; j++ ) {
-			if ( i <= j ) {
-				// if i < j then we have already performed this check
-				// if i === j then the two objects are the same and can't be in contact
-				continue;
-			}
-
-			object_b = this.bodies[j];
-
-			if ( object_a._mass === Infinity && object_b._mass === Infinity ) {
-				// Two static objects aren't considered to be in contact
-				continue;
-			}
-
-			// Check collision masks
-			if ( object_a.collision_mask !== 0 ) {
-				if ( ( object_a.collision_mask & 1 ) === 0 ) {
-					// object_b must not be in a matching group
-					if ( ( object_a.collision_mask & object_b.collision_groups ) !== 0 ) {
-						continue;
-					}
-				} else {
-					// object_b must be in a matching group
-					if ( ( object_a.collision_mask & object_b.collision_groups ) === 0 ) {
-						continue;
-					}
-				}
-			}
-			if ( object_b.collision_mask !== 0 ) {
-				if ( ( object_b.collision_mask & 1 ) === 0 ) {
-					// object_a must not be in a matching group
-					if ( ( object_b.collision_mask & object_a.collision_groups ) !== 0 ) {
-						continue;
-					}
-				} else {
-					// object_a must be in a matching group
-					if ( ( object_b.collision_mask & object_a.collision_groups ) === 0 ) {
-						continue;
-					}
-				}
-			}
-
-			if ( object_a.aabb.intersects( object_b.aabb ) ) {
-				this.collision_pairs.push( [ object_b, object_a ] );
-			}
-		}
-	}
-};
-
-/**
- * Returns an array of objects the given body may be colliding with
- *
- * @method intersectsWith
- * @param object_a {RigidBody}
- * @return Array<RigidBody>
- */
-Goblin.BasicBroadphase.prototype.intersectsWith = function( object_a ) {
-	var i, object_b,
-		bodies_count = this.bodies.length,
-		intersections = [];
-
-	// Loop over all collision objects and check for overlapping boundary spheres
-	for ( i = 0; i < bodies_count; i++ ) {
-		object_b = this.bodies[i];
-
-		if ( object_a === object_b ) {
-			continue;
-		}
-
-		if ( this.mightIntersect( object_a, object_b ) ) {
-			intersections.push( object_b );
-		}
-	}
-
-	return intersections;
-};
-
-/**
- * Checks if a ray segment intersects with objects in the world
- *
- * @method rayIntersect
- * @property start {vec3} start point of the segment
- * @property end {vec3{ end point of the segment
- * @return {Array<RayIntersection>} an unsorted array of intersections
- */
-Goblin.BasicBroadphase.prototype.rayIntersect = function( start, end ) {
-	var bodies_count = this.bodies.length,
-		i, body,
-		intersections = [];
-	for ( i = 0; i < bodies_count; i++ ) {
-		body = this.bodies[i];
-		if ( body.aabb.testRayIntersect( start, end ) ) {
-			body.rayIntersect( start, end, intersections );
-		}
-	}
-
-	return intersections;
-};
-(function(){
-	/**
-	 * @class SAPMarker
-	 * @private
-	 * @param {SAPMarker.TYPES} marker_type
-	 * @param {RigidBody} body
-	 * @param {Number} position
-	 * @constructor
-	 */
-	var SAPMarker = function( marker_type, body, position ) {
-		this.type = marker_type;
-		this.body = body;
-		this.position = position;
-		
-		this.prev = null;
-		this.next = null;
-	};
-	SAPMarker.TYPES = {
-		START: 0,
-		END: 1
-	};
-
-	var LinkedList = function() {
-		this.first = null;
-		this.last = null;
-	};
-
-	/**
-	 * Sweep and Prune broadphase
-	 *
-	 * @class SAPBroadphase
-	 * @constructor
-	 */
-	Goblin.SAPBroadphase = function() {
-		/**
-		 * linked list of the start/end markers along the X axis
-		 *
-		 * @property bodies
-		 * @type {SAPMarker<SAPMarker>}
-		 */
-		this.markers_x = new LinkedList();
-
-		/**
-		 * linked list of the start/end markers along the Y axis
-		 *
-		 * @property bodies
-		 * @type {SAPMarker<SAPMarker>}
-		 */
-		this.markers_y = new LinkedList();
-
-		/**
-		 * linked list of the start/end markers along the Z axis
-		 *
-		 * @property bodies
-		 * @type {SAPMarker<SAPMarker>}
-		 */
-		this.markers_z = new LinkedList();
-
-		/**
-		 * maintains count of axis over which two bodies overlap; if count is three, their AABBs touch/penetrate
-		 *
-		 * @type {Object}
-		 */
-		this.overlap_counter = {};
-
-		/**
-		 * array of all (current) collision pairs between the broadphases' bodies
-		 *
-		 * @property collision_pairs
-		 * @type {Array}
-		 */
-		this.collision_pairs = [];
-
-		/**
-		 * array of bodies which have been added to the broadphase since the last update
-		 *
-		 * @type {Array<RigidBody>}
-		 */
-		this.pending_bodies = [];
-	};
-
-	Goblin.SAPBroadphase.prototype = {
-		incrementOverlaps: function( body_a, body_b ) {
-			if ( body_a._mass === Infinity && body_b._mass === Infinity ) {
-				return;
-			}
-
-			var key = body_a.id < body_b.id ? body_a.id + '-' + body_b.id : body_b.id + '-' + body_a.id;
-
-			if ( !this.overlap_counter.hasOwnProperty( key ) ) {
-				this.overlap_counter[key] = 0;
-			}
-
-			this.overlap_counter[key]++;
-
-			if ( this.overlap_counter[key] === 3 ) {
-				// The AABBs are touching, add to potential contacts
-				this.collision_pairs.push([ body_a.id < body_b.id ? body_a : body_b, body_a.id < body_b.id ? body_b : body_a ]);
-			}
-		},
-
-		decrementOverlaps: function( body_a, body_b ) {
-			var key = body_a.id < body_b.id ? body_a.id + '-' + body_b.id : body_b.id + '-' + body_a.id;
-
-			if ( !this.overlap_counter.hasOwnProperty( key ) ) {
-				this.overlap_counter[key] = 0;
-			}
-
-			this.overlap_counter[key]--;
-
-			if ( this.overlap_counter[key] === 0 ) {
-				delete this.overlap_counter[key];
-			} else if ( this.overlap_counter[key] === 2 ) {
-				// These are no longer touching, remove from potential contacts
-				this.collision_pairs = this.collision_pairs.filter(function( pair ){
-					if ( pair[0] === body_a && pair[1] === body_b ) {
-						return false;
-					}
-					if ( pair[0] === body_b && pair[1] === body_a ) {
-						return false;
-					}
-					return true;
-				});
-			}
-		},
-
-		/**
-		 * Adds a body to the broadphase for contact checking
-		 *
-		 * @method addBody
-		 * @param body {RigidBody} body to add to the broadphase contact checking
-		 */
-		addBody: function( body ) {
-			this.pending_bodies.push( body );
-		},
-
-		removeBody: function( body ) {
-			// first, check if the body is pending
-			var pending_index = this.pending_bodies.indexOf( body );
-			if ( pending_index !== -1 ) {
-				this.pending_bodies.splice( pending_index, 1 );
-				return;
-			}
-
-			// body was already added, find & remove
-			var next, previous;
-			var marker = this.markers_x.first;
-			while ( marker ) {
-				if ( marker.body === body ) {
-					next = marker.next;
-					previous = marker.previous;
-					if ( next != null ) {
-						next.previous = previous;
-						if ( previous != null ) {
-							previous.next = next;
-						}
-					} else {
-						this.markers_x.last = previous;
-					}
-					if ( previous != null ) {
-						previous.next = next;
-						if ( next != null ) {
-							next.previous = previous;
-						}
-					} else {
-						this.markers_x.first = next;
-					}
-				}
-				marker = marker.next;
-			}
-
-			marker = this.markers_y.first;
-			while ( marker ) {
-				if ( marker.body === body ) {
-					next = marker.next;
-					previous = marker.previous;
-					if ( next != null ) {
-						next.previous = previous;
-						if ( previous != null ) {
-							previous.next = next;
-						}
-					} else {
-						this.markers_y.last = previous;
-					}
-					if ( previous != null ) {
-						previous.next = next;
-						if ( next != null ) {
-							next.previous = previous;
-						}
-					} else {
-						this.markers_y.first = next;
-					}
-				}
-				marker = marker.next;
-			}
-
-			marker = this.markers_z.first;
-			while ( marker ) {
-				if ( marker.body === body ) {
-					next = marker.next;
-					previous = marker.previous;
-					if ( next != null ) {
-						next.previous = previous;
-						if ( previous != null ) {
-							previous.next = next;
-						}
-					} else {
-						this.markers_z.last = previous;
-					}
-					if ( previous != null ) {
-						previous.next = next;
-						if ( next != null ) {
-							next.previous = previous;
-						}
-					} else {
-						this.markers_z.first = next;
-					}
-				}
-				marker = marker.next;
-			}
-
-			// remove any collisions
-			this.collision_pairs = this.collision_pairs.filter(function( pair ){
-				if ( pair[0] === body || pair[1] === body ) {
-					return false;
-				}
-				return true;
-			});
-		},
-
-		insertPending: function() {
-			var body;
-			while ( ( body = this.pending_bodies.pop() ) ) {
-				body.updateDerived();
-				var start_marker_x = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.x ),
-					start_marker_y = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.y ),
-					start_marker_z = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.z ),
-					end_marker_x = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.x ),
-					end_marker_y = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.y ),
-					end_marker_z = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.z );
-
-				// Insert these markers, incrementing overlap counter
-				this.insert( this.markers_x, start_marker_x );
-				this.insert( this.markers_x, end_marker_x );
-				this.insert( this.markers_y, start_marker_y );
-				this.insert( this.markers_y, end_marker_y );
-				this.insert( this.markers_z, start_marker_z );
-				this.insert( this.markers_z, end_marker_z );
-			}
-		},
-
-		insert: function( list, marker ) {
-			if ( list.first == null ) {
-				list.first = list.last = marker;
-			} else {
-				// Insert at the end of the list & sort
-				marker.prev = list.last;
-				list.last.next = marker;
-				list.last = marker;
-				this.sort( list, marker );
-			}
-		},
-
-		sort: function( list, marker ) {
-			var prev;
-			while (
-				marker.prev != null &&
-				(
-					marker.position < marker.prev.position ||
-					( marker.position === marker.prev.position && marker.type === SAPMarker.TYPES.START && marker.prev.type === SAPMarker.TYPES.END )
-				)
-			) {
-				prev = marker.prev;
-
-				// check if this swap changes overlap counters
-				if ( marker.type !== prev.type ) {
-					if ( marker.type === SAPMarker.TYPES.START ) {
-						// marker is START, moving into an overlap
-						this.incrementOverlaps( marker.body, prev.body );
-					} else {
-						// marker is END, leaving an overlap
-						this.decrementOverlaps( marker.body, prev.body );
-					}
-				}
-
-				marker.prev = prev.prev;
-				prev.next = marker.next;
-
-				marker.next = prev;
-				prev.prev = marker;
-
-				if ( marker.prev == null ) {
-					list.first = marker;
-				} else {
-					marker.prev.next = marker;
-				}
-				if ( prev.next == null ) {
-					list.last = prev;
-				} else {
-					prev.next.prev = prev;
-				}
-			}
-		},
-
-		/**
-		 * Updates the broadphase's internal representation and current predicted contacts
-		 *
-		 * @method update
-		 */
-		update: function() {
-			this.insertPending();
-
-			var marker = this.markers_x.first;
-			while ( marker ) {
-				if ( marker.type === SAPMarker.TYPES.START ) {
-					marker.position = marker.body.aabb.min.x;
-				} else {
-					marker.position = marker.body.aabb.max.x;
-				}
-				this.sort( this.markers_x, marker );
-				marker = marker.next;
-			}
-
-			marker = this.markers_y.first;
-			while ( marker ) {
-				if ( marker.type === SAPMarker.TYPES.START ) {
-					marker.position = marker.body.aabb.min.y;
-				} else {
-					marker.position = marker.body.aabb.max.y;
-				}
-				this.sort( this.markers_y, marker );
-				marker = marker.next;
-			}
-
-			marker = this.markers_z.first;
-			while ( marker ) {
-				if ( marker.type === SAPMarker.TYPES.START ) {
-					marker.position = marker.body.aabb.min.z;
-				} else {
-					marker.position = marker.body.aabb.max.z;
-				}
-				this.sort( this.markers_z, marker );
-				marker = marker.next;
-			}
-		},
-
-		/**
-		 * Returns an array of objects the given body may be colliding with
-		 *
-		 * @method intersectsWith
-		 * @param body {RigidBody}
-		 * @return Array<RigidBody>
-		 */
-		intersectsWith: function( body ) {
-			return this.collision_pairs.filter(function( pair ){
-				if ( pair[0] === body || pair[1] === body ) {
-					return true;
-				}
-				return false;
-			});
-		},
-
-		/**
-		 * Checks if a ray segment intersects with objects in the world
-		 *
-		 * @method rayIntersect
-		 * @property start {vec3} start point of the segment
-		 * @property end {vec3{ end point of the segment
-         * @return {Array<RayIntersection>} an unsorted array of intersections
-		 */
-		rayIntersect: function( start, end ) {
-			// It's assumed that raytracing will be performed through a proxy like Goblin.World,
-			// thus that the only time this broadphase cares about updating itself is if an object was added
-			if ( this.pending_bodies.length > 0 ) {
-				this.update();
-			}
-
-			// This implementation only scans the X axis because the overall process gets slower the more axes you add
-			// thanks JavaScript
-
-			var active_bodies = {},
-				intersections = [],
-				id_body_map = {},
-				id_intersection_count = {},
-				ordered_start, ordered_end,
-				marker, has_encountered_start,
-				i, body, key, keys;
-
-			// X axis
-			marker = this.markers_x.first;
-			has_encountered_start = false;
-			active_bodies = {};
-			ordered_start = start.x < end.x ? start.x : end.x;
-			ordered_end = start.x < end.x ? end.x : start.x;
-			while ( marker ) {
-				if ( marker.type === SAPMarker.TYPES.START ) {
-					active_bodies[marker.body.id] = marker.body;
-				}
-
-				if ( marker.position >= ordered_start ) {
-					if ( has_encountered_start === false ) {
-						has_encountered_start = true;
-						keys = Object.keys( active_bodies );
-						for ( i = 0; i < keys.length; i++ ) {
-							key = keys[i];
-							body = active_bodies[key];
-							if ( body == null ) { // needed because we don't delete but set to null, see below comment
-								continue;
-							}
-							// The next two lines are piss-slow
-							id_body_map[body.id] = body;
-							id_intersection_count[body.id] = id_intersection_count[body.id] ? id_intersection_count[body.id] + 1 : 1;
-						}
-					} else if ( marker.type === SAPMarker.TYPES.START ) {
-						// The next two lines are piss-slow
-						id_body_map[marker.body.id] = marker.body;
-						id_intersection_count[marker.body.id] = id_intersection_count[marker.body.id] ? id_intersection_count[marker.body.id] + 1 : 1;
-					}
-				}
-
-				if ( marker.type === SAPMarker.TYPES.END ) {
-					active_bodies[marker.body.id] = null; // this is massively faster than deleting the association
-					//delete active_bodies[marker.body.id];
-				}
-
-				if ( marker.position > ordered_end ) {
-					// no more intersections to find on this axis
-					break;
-				}
-
-				marker = marker.next;
-			}
-
-			keys = Object.keys( id_intersection_count );
-			for ( i = 0; i < keys.length; i++ ) {
-				var body_id = keys[i];
-				if ( id_intersection_count[body_id] === 1 ) {
-					if ( id_body_map[body_id].aabb.testRayIntersect( start, end ) ) {
-						id_body_map[body_id].rayIntersect( start, end, intersections );
-					}
-				}
-			}
-
-			return intersections;
-		}
-	};
-})();
 /**
 * adds a drag force to associated objects
 *
