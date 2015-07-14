@@ -105,18 +105,19 @@ Goblin.NarrowPhase.prototype.midPhase = function( object_a, object_b ) {
 
 Goblin.NarrowPhase.prototype.meshCollision = (function(){
 	var b_to_a = new Goblin.Matrix4(),
-		tri_b;
+		tri_b = new Goblin.TriangleShape( new Goblin.Vector3(), new Goblin.Vector3(), new Goblin.Vector3() ),
+		b_aabb = new Goblin.AABB(),
+		b_right_aabb = new Goblin.AABB(),
+		b_left_aabb = new Goblin.AABB();
 
 	function meshMesh( object_a, object_b, addContact ) {
-		tri_b = tri_b || new Goblin.TriangleShape( new Goblin.Vector3(), new Goblin.Vector3(), new Goblin.Vector3() );
-
 		// get matrix which converts from object_b's space to object_a
 		b_to_a.copy( object_a.transform_inverse );
 		b_to_a.multiply( object_b.transform );
 
 		// traverse both objects' AABBs while they overlap, if two overlapping leaves are found then perform Triangle/Triangle intersection test
 		var nodes = [ object_a.shape.hierarchy, object_b.shape.hierarchy ];
-
+		//debugger;
 		while ( nodes.length ) {
 			var a_node = nodes.shift(),
 				b_node = nodes.shift();
@@ -153,32 +154,37 @@ Goblin.NarrowPhase.prototype.meshCollision = (function(){
                 }
 			} else if ( a_node.isLeaf() ) {
 				// just a_node is a leaf
-				if ( a_node.aabb.intersects( b_node.left.aabb ) ) {
+				b_left_aabb.transform( b_node.left.aabb, b_to_a );
+				if ( a_node.aabb.intersects( b_left_aabb ) ) {
 					nodes.push( a_node, b_node.left );
 				}
-				if ( a_node.aabb.intersects( b_node.right.aabb ) ) {
+				b_right_aabb.transform( b_node.right.aabb, b_to_a );
+				if ( a_node.aabb.intersects( b_right_aabb ) ) {
 					nodes.push( a_node, b_node.right );
 				}
 			} else if ( b_node.isLeaf() ) {
 				// just b_node is a leaf
-				if ( b_node.aabb.intersects( a_node.left.aabb ) ) {
+				b_aabb.transform( b_node.aabb, b_to_a );
+				if ( b_aabb.intersects( a_node.left.aabb ) ) {
 					nodes.push( a_node.left, b_node );
 				}
-				if ( b_node.aabb.intersects( a_node.right.aabb ) ) {
+				if ( b_aabb.intersects( a_node.right.aabb ) ) {
 					nodes.push( a_node.right, b_node );
 				}
 			} else {
 				// neither node is a branch
-				if ( a_node.left.aabb.intersects( b_node.left.aabb ) ) {
+				b_left_aabb.transform( b_node.left.aabb, b_to_a );
+				b_right_aabb.transform( b_node.right.aabb, b_to_a );
+				if ( a_node.left.aabb.intersects( b_left_aabb ) ) {
 					nodes.push( a_node.left, b_node.left );
 				}
-				if ( a_node.left.aabb.intersects( b_node.right.aabb ) ) {
+				if ( a_node.left.aabb.intersects( b_right_aabb ) ) {
 					nodes.push( a_node.left, b_node.right );
 				}
-				if ( a_node.right.aabb.intersects( b_node.left.aabb ) ) {
+				if ( a_node.right.aabb.intersects( b_left_aabb ) ) {
 					nodes.push( a_node.right, b_node.left );
 				}
-				if ( a_node.right.aabb.intersects( b_node.right.aabb ) ) {
+				if ( a_node.right.aabb.intersects( b_right_aabb ) ) {
 					nodes.push( a_node.right, b_node.right );
 				}
 			}
@@ -241,8 +247,7 @@ Goblin.NarrowPhase.prototype.meshCollision = (function(){
 			b_is_mesh = object_b.shape instanceof Goblin.MeshShape;
 
 		if ( a_is_mesh && b_is_mesh ) {
-			// doesn't yet work
-			//meshMesh( object_a, object_b, this.addContact.bind( this ) );
+			meshMesh( object_a, object_b, this.addContact.bind( this ) );
 		} else {
 			if ( a_is_mesh ) {
 				meshConvex( object_a, object_b, this.addContact.bind( this ) );

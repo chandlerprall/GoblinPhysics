@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Mesh Shape | Goblin Physics</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css"/>
+	<script type="text/javascript" src="../lib/three.min.js"></script>
+	<script type="text/javascript" src="../lib/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/stats.min.js"></script>
+	<script type="text/javascript" src="../build/goblin.js"></script>
+	<script type="text/javascript" src="js/exampleUtils.js"></script>
+
+	<script type="text/javascript">
+		window.onload = function() {
+			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+
+			// Making ground a MeshShape as well because Mesh-Mesh collision is MUCH faster than Mesh-Convex
+			var ground_geometry = new THREE.PlaneGeometry( 40, 40 );
+			var ground_shape = new Goblin.MeshShape(
+				ground_geometry.vertices.map(function( vertex ){
+					return new Goblin.Vector3( vertex.x, vertex.y, vertex.z )
+				}),
+				ground_geometry.faces.reduce(
+					function( faces, face ) {
+						faces.push( face.a, face.b, face.c );
+						return faces;
+					},
+					[]
+				)
+			);
+			var ground_material = exampleUtils.createMaterial( 'pebbles', 5, 5 );
+			var ground = new THREE.Mesh( ground_geometry, ground_material );
+			ground.goblin = new Goblin.RigidBody( ground_shape, 0 );
+			ground.goblin.rotation.set( -1, 0, 0, 1 );
+			exampleUtils.objects.push( ground );
+			exampleUtils.scene.add( ground );
+			exampleUtils.world.addRigidBody( ground.goblin );
+			ground.castShadow = false;
+
+			var mesh_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 );
+
+			Goblin.BVH.AAC.max_bucket_size = 100; // increases time needed to build but yields higher quality BVH
+
+			var vase_geometry = null,
+				vase_shape = null;
+			function spawnStatue() {
+				var mesh = new THREE.Mesh( vase_geometry, mesh_material );
+				mesh.castShadow = mesh.receiveShadow = true;
+				exampleUtils.scene.add( mesh );
+
+				mesh.goblin = new Goblin.RigidBody( vase_shape, 1 );
+
+				exampleUtils.objects.push( mesh );
+				exampleUtils.scene.add( mesh );
+				exampleUtils.world.addRigidBody( mesh.goblin );
+
+				return mesh;
+			}
+
+			var json_loader = new THREE.JSONLoader();
+			json_loader.load(
+				'models/statue.js',
+				function( geometry ) {
+					vase_geometry = geometry;
+					vase_shape = new Goblin.MeshShape(
+						geometry.vertices.map(function( vertex ){
+							return new Goblin.Vector3( vertex.x, vertex.y, vertex.z )
+						}),
+						geometry.faces.reduce(
+							function( faces, face ) {
+								faces.push( face.a, face.b, face.c );
+								return faces;
+							},
+							[]
+						)
+					);
+
+					var vase1 = spawnStatue();
+					vase1.goblin.position.set( 0, 5.4, 0 );
+
+					var vase2 = spawnStatue();
+					vase2.goblin.position.set( 0, 12, 0 );
+					vase2.goblin.rotation.set( 1, 1, 0, 1 );
+
+					var vase3 = spawnStatue();
+					vase3.goblin.position.set( 2, 20, 0 );
+					vase3.goblin.rotation.set( 0, -1, 1, 1 );
+				}
+			);
+
+			exampleUtils.run();
+		};
+	</script>
+</head>
+
+<body>
+
+</body>
+</html>

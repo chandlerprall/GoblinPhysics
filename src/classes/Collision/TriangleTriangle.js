@@ -218,8 +218,9 @@ Goblin.TriangleTriangle = function( tri_a, tri_b ) {
         }
         _tmp_vec3_1.subtractVectors( contact.contact_point_in_a, contact.contact_point_in_b );
         contact.penetration_depth = _tmp_vec3_1.length();
-        /*console.log( 'depth', contact.penetration_depth );
-        console.log( contact.contact_normal );*/
+        //console.log( 'depth', contact.penetration_depth );
+        //console.log( contact.contact_normal );
+		//if (contact.penetration_depth > 1) debugger;
 
 
 

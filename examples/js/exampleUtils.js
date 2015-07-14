@@ -52,6 +52,8 @@ window.exampleUtils = (function(){
 			material = new THREE.MeshNormalMaterial(),
 			normal_material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
 
+		window.contacts = contacts;
+
 		return function() {
 			while ( contacts.length ) {
 				exampleUtils.scene.remove( contacts.pop() );
@@ -76,7 +78,7 @@ window.exampleUtils = (function(){
 					exampleUtils.scene.add( normal );
 					contacts.push( normal );
 				}
-				manifold = manifold.next;
+				manifold = manifold.next_manifold;
 			}
 		};
 	})();

@@ -28,7 +28,7 @@
 				sphere.goblin.linear_velocity.y = -20;
 			};
 
-			Goblin.BVH.AAC = 100; // increases time needed to build but yields higher quality BVH
+			Goblin.BVH.AAC.max_bucket_size = 100; // increases time needed to build but yields higher quality BVH
 			var json_loader = new THREE.JSONLoader();
 			json_loader.load(
 				'models/vase.js',
@@ -56,7 +56,6 @@
 					exampleUtils.objects.push( mesh );
 					exampleUtils.scene.add( mesh );
 					exampleUtils.world.addRigidBody( mesh.goblin );
-					window.mesh = mesh;
 				}
 			);
 
