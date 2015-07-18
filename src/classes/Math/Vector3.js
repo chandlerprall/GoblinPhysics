@@ -114,7 +114,7 @@ Goblin.Vector3.prototype = {
 
 	findOrthogonal: function( o1, o2 ) {
 		var a, k;
-		if ( Math.abs( this.z ) > 0.7071067811865475 ) {
+		if ( Math.abs( this.z ) > 0.7071067811865476 ) {
 			// choose p in y-z plane
 			a = -this.y * this.y + this.z * this.z;
 			k = 1 / Math.sqrt( a );

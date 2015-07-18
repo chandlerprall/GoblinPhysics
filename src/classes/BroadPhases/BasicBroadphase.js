@@ -137,7 +137,7 @@ Goblin.BasicBroadphase.prototype.intersectsWith = function( object_a ) {
 			continue;
 		}
 
-		if ( this.mightIntersect( object_a, object_b ) ) {
+		if ( object_a.aabb.intersects( object_b.aabb ) ) {
 			intersections.push( object_b );
 		}
 	}
