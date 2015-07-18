@@ -143,24 +143,24 @@
 			}
 
 			// body was already added, find & remove
-			var next, previous;
+			var next, prev;
 			var marker = this.markers_x.first;
 			while ( marker ) {
 				if ( marker.body === body ) {
 					next = marker.next;
-					previous = marker.previous;
+					prev = marker.prev;
 					if ( next != null ) {
-						next.previous = previous;
-						if ( previous != null ) {
-							previous.next = next;
+						next.prev = prev;
+						if ( prev != null ) {
+							prev.next = next;
 						}
 					} else {
-						this.markers_x.last = previous;
+						this.markers_x.last = prev;
 					}
-					if ( previous != null ) {
-						previous.next = next;
+					if ( prev != null ) {
+						prev.next = next;
 						if ( next != null ) {
-							next.previous = previous;
+							next.prev = prev;
 						}
 					} else {
 						this.markers_x.first = next;
@@ -173,19 +173,19 @@
 			while ( marker ) {
 				if ( marker.body === body ) {
 					next = marker.next;
-					previous = marker.previous;
+					prev = marker.prev;
 					if ( next != null ) {
-						next.previous = previous;
-						if ( previous != null ) {
-							previous.next = next;
+						next.prev = prev;
+						if ( prev != null ) {
+							prev.next = next;
 						}
 					} else {
-						this.markers_y.last = previous;
+						this.markers_y.last = prev;
 					}
-					if ( previous != null ) {
-						previous.next = next;
+					if ( prev != null ) {
+						prev.next = next;
 						if ( next != null ) {
-							next.previous = previous;
+							next.prev = prev;
 						}
 					} else {
 						this.markers_y.first = next;
@@ -198,19 +198,19 @@
 			while ( marker ) {
 				if ( marker.body === body ) {
 					next = marker.next;
-					previous = marker.previous;
+					prev = marker.prev;
 					if ( next != null ) {
-						next.previous = previous;
-						if ( previous != null ) {
-							previous.next = next;
+						next.prev = prev;
+						if ( prev != null ) {
+							prev.next = next;
 						}
 					} else {
-						this.markers_z.last = previous;
+						this.markers_z.last = prev;
 					}
-					if ( previous != null ) {
-						previous.next = next;
+					if ( prev != null ) {
+						prev.next = next;
 						if ( next != null ) {
-							next.previous = previous;
+							next.prev = prev;
 						}
 					} else {
 						this.markers_z.first = next;
@@ -352,12 +352,20 @@
 		 * @return Array<RigidBody>
 		 */
 		intersectsWith: function( body ) {
-			return this.collision_pairs.filter(function( pair ){
+			this.addBody( body );
+			this.update();
+
+			var possibilities = this.collision_pairs.filter(function( pair ){
 				if ( pair[0] === body || pair[1] === body ) {
 					return true;
 				}
 				return false;
+			}).map(function( pair ){
+				return pair[0] === body ? pair[1] : pair[0];
 			});
+
+			this.removeBody( body );
+			return possibilities;
 		},
 
 		/**
