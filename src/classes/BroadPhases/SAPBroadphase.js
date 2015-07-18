@@ -81,7 +81,7 @@
 
 	Goblin.SAPBroadphase.prototype = {
 		incrementOverlaps: function( body_a, body_b ) {
-			if ( body_a._mass === Infinity && body_b._mass === Infinity ) {
+			if( !Goblin.CollisionUtils.canBodiesCollide( body_a, body_b ) ) {
 				return;
 			}
 

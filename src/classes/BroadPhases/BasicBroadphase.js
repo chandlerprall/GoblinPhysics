@@ -77,41 +77,10 @@ Goblin.BasicBroadphase.prototype.update = function() {
 
 			object_b = this.bodies[j];
 
-			if ( object_a._mass === Infinity && object_b._mass === Infinity ) {
-				// Two static objects aren't considered to be in contact
-				continue;
-			}
-
-			// Check collision masks
-			if ( object_a.collision_mask !== 0 ) {
-				if ( ( object_a.collision_mask & 1 ) === 0 ) {
-					// object_b must not be in a matching group
-					if ( ( object_a.collision_mask & object_b.collision_groups ) !== 0 ) {
-						continue;
-					}
-				} else {
-					// object_b must be in a matching group
-					if ( ( object_a.collision_mask & object_b.collision_groups ) === 0 ) {
-						continue;
-					}
+			if( Goblin.CollisionUtils.canBodiesCollide( object_a, object_b ) ) {
+				if ( object_a.aabb.intersects( object_b.aabb ) ) {
+					this.collision_pairs.push( [ object_b, object_a ] );
 				}
-			}
-			if ( object_b.collision_mask !== 0 ) {
-				if ( ( object_b.collision_mask & 1 ) === 0 ) {
-					// object_a must not be in a matching group
-					if ( ( object_b.collision_mask & object_a.collision_groups ) !== 0 ) {
-						continue;
-					}
-				} else {
-					// object_a must be in a matching group
-					if ( ( object_b.collision_mask & object_a.collision_groups ) === 0 ) {
-						continue;
-					}
-				}
-			}
-
-			if ( object_a.aabb.intersects( object_b.aabb ) ) {
-				this.collision_pairs.push( [ object_b, object_a ] );
 			}
 		}
 	}
