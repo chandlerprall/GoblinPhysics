@@ -64,7 +64,6 @@ Goblin.NarrowPhase.prototype.midPhase = function( object_a, object_b ) {
 		} else {
 			contact = this.getContact( proxy, other );
 			if ( contact != null ) {
-
 				var parent_a, parent_b;
 				if ( contact.object_a === proxy ) {
 					contact.object_a = compound;
@@ -231,8 +230,12 @@ Goblin.NarrowPhase.prototype.meshCollision = (function(){
 						// Check node for collision
 						var contact = triangleConvex( node.object, mesh, convex );
 						if ( contact != null ) {
-							contact.object_a = mesh;
-							addContact( mesh, convex, contact );
+							var _mesh = mesh;
+							while ( _mesh.parent != null ) {
+								_mesh = _mesh.parent;
+							}
+							contact.object_a = _mesh;
+							addContact( _mesh, convex, contact );
 						}
 					} else {
 						pending_nodes.push( node.left, node.right );
