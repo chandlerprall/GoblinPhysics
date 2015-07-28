@@ -28,6 +28,7 @@ window.exampleUtils = (function(){
 
 		var directional_light = new THREE.DirectionalLight( new THREE.Color( 0xFFFFFF ) );
 		directional_light.position.set( 10, 30, 20 );
+		directional_light.shadowMapWidth = directional_light.shadowMapHeight = 2048;
 		directional_light.shadowCameraLeft = directional_light.shadowCameraBottom = -50;
 		directional_light.shadowCameraRight = directional_light.shadowCameraTop = 50;
 		directional_light.castShadow = true;
@@ -114,6 +115,12 @@ window.exampleUtils = (function(){
 				normal: '254_normal.png',
 				normal_scale: 4
 			},
+			floor_tiles: {
+				diffuse: '5_diffuse.jpg',
+				normal: '5_normal.png',
+				specular: '5_specular.png',
+				normal_scale: 2
+			},
 			rusted_metal: {
 				diffuse: '210_diffuse.png',
 				normal: '210_normal.png',
@@ -136,6 +143,14 @@ window.exampleUtils = (function(){
 				specular: '173_specular.png',
 				shininess: 30,
 				normal_scale: 2
+			},
+			brushed_metal: {
+				diffuse: '214_diffuse.png',
+				normal: '214_normal.png',
+				specular: '214_specular.png',
+				shininess: 200,
+				normal_scale: 10,
+				metal: true
 			}
 		},
 
