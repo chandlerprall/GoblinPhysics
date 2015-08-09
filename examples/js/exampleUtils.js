@@ -28,7 +28,7 @@ window.exampleUtils = (function(){
 
 		var directional_light = new THREE.DirectionalLight( new THREE.Color( 0xFFFFFF ) );
 		directional_light.position.set( 10, 30, 20 );
-		directional_light.shadowMapWidth = directional_light.shadowMapHeight = 2048;
+		//directional_light.shadowMapWidth = directional_light.shadowMapHeight = 2048;
 		directional_light.shadowCameraLeft = directional_light.shadowCameraBottom = -50;
 		directional_light.shadowCameraRight = directional_light.shadowCameraTop = 50;
 		directional_light.castShadow = true;
@@ -52,8 +52,6 @@ window.exampleUtils = (function(){
 			sphere = new THREE.SphereGeometry( 0.2 ),
 			material = new THREE.MeshNormalMaterial(),
 			normal_material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
-
-		window.contacts = contacts;
 
 		return function() {
 			while ( contacts.length ) {

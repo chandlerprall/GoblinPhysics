@@ -8,8 +8,8 @@ Goblin.GjkEpa = {
 	margins: 0.03,
 	result: null,
 
-    max_iterations: 20,
-    epa_condition: 0.001,
+    max_iterations: 5,
+    epa_condition: 0.01,
 
     /**
      * Holds a point on the edge of a Minkowski difference along with that point's witnesses and the direction used to find the point
