@@ -1327,598 +1327,864 @@ Goblin.ForceGenerator.prototype.unaffect = function( object ) {
 		}
 	}
 };
-/**
- * Performs a n^2 check of all collision objects to see if any could be in contact
- *
- * @class BasicBroadphase
- * @constructor
- */
-Goblin.BasicBroadphase = function() {
-	/**
-	 * Holds all of the collision objects that the broadphase is responsible for
-	 *
-	 * @property bodies
-	 * @type {Array}
-	 */
-	this.bodies = [];
+Goblin.Constraint = function() {
+	this.active = true;
 
-	/**
-	 * Array of all (current) collision pairs between the broadphases' bodies
-	 *
-	 * @property collision_pairs
-	 * @type {Array}
-	 */
-	this.collision_pairs = [];
+	this.object_a = null;
+
+	this.object_b = null;
+
+	this.rows = [];
+
+	this.factor = 1;
+
+	this.last_impulse = new Goblin.Vector3();
+
+	this.breaking_threshold = 0;
+
+	this.listeners = {};
+};
+Goblin.EventEmitter.apply( Goblin.Constraint );
+
+Goblin.Constraint.prototype.deactivate = function() {
+	this.active = false;
+	this.emit( 'deactivate' );
 };
 
-/**
- * Adds a body to the broadphase for contact checking
- *
- * @method addBody
- * @param body {RigidBody} body to add to the broadphase contact checking
- */
-Goblin.BasicBroadphase.prototype.addBody = function( body ) {
-	this.bodies.push( body );
+Goblin.Constraint.prototype.update = function(){};
+Goblin.ConstraintRow = function() {
+	this.jacobian = new Float64Array( 12 );
+	this.B = new Float64Array( 12 ); // `B` is the jacobian multiplied by the objects' inverted mass & inertia tensors
+	this.D = 0; // Length of the jacobian
+
+	this.lower_limit = -Infinity;
+	this.upper_limit = Infinity;
+
+	this.bias = 0;
+	this.multiplier = 0;
+	this.multiplier_cached = 0;
+	this.eta = 0;
+	this.eta_row = new Float64Array( 12 );
 };
 
-/**
- * Removes a body from the broadphase contact checking
- *
- * @method removeBody
- * @param body {RigidBody} body to remove from the broadphase contact checking
- */
-Goblin.BasicBroadphase.prototype.removeBody = function( body ) {
-	var i,
-		body_count = this.bodies.length;
+Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
+	var invmass;
 
-	for ( i = 0; i < body_count; i++ ) {
-		if ( this.bodies[i] === body ) {
-			this.bodies.splice( i, 1 );
-			break;
-		}
+	if ( constraint.object_a != null && constraint.object_a._mass !== Infinity ) {
+		invmass = constraint.object_a._mass_inverted;
+
+		this.B[0] = invmass * this.jacobian[0] * constraint.object_a.linear_factor.x;
+		this.B[1] = invmass * this.jacobian[1] * constraint.object_a.linear_factor.y;
+		this.B[2] = invmass * this.jacobian[2] * constraint.object_a.linear_factor.z;
+
+		_tmp_vec3_1.x = this.jacobian[3];
+		_tmp_vec3_1.y = this.jacobian[4];
+		_tmp_vec3_1.z = this.jacobian[5];
+		constraint.object_a.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
+		this.B[3] = _tmp_vec3_1.x * constraint.object_a.angular_factor.x;
+		this.B[4] = _tmp_vec3_1.y * constraint.object_a.angular_factor.y;
+		this.B[5] = _tmp_vec3_1.z * constraint.object_a.angular_factor.z;
+	} else {
+		this.B[0] = this.B[1] = this.B[2] = 0;
+		this.B[3] = this.B[4] = this.B[5] = 0;
+	}
+
+	if ( constraint.object_b != null && constraint.object_b._mass !== Infinity ) {
+		invmass = constraint.object_b._mass_inverted;
+		this.B[6] = invmass * this.jacobian[6] * constraint.object_b.linear_factor.x;
+		this.B[7] = invmass * this.jacobian[7] * constraint.object_b.linear_factor.y;
+		this.B[8] = invmass * this.jacobian[8] * constraint.object_b.linear_factor.z;
+
+		_tmp_vec3_1.x = this.jacobian[9];
+		_tmp_vec3_1.y = this.jacobian[10];
+		_tmp_vec3_1.z = this.jacobian[11];
+		constraint.object_b.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
+		this.B[9] = _tmp_vec3_1.x * constraint.object_b.linear_factor.x;
+		this.B[10] = _tmp_vec3_1.y * constraint.object_b.linear_factor.y;
+		this.B[11] = _tmp_vec3_1.z * constraint.object_b.linear_factor.z;
+	} else {
+		this.B[6] = this.B[7] = this.B[8] = 0;
+		this.B[9] = this.B[10] = this.B[11] = 0;
 	}
 };
 
-/**
- * Checks all collision objects to find any which are possibly in contact
- *  resulting contact pairs are held in the object's `collision_pairs` property
- *
- * @method update
- */
-Goblin.BasicBroadphase.prototype.update = function() {
-	var i, j,
-		object_a, object_b,
-		bodies_count = this.bodies.length;
-
-	// Clear any old contact pairs
-	this.collision_pairs.length = 0;
-
-	// Loop over all collision objects and check for overlapping boundary spheres
-	for ( i = 0; i < bodies_count; i++ ) {
-		object_a = this.bodies[i];
-
-		for ( j = 0; j < bodies_count; j++ ) {
-			if ( i <= j ) {
-				// if i < j then we have already performed this check
-				// if i === j then the two objects are the same and can't be in contact
-				continue;
-			}
-
-			object_b = this.bodies[j];
-
-			if( Goblin.CollisionUtils.canBodiesCollide( object_a, object_b ) ) {
-				if ( object_a.aabb.intersects( object_b.aabb ) ) {
-					this.collision_pairs.push( [ object_b, object_a ] );
-				}
-			}
-		}
-	}
+Goblin.ConstraintRow.prototype.computeD = function() {
+	this.D = (
+		this.jacobian[0] * this.B[0] +
+		this.jacobian[1] * this.B[1] +
+		this.jacobian[2] * this.B[2] +
+		this.jacobian[3] * this.B[3] +
+		this.jacobian[4] * this.B[4] +
+		this.jacobian[5] * this.B[5] +
+		this.jacobian[6] * this.B[6] +
+		this.jacobian[7] * this.B[7] +
+		this.jacobian[8] * this.B[8] +
+		this.jacobian[9] * this.B[9] +
+		this.jacobian[10] * this.B[10] +
+		this.jacobian[11] * this.B[11]
+	);
 };
 
-/**
- * Returns an array of objects the given body may be colliding with
- *
- * @method intersectsWith
- * @param object_a {RigidBody}
- * @return Array<RigidBody>
- */
-Goblin.BasicBroadphase.prototype.intersectsWith = function( object_a ) {
-	var i, object_b,
-		bodies_count = this.bodies.length,
-		intersections = [];
+Goblin.ConstraintRow.prototype.computeEta = function( constraint, time_delta ) {
+	var invmass,
+		inverse_time_delta = 1 / time_delta;
 
-	// Loop over all collision objects and check for overlapping boundary spheres
-	for ( i = 0; i < bodies_count; i++ ) {
-		object_b = this.bodies[i];
+	if ( constraint.object_a == null || constraint.object_a._mass === Infinity ) {
+		this.eta_row[0] = this.eta_row[1] = this.eta_row[2] = this.eta_row[3] = this.eta_row[4] = this.eta_row[5] = 0;
+	} else {
+		invmass = constraint.object_a._mass_inverted;
 
-		if ( object_a === object_b ) {
-			continue;
-		}
+		this.eta_row[0] = ( constraint.object_a.linear_velocity.x + ( invmass * constraint.object_a.accumulated_force.x ) ) * inverse_time_delta;
+		this.eta_row[1] = ( constraint.object_a.linear_velocity.y + ( invmass * constraint.object_a.accumulated_force.y ) ) * inverse_time_delta;
+		this.eta_row[2] = ( constraint.object_a.linear_velocity.z + ( invmass * constraint.object_a.accumulated_force.z ) ) * inverse_time_delta;
 
-		if ( object_a.aabb.intersects( object_b.aabb ) ) {
-			intersections.push( object_b );
-		}
+		_tmp_vec3_1.copy( constraint.object_a.accumulated_torque );
+		constraint.object_a.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
+		this.eta_row[3] = ( constraint.object_a.angular_velocity.x + _tmp_vec3_1.x ) * inverse_time_delta;
+		this.eta_row[4] = ( constraint.object_a.angular_velocity.y + _tmp_vec3_1.y ) * inverse_time_delta;
+		this.eta_row[5] = ( constraint.object_a.angular_velocity.z + _tmp_vec3_1.z ) * inverse_time_delta;
 	}
 
-	return intersections;
-};
+	if ( constraint.object_b == null || constraint.object_b._mass === Infinity ) {
+		this.eta_row[6] = this.eta_row[7] = this.eta_row[8] = this.eta_row[9] = this.eta_row[10] = this.eta_row[11] = 0;
+	} else {
+		invmass = constraint.object_b._mass_inverted;
 
-/**
- * Checks if a ray segment intersects with objects in the world
- *
- * @method rayIntersect
- * @property start {vec3} start point of the segment
- * @property end {vec3{ end point of the segment
- * @return {Array<RayIntersection>} an unsorted array of intersections
- */
-Goblin.BasicBroadphase.prototype.rayIntersect = function( start, end ) {
-	var bodies_count = this.bodies.length,
-		i, body,
-		intersections = [];
-	for ( i = 0; i < bodies_count; i++ ) {
-		body = this.bodies[i];
-		if ( body.aabb.testRayIntersect( start, end ) ) {
-			body.rayIntersect( start, end, intersections );
-		}
+		this.eta_row[6] = ( constraint.object_b.linear_velocity.x + ( invmass * constraint.object_b.accumulated_force.x ) ) * inverse_time_delta;
+		this.eta_row[7] = ( constraint.object_b.linear_velocity.y + ( invmass * constraint.object_b.accumulated_force.y ) ) * inverse_time_delta;
+		this.eta_row[8] = ( constraint.object_b.linear_velocity.z + ( invmass * constraint.object_b.accumulated_force.z ) ) * inverse_time_delta;
+
+		_tmp_vec3_1.copy( constraint.object_b.accumulated_torque );
+		constraint.object_b.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
+		this.eta_row[9] = ( constraint.object_b.angular_velocity.x + _tmp_vec3_1.x ) * inverse_time_delta;
+		this.eta_row[10] = ( constraint.object_b.angular_velocity.y + _tmp_vec3_1.y ) * inverse_time_delta;
+		this.eta_row[11] = ( constraint.object_b.angular_velocity.z + _tmp_vec3_1.z ) * inverse_time_delta;
 	}
 
-	return intersections;
+	var jdotv = this.jacobian[0] * this.eta_row[0] +
+		this.jacobian[1] * this.eta_row[1] +
+		this.jacobian[2] * this.eta_row[2] +
+		this.jacobian[3] * this.eta_row[3] +
+		this.jacobian[4] * this.eta_row[4] +
+		this.jacobian[5] * this.eta_row[5] +
+		this.jacobian[6] * this.eta_row[6] +
+		this.jacobian[7] * this.eta_row[7] +
+		this.jacobian[8] * this.eta_row[8] +
+		this.jacobian[9] * this.eta_row[9] +
+		this.jacobian[10] * this.eta_row[10] +
+		this.jacobian[11] * this.eta_row[11];
+
+	this.eta = ( this.bias * inverse_time_delta ) - jdotv;
 };
-(function(){
-	/**
-	 * @class SAPMarker
-	 * @private
-	 * @param {SAPMarker.TYPES} marker_type
-	 * @param {RigidBody} body
-	 * @param {Number} position
-	 * @constructor
-	 */
-	var SAPMarker = function( marker_type, body, position ) {
-		this.type = marker_type;
-		this.body = body;
-		this.position = position;
-		
-		this.prev = null;
-		this.next = null;
+Goblin.ContactConstraint = function() {
+	Goblin.Constraint.call( this );
+
+	this.contact = null;
+};
+Goblin.ContactConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
+	this.object_a = contact.object_a;
+	this.object_b = contact.object_b;
+	this.contact = contact;
+
+	var self = this;
+	var onDestroy = function() {
+		this.removeListener( 'destroy', onDestroy );
+		self.deactivate();
 	};
-	SAPMarker.TYPES = {
-		START: 0,
-		END: 1
+	this.contact.addListener( 'destroy', onDestroy );
+
+	var row = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	row.lower_limit = 0;
+	row.upper_limit = Infinity;
+	this.rows[0] = row;
+
+	this.update();
+};
+
+Goblin.ContactConstraint.prototype.update = function() {
+	var row = this.rows[0];
+
+	if ( this.object_a == null || this.object_a._mass === Infinity ) {
+		row.jacobian[0] = row.jacobian[1] = row.jacobian[2] = 0;
+		row.jacobian[3] = row.jacobian[4] = row.jacobian[5] = 0;
+	} else {
+		row.jacobian[0] = -this.contact.contact_normal.x;
+		row.jacobian[1] = -this.contact.contact_normal.y;
+		row.jacobian[2] = -this.contact.contact_normal.z;
+
+		_tmp_vec3_1.subtractVectors( this.contact.contact_point, this.contact.object_a.position );
+		_tmp_vec3_1.cross( this.contact.contact_normal );
+		row.jacobian[3] = -_tmp_vec3_1.x;
+		row.jacobian[4] = -_tmp_vec3_1.y;
+		row.jacobian[5] = -_tmp_vec3_1.z;
+	}
+
+	if ( this.object_b == null || this.object_b._mass === Infinity ) {
+		row.jacobian[6] = row.jacobian[7] = row.jacobian[8] = 0;
+		row.jacobian[9] = row.jacobian[10] = row.jacobian[11] = 0;
+	} else {
+		row.jacobian[6] = this.contact.contact_normal.x;
+		row.jacobian[7] = this.contact.contact_normal.y;
+		row.jacobian[8] = this.contact.contact_normal.z;
+
+		_tmp_vec3_1.subtractVectors( this.contact.contact_point, this.contact.object_b.position );
+		_tmp_vec3_1.cross( this.contact.contact_normal );
+		row.jacobian[9] = _tmp_vec3_1.x;
+		row.jacobian[10] = _tmp_vec3_1.y;
+		row.jacobian[11] = _tmp_vec3_1.z;
+	}
+
+	// Pre-calc error
+	row.bias = 0;
+
+	// Apply restitution
+	var velocity_along_normal = 0;
+	if ( this.object_a._mass !== Infinity ) {
+		this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
+		velocity_along_normal += _tmp_vec3_1.dot( this.contact.contact_normal );
+	}
+	if ( this.object_b._mass !== Infinity ) {
+		this.object_b.getVelocityInLocalPoint( this.contact.contact_point_in_b, _tmp_vec3_1 );
+		velocity_along_normal -= _tmp_vec3_1.dot( this.contact.contact_normal );
+	}
+
+	// Add restitution to bias
+	row.bias += velocity_along_normal * this.contact.restitution;
+};
+Goblin.FrictionConstraint = function() {
+	Goblin.Constraint.call( this );
+
+	this.contact = null;
+};
+Goblin.FrictionConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
+	this.rows[0] = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	this.rows[1] = this.rows[1] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
+
+	this.object_a = contact.object_a;
+	this.object_b = contact.object_b;
+	this.contact = contact;
+
+	var self = this;
+	var onDestroy = function() {
+		this.removeListener( 'destroy', onDestroy );
+		self.deactivate();
 	};
+	this.contact.addListener( 'destroy', onDestroy );
 
-	var LinkedList = function() {
-		this.first = null;
-		this.last = null;
-	};
+	this.update();
+};
 
-	/**
-	 * Sweep and Prune broadphase
-	 *
-	 * @class SAPBroadphase
-	 * @constructor
-	 */
-	Goblin.SAPBroadphase = function() {
-		/**
-		 * linked list of the start/end markers along the X axis
-		 *
-		 * @property bodies
-		 * @type {SAPMarker<SAPMarker>}
-		 */
-		this.markers_x = new LinkedList();
+Goblin.FrictionConstraint.prototype.update = (function(){
+	var rel_a = new Goblin.Vector3(),
+		rel_b = new Goblin.Vector3(),
+		u1 = new Goblin.Vector3(),
+		u2 = new Goblin.Vector3();
 
-		/**
-		 * linked list of the start/end markers along the Y axis
-		 *
-		 * @property bodies
-		 * @type {SAPMarker<SAPMarker>}
-		 */
-		this.markers_y = new LinkedList();
+	return function updateFrictionConstraint() {
+		var row_1 = this.rows[0],
+			row_2 = this.rows[1];
 
-		/**
-		 * linked list of the start/end markers along the Z axis
-		 *
-		 * @property bodies
-		 * @type {SAPMarker<SAPMarker>}
-		 */
-		this.markers_z = new LinkedList();
+		// Find the contact point relative to object_a and object_b
+		rel_a.subtractVectors( this.contact.contact_point, this.object_a.position );
+		rel_b.subtractVectors( this.contact.contact_point, this.object_b.position );
 
-		/**
-		 * maintains count of axis over which two bodies overlap; if count is three, their AABBs touch/penetrate
-		 *
-		 * @type {Object}
-		 */
-		this.overlap_counter = {};
+		this.contact.contact_normal.findOrthogonal( u1, u2 );
 
-		/**
-		 * array of all (current) collision pairs between the broadphases' bodies
-		 *
-		 * @property collision_pairs
-		 * @type {Array}
-		 */
-		this.collision_pairs = [];
+		if ( this.object_a == null || this.object_a._mass === Infinity ) {
+			row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
+			row_1.jacobian[3] = row_1.jacobian[4] = row_1.jacobian[5] = 0;
+			row_2.jacobian[0] = row_2.jacobian[1] = row_2.jacobian[2] = 0;
+			row_2.jacobian[3] = row_2.jacobian[4] = row_2.jacobian[5] = 0;
+		} else {
+			row_1.jacobian[0] = -u1.x;
+			row_1.jacobian[1] = -u1.y;
+			row_1.jacobian[2] = -u1.z;
 
-		/**
-		 * array of bodies which have been added to the broadphase since the last update
-		 *
-		 * @type {Array<RigidBody>}
-		 */
-		this.pending_bodies = [];
-	};
+			_tmp_vec3_1.crossVectors( rel_a, u1 );
+			row_1.jacobian[3] = -_tmp_vec3_1.x;
+			row_1.jacobian[4] = -_tmp_vec3_1.y;
+			row_1.jacobian[5] = -_tmp_vec3_1.z;
 
-	Goblin.SAPBroadphase.prototype = {
-		incrementOverlaps: function( body_a, body_b ) {
-			if( !Goblin.CollisionUtils.canBodiesCollide( body_a, body_b ) ) {
-				return;
-			}
+			row_2.jacobian[0] = -u2.x;
+			row_2.jacobian[1] = -u2.y;
+			row_2.jacobian[2] = -u2.z;
 
-			var key = body_a.id < body_b.id ? body_a.id + '-' + body_b.id : body_b.id + '-' + body_a.id;
-
-			if ( !this.overlap_counter.hasOwnProperty( key ) ) {
-				this.overlap_counter[key] = 0;
-			}
-
-			this.overlap_counter[key]++;
-
-			if ( this.overlap_counter[key] === 3 ) {
-				// The AABBs are touching, add to potential contacts
-				this.collision_pairs.push([ body_a.id < body_b.id ? body_a : body_b, body_a.id < body_b.id ? body_b : body_a ]);
-			}
-		},
-
-		decrementOverlaps: function( body_a, body_b ) {
-			var key = body_a.id < body_b.id ? body_a.id + '-' + body_b.id : body_b.id + '-' + body_a.id;
-
-			if ( !this.overlap_counter.hasOwnProperty( key ) ) {
-				this.overlap_counter[key] = 0;
-			}
-
-			this.overlap_counter[key]--;
-
-			if ( this.overlap_counter[key] === 0 ) {
-				delete this.overlap_counter[key];
-			} else if ( this.overlap_counter[key] === 2 ) {
-				// These are no longer touching, remove from potential contacts
-				this.collision_pairs = this.collision_pairs.filter(function( pair ){
-					if ( pair[0] === body_a && pair[1] === body_b ) {
-						return false;
-					}
-					if ( pair[0] === body_b && pair[1] === body_a ) {
-						return false;
-					}
-					return true;
-				});
-			}
-		},
-
-		/**
-		 * Adds a body to the broadphase for contact checking
-		 *
-		 * @method addBody
-		 * @param body {RigidBody} body to add to the broadphase contact checking
-		 */
-		addBody: function( body ) {
-			this.pending_bodies.push( body );
-		},
-
-		removeBody: function( body ) {
-			// first, check if the body is pending
-			var pending_index = this.pending_bodies.indexOf( body );
-			if ( pending_index !== -1 ) {
-				this.pending_bodies.splice( pending_index, 1 );
-				return;
-			}
-
-			// body was already added, find & remove
-			var next, prev;
-			var marker = this.markers_x.first;
-			while ( marker ) {
-				if ( marker.body === body ) {
-					next = marker.next;
-					prev = marker.prev;
-					if ( next != null ) {
-						next.prev = prev;
-						if ( prev != null ) {
-							prev.next = next;
-						}
-					} else {
-						this.markers_x.last = prev;
-					}
-					if ( prev != null ) {
-						prev.next = next;
-						if ( next != null ) {
-							next.prev = prev;
-						}
-					} else {
-						this.markers_x.first = next;
-					}
-				}
-				marker = marker.next;
-			}
-
-			marker = this.markers_y.first;
-			while ( marker ) {
-				if ( marker.body === body ) {
-					next = marker.next;
-					prev = marker.prev;
-					if ( next != null ) {
-						next.prev = prev;
-						if ( prev != null ) {
-							prev.next = next;
-						}
-					} else {
-						this.markers_y.last = prev;
-					}
-					if ( prev != null ) {
-						prev.next = next;
-						if ( next != null ) {
-							next.prev = prev;
-						}
-					} else {
-						this.markers_y.first = next;
-					}
-				}
-				marker = marker.next;
-			}
-
-			marker = this.markers_z.first;
-			while ( marker ) {
-				if ( marker.body === body ) {
-					next = marker.next;
-					prev = marker.prev;
-					if ( next != null ) {
-						next.prev = prev;
-						if ( prev != null ) {
-							prev.next = next;
-						}
-					} else {
-						this.markers_z.last = prev;
-					}
-					if ( prev != null ) {
-						prev.next = next;
-						if ( next != null ) {
-							next.prev = prev;
-						}
-					} else {
-						this.markers_z.first = next;
-					}
-				}
-				marker = marker.next;
-			}
-
-			// remove any collisions
-			this.collision_pairs = this.collision_pairs.filter(function( pair ){
-				if ( pair[0] === body || pair[1] === body ) {
-					return false;
-				}
-				return true;
-			});
-		},
-
-		insertPending: function() {
-			var body;
-			while ( ( body = this.pending_bodies.pop() ) ) {
-				body.updateDerived();
-				var start_marker_x = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.x ),
-					start_marker_y = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.y ),
-					start_marker_z = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.z ),
-					end_marker_x = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.x ),
-					end_marker_y = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.y ),
-					end_marker_z = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.z );
-
-				// Insert these markers, incrementing overlap counter
-				this.insert( this.markers_x, start_marker_x );
-				this.insert( this.markers_x, end_marker_x );
-				this.insert( this.markers_y, start_marker_y );
-				this.insert( this.markers_y, end_marker_y );
-				this.insert( this.markers_z, start_marker_z );
-				this.insert( this.markers_z, end_marker_z );
-			}
-		},
-
-		insert: function( list, marker ) {
-			if ( list.first == null ) {
-				list.first = list.last = marker;
-			} else {
-				// Insert at the end of the list & sort
-				marker.prev = list.last;
-				list.last.next = marker;
-				list.last = marker;
-				this.sort( list, marker );
-			}
-		},
-
-		sort: function( list, marker ) {
-			var prev;
-			while (
-				marker.prev != null &&
-				(
-					marker.position < marker.prev.position ||
-					( marker.position === marker.prev.position && marker.type === SAPMarker.TYPES.START && marker.prev.type === SAPMarker.TYPES.END )
-				)
-			) {
-				prev = marker.prev;
-
-				// check if this swap changes overlap counters
-				if ( marker.type !== prev.type ) {
-					if ( marker.type === SAPMarker.TYPES.START ) {
-						// marker is START, moving into an overlap
-						this.incrementOverlaps( marker.body, prev.body );
-					} else {
-						// marker is END, leaving an overlap
-						this.decrementOverlaps( marker.body, prev.body );
-					}
-				}
-
-				marker.prev = prev.prev;
-				prev.next = marker.next;
-
-				marker.next = prev;
-				prev.prev = marker;
-
-				if ( marker.prev == null ) {
-					list.first = marker;
-				} else {
-					marker.prev.next = marker;
-				}
-				if ( prev.next == null ) {
-					list.last = prev;
-				} else {
-					prev.next.prev = prev;
-				}
-			}
-		},
-
-		/**
-		 * Updates the broadphase's internal representation and current predicted contacts
-		 *
-		 * @method update
-		 */
-		update: function() {
-			this.insertPending();
-
-			var marker = this.markers_x.first;
-			while ( marker ) {
-				if ( marker.type === SAPMarker.TYPES.START ) {
-					marker.position = marker.body.aabb.min.x;
-				} else {
-					marker.position = marker.body.aabb.max.x;
-				}
-				this.sort( this.markers_x, marker );
-				marker = marker.next;
-			}
-
-			marker = this.markers_y.first;
-			while ( marker ) {
-				if ( marker.type === SAPMarker.TYPES.START ) {
-					marker.position = marker.body.aabb.min.y;
-				} else {
-					marker.position = marker.body.aabb.max.y;
-				}
-				this.sort( this.markers_y, marker );
-				marker = marker.next;
-			}
-
-			marker = this.markers_z.first;
-			while ( marker ) {
-				if ( marker.type === SAPMarker.TYPES.START ) {
-					marker.position = marker.body.aabb.min.z;
-				} else {
-					marker.position = marker.body.aabb.max.z;
-				}
-				this.sort( this.markers_z, marker );
-				marker = marker.next;
-			}
-		},
-
-		/**
-		 * Returns an array of objects the given body may be colliding with
-		 *
-		 * @method intersectsWith
-		 * @param body {RigidBody}
-		 * @return Array<RigidBody>
-		 */
-		intersectsWith: function( body ) {
-			this.addBody( body );
-			this.update();
-
-			var possibilities = this.collision_pairs.filter(function( pair ){
-				if ( pair[0] === body || pair[1] === body ) {
-					return true;
-				}
-				return false;
-			}).map(function( pair ){
-				return pair[0] === body ? pair[1] : pair[0];
-			});
-
-			this.removeBody( body );
-			return possibilities;
-		},
-
-		/**
-		 * Checks if a ray segment intersects with objects in the world
-		 *
-		 * @method rayIntersect
-		 * @property start {vec3} start point of the segment
-		 * @property end {vec3{ end point of the segment
-         * @return {Array<RayIntersection>} an unsorted array of intersections
-		 */
-		rayIntersect: function( start, end ) {
-			// It's assumed that raytracing will be performed through a proxy like Goblin.World,
-			// thus that the only time this broadphase cares about updating itself is if an object was added
-			if ( this.pending_bodies.length > 0 ) {
-				this.update();
-			}
-
-			// This implementation only scans the X axis because the overall process gets slower the more axes you add
-			// thanks JavaScript
-
-			var active_bodies = {},
-				intersections = [],
-				id_body_map = {},
-				id_intersection_count = {},
-				ordered_start, ordered_end,
-				marker, has_encountered_start,
-				i, body, key, keys;
-
-			// X axis
-			marker = this.markers_x.first;
-			has_encountered_start = false;
-			active_bodies = {};
-			ordered_start = start.x < end.x ? start.x : end.x;
-			ordered_end = start.x < end.x ? end.x : start.x;
-			while ( marker ) {
-				if ( marker.type === SAPMarker.TYPES.START ) {
-					active_bodies[marker.body.id] = marker.body;
-				}
-
-				if ( marker.position >= ordered_start ) {
-					if ( has_encountered_start === false ) {
-						has_encountered_start = true;
-						keys = Object.keys( active_bodies );
-						for ( i = 0; i < keys.length; i++ ) {
-							key = keys[i];
-							body = active_bodies[key];
-							if ( body == null ) { // needed because we don't delete but set to null, see below comment
-								continue;
-							}
-							// The next two lines are piss-slow
-							id_body_map[body.id] = body;
-							id_intersection_count[body.id] = id_intersection_count[body.id] ? id_intersection_count[body.id] + 1 : 1;
-						}
-					} else if ( marker.type === SAPMarker.TYPES.START ) {
-						// The next two lines are piss-slow
-						id_body_map[marker.body.id] = marker.body;
-						id_intersection_count[marker.body.id] = id_intersection_count[marker.body.id] ? id_intersection_count[marker.body.id] + 1 : 1;
-					}
-				}
-
-				if ( marker.type === SAPMarker.TYPES.END ) {
-					active_bodies[marker.body.id] = null; // this is massively faster than deleting the association
-					//delete active_bodies[marker.body.id];
-				}
-
-				if ( marker.position > ordered_end ) {
-					// no more intersections to find on this axis
-					break;
-				}
-
-				marker = marker.next;
-			}
-
-			keys = Object.keys( id_intersection_count );
-			for ( i = 0; i < keys.length; i++ ) {
-				var body_id = keys[i];
-				if ( id_intersection_count[body_id] === 1 ) {
-					if ( id_body_map[body_id].aabb.testRayIntersect( start, end ) ) {
-						id_body_map[body_id].rayIntersect( start, end, intersections );
-					}
-				}
-			}
-
-			return intersections;
+			_tmp_vec3_1.crossVectors( rel_a, u2 );
+			row_2.jacobian[3] = -_tmp_vec3_1.x;
+			row_2.jacobian[4] = -_tmp_vec3_1.y;
+			row_2.jacobian[5] = -_tmp_vec3_1.z;
 		}
+
+		if ( this.object_b == null || this.object_b._mass === Infinity ) {
+			row_1.jacobian[6] = row_1.jacobian[7] = row_1.jacobian[8] = 0;
+			row_1.jacobian[9] = row_1.jacobian[10] = row_1.jacobian[11] = 0;
+			row_2.jacobian[6] = row_2.jacobian[7] = row_2.jacobian[8] = 0;
+			row_2.jacobian[9] = row_2.jacobian[10] = row_2.jacobian[11] = 0;
+		} else {
+			row_1.jacobian[6] = u1.x;
+			row_1.jacobian[7] = u1.y;
+			row_1.jacobian[8] = u1.z;
+
+			_tmp_vec3_1.crossVectors( rel_b, u1 );
+			row_1.jacobian[9] = _tmp_vec3_1.x;
+			row_1.jacobian[10] = _tmp_vec3_1.y;
+			row_1.jacobian[11] = _tmp_vec3_1.z;
+
+			row_2.jacobian[6] = u2.x;
+			row_2.jacobian[7] = u2.y;
+			row_2.jacobian[8] = u2.z;
+
+			_tmp_vec3_1.crossVectors( rel_b, u2 );
+			row_2.jacobian[9] = _tmp_vec3_1.x;
+			row_2.jacobian[10] = _tmp_vec3_1.y;
+			row_2.jacobian[11] = _tmp_vec3_1.z;
+		}
+
+		// Find total velocity between the two bodies along the contact normal
+		this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
+
+		// Include accumulated forces
+		if ( this.object_a._mass !== Infinity ) {
+			// accumulated linear velocity
+			_tmp_vec3_1.scaleVector( this.object_a.accumulated_force, 1 / this.object_a._mass );
+			_tmp_vec3_1.add( this.object_a.linear_velocity );
+
+			// accumulated angular velocity
+			this.object_a.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_a.accumulated_torque, _tmp_vec3_3 );
+			_tmp_vec3_3.add( this.object_a.angular_velocity );
+
+			_tmp_vec3_3.cross( this.contact.contact_point_in_a );
+			_tmp_vec3_1.add( _tmp_vec3_3 );
+			_tmp_vec3_1.scale( this.object_a._mass );
+		} else {
+			_tmp_vec3_1.set( 0, 0, 0 );
+		}
+
+		var limit = this.contact.friction * 25;
+		if ( limit < 0 ) {
+			limit = 0;
+		}
+		row_1.lower_limit = row_2.lower_limit = -limit;
+		row_1.upper_limit = row_2.upper_limit = limit;
+
+		row_1.bias = row_2.bias = 0;
+
+		this.rows[0] = row_1;
+		this.rows[1] = row_2;
 	};
 })();
+Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b ) {
+	Goblin.Constraint.call( this );
+
+	this.object_a = object_a;
+	this.hinge_a = hinge_a;
+	this.point_a = point_a;
+
+	this.object_b = object_b || null;
+	this.point_b = new Goblin.Vector3();
+	this.hinge_b = new Goblin.Vector3();
+	if ( this.object_b != null ) {
+		this.object_a.rotation.transformVector3Into( this.hinge_a, this.hinge_b );
+		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
+		_tmp_quat4_1.transformVector3( this.hinge_b );
+
+		this.point_b = point_b;
+	} else {
+		this.object_a.updateDerived(); // Ensure the body's transform is correct
+		this.object_a.rotation.transformVector3Into( this.hinge_a, this.hinge_b );
+		this.object_a.transform.transformVector3Into( this.point_a, this.point_b );
+	}
+
+	this.erp = 0.1;
+
+	// Create rows
+	// rows 0,1,2 are the same as point constraint and constrain the objects' positions
+	// rows 3,4 introduce the rotational constraints which constrains angular velocity orthogonal to the hinge axis
+	for ( var i = 0; i < 5; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
+			this.rows[i].jacobian[3] = this.rows[i].jacobian[4] = this.rows[i].jacobian[5] =
+			this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] =
+			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
+	}
+};
+Goblin.HingeConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.HingeConstraint.prototype.update = (function(){
+	var r1 = new Goblin.Vector3(),
+		r2 = new Goblin.Vector3(),
+		t1 = new Goblin.Vector3(),
+		t2 = new Goblin.Vector3(),
+		world_axis = new Goblin.Vector3();
+
+	return function( time_delta ) {
+		this.object_a.rotation.transformVector3Into( this.hinge_a, world_axis );
+
+		this.object_a.transform.transformVector3Into( this.point_a, _tmp_vec3_1 );
+		r1.subtractVectors( _tmp_vec3_1, this.object_a.position );
+
+		// 0,1,2 are positional, same as PointConstraint
+		this.rows[0].jacobian[0] = -1;
+		this.rows[0].jacobian[1] = 0;
+		this.rows[0].jacobian[2] = 0;
+		this.rows[0].jacobian[3] = 0;
+		this.rows[0].jacobian[4] = -r1.z;
+		this.rows[0].jacobian[5] = r1.y;
+
+		this.rows[1].jacobian[0] = 0;
+		this.rows[1].jacobian[1] = -1;
+		this.rows[1].jacobian[2] = 0;
+		this.rows[1].jacobian[3] = r1.z;
+		this.rows[1].jacobian[4] = 0;
+		this.rows[1].jacobian[5] = -r1.x;
+
+		this.rows[2].jacobian[0] = 0;
+		this.rows[2].jacobian[1] = 0;
+		this.rows[2].jacobian[2] = -1;
+		this.rows[2].jacobian[3] = -r1.y;
+		this.rows[2].jacobian[4] = r1.x;
+		this.rows[2].jacobian[5] = 0;
+
+		// 3,4 are rotational, constraining motion orthogonal to axis
+		world_axis.findOrthogonal( t1, t2 );
+		this.rows[3].jacobian[3] = -t1.x;
+		this.rows[3].jacobian[4] = -t1.y;
+		this.rows[3].jacobian[5] = -t1.z;
+
+		this.rows[4].jacobian[3] = -t2.x;
+		this.rows[4].jacobian[4] = -t2.y;
+		this.rows[4].jacobian[5] = -t2.z;
+
+		if ( this.object_b != null ) {
+			this.object_b.transform.transformVector3Into( this.point_b, _tmp_vec3_2 );
+			r2.subtractVectors( _tmp_vec3_2, this.object_b.position );
+
+			// 0,1,2 are positional, same as PointConstraint
+			this.rows[0].jacobian[6] = 1;
+			this.rows[0].jacobian[7] = 0;
+			this.rows[0].jacobian[8] = 0;
+			this.rows[0].jacobian[9] = 0;
+			this.rows[0].jacobian[10] = r2.z;
+			this.rows[0].jacobian[11] = -r2.y;
+
+			this.rows[1].jacobian[6] = 0;
+			this.rows[1].jacobian[7] = 1;
+			this.rows[1].jacobian[8] = 0;
+			this.rows[1].jacobian[9] = -r2.z;
+			this.rows[1].jacobian[10] = 0;
+			this.rows[1].jacobian[11] = r2.x;
+
+			this.rows[2].jacobian[6] = 0;
+			this.rows[2].jacobian[7] = 0;
+			this.rows[2].jacobian[8] = 1;
+			this.rows[2].jacobian[9] = r2.y;
+			this.rows[2].jacobian[10] = -r2.z;
+			this.rows[2].jacobian[11] = 0;
+
+			// 3,4 are rotational, constraining motion orthogonal to axis
+			this.rows[3].jacobian[9] = t1.x;
+			this.rows[3].jacobian[10] = t1.y;
+			this.rows[3].jacobian[11] = t1.z;
+
+			this.rows[4].jacobian[9] = t2.x;
+			this.rows[4].jacobian[10] = t2.y;
+			this.rows[4].jacobian[11] = t2.z;
+		} else {
+			_tmp_vec3_2.copy( this.point_b );
+		}
+
+		// Linear error correction
+		_tmp_vec3_3.subtractVectors( _tmp_vec3_1, _tmp_vec3_2 );
+		_tmp_vec3_3.scale( this.erp / time_delta );
+		this.rows[0].bias = _tmp_vec3_3.x;
+		this.rows[1].bias = _tmp_vec3_3.y;
+		this.rows[2].bias = _tmp_vec3_3.z;
+
+		// Angular error correction
+		if (this.object_b != null) {
+			this.object_a.rotation.transformVector3Into(this.hinge_a, _tmp_vec3_1);
+			this.object_b.rotation.transformVector3Into(this.hinge_b, _tmp_vec3_2);
+			_tmp_vec3_1.cross(_tmp_vec3_2);
+			this.rows[3].bias = -_tmp_vec3_1.dot(t1);
+			this.rows[4].bias = -_tmp_vec3_1.dot(t2);
+		} else {
+			this.rows[3].bias = this.rows[4].bias = 0;
+		}
+	};
+})( );
+Goblin.PointConstraint = function( object_a, point_a, object_b, point_b ) {
+	Goblin.Constraint.call( this );
+
+	this.object_a = object_a;
+	this.point_a = point_a;
+
+	this.object_b = object_b || null;
+	if ( this.object_b != null ) {
+		this.point_b = point_b;
+	} else {
+		this.point_b = new Goblin.Vector3();
+		this.object_a.updateDerived(); // Ensure the body's transform is correct
+		this.object_a.transform.transformVector3Into( this.point_a, this.point_b );
+	}
+
+	this.erp = 0.1;
+
+	// Create rows
+	for ( var i = 0; i < 3; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] =
+			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
+	}
+};
+Goblin.PointConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.PointConstraint.prototype.update = (function(){
+	var r1 = new Goblin.Vector3(),
+		r2 = new Goblin.Vector3();
+
+	return function( time_delta ) {
+		this.object_a.transform.transformVector3Into( this.point_a, _tmp_vec3_1 );
+		r1.subtractVectors( _tmp_vec3_1, this.object_a.position );
+
+		this.rows[0].jacobian[0] = -1;
+		this.rows[0].jacobian[1] = 0;
+		this.rows[0].jacobian[2] = 0;
+		this.rows[0].jacobian[3] = 0;
+		this.rows[0].jacobian[4] = -r1.z;
+		this.rows[0].jacobian[5] = r1.y;
+
+		this.rows[1].jacobian[0] = 0;
+		this.rows[1].jacobian[1] = -1;
+		this.rows[1].jacobian[2] = 0;
+		this.rows[1].jacobian[3] = r1.z;
+		this.rows[1].jacobian[4] = 0;
+		this.rows[1].jacobian[5] = -r1.x;
+
+		this.rows[2].jacobian[0] = 0;
+		this.rows[2].jacobian[1] = 0;
+		this.rows[2].jacobian[2] = -1;
+		this.rows[2].jacobian[3] = -r1.y;
+		this.rows[2].jacobian[4] = r1.x;
+		this.rows[2].jacobian[5] = 0;
+
+		if ( this.object_b != null ) {
+			this.object_b.transform.transformVector3Into( this.point_b, _tmp_vec3_2 );
+			r2.subtractVectors( _tmp_vec3_2, this.object_b.position );
+
+			this.rows[0].jacobian[6] = 1;
+			this.rows[0].jacobian[7] = 0;
+			this.rows[0].jacobian[8] = 0;
+			this.rows[0].jacobian[9] = 0;
+			this.rows[0].jacobian[10] = r2.z;
+			this.rows[0].jacobian[11] = -r2.y;
+
+			this.rows[1].jacobian[6] = 0;
+			this.rows[1].jacobian[7] = 1;
+			this.rows[1].jacobian[8] = 0;
+			this.rows[1].jacobian[9] = -r2.z;
+			this.rows[1].jacobian[10] = 0;
+			this.rows[1].jacobian[11] = r2.x;
+
+			this.rows[2].jacobian[6] = 0;
+			this.rows[2].jacobian[7] = 0;
+			this.rows[2].jacobian[8] = 1;
+			this.rows[2].jacobian[9] = r2.y;
+			this.rows[2].jacobian[10] = -r2.z;
+			this.rows[2].jacobian[11] = 0;
+		} else {
+			_tmp_vec3_2.copy( this.point_b );
+		}
+
+		_tmp_vec3_3.subtractVectors( _tmp_vec3_1, _tmp_vec3_2 );
+		_tmp_vec3_3.scale( this.erp / time_delta );
+		this.rows[0].bias = _tmp_vec3_3.x;
+		this.rows[1].bias = _tmp_vec3_3.y;
+		this.rows[2].bias = _tmp_vec3_3.z;
+	};
+})( );
+Goblin.SliderConstraint = function( object_a, axis, object_b ) {
+	Goblin.Constraint.call( this );
+
+	this.object_a = object_a;
+	this.axis = axis;
+	this.object_b = object_b;
+
+	// Find the initial distance between the two objects in object_a's local frame
+	this.position_error = new Goblin.Vector3();
+	this.position_error.subtractVectors( this.object_b.position, this.object_a.position );
+	_tmp_quat4_1.invertQuaternion( this.object_a.rotation );
+	_tmp_quat4_1.transformVector3( this.position_error );
+
+	this.rotation_difference = new Goblin.Quaternion();
+	if ( this.object_b != null ) {
+		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
+		this.rotation_difference.multiplyQuaternions( _tmp_quat4_1, this.object_a.rotation );
+	}
+
+	this.erp = 0.1;
+
+	// First two rows constrain the linear velocities orthogonal to `axis`
+	// Rows three through five constrain angular velocities
+	for ( var i = 0; i < 5; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
+			this.rows[i].jacobian[3] = this.rows[i].jacobian[4] = this.rows[i].jacobian[5] =
+			this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] =
+			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
+	}
+};
+Goblin.SliderConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.SliderConstraint.prototype.update = (function(){
+	var _axis = new Goblin.Vector3(),
+		n1 = new Goblin.Vector3(),
+		n2 = new Goblin.Vector3();
+
+	return function( time_delta ) {
+		// `axis` is in object_a's local frame, convert to world
+		this.object_a.rotation.transformVector3Into( this.axis, _axis );
+
+		// Find two vectors that are orthogonal to `axis`
+		_axis.findOrthogonal( n1, n2 );
+
+		this._updateLinearConstraints( time_delta, n1, n2 );
+		this._updateAngularConstraints( time_delta, n1, n2 );
+	};
+})();
+
+Goblin.SliderConstraint.prototype._updateLinearConstraints = function( time_delta, n1, n2 ) {
+	var c = new Goblin.Vector3();
+	c.subtractVectors( this.object_b.position, this.object_a.position );
+	//c.scale( 0.5 );
+
+	var cx = new Goblin.Vector3( );
+
+	// first linear constraint
+	cx.crossVectors( c, n1 );
+	this.rows[0].jacobian[0] = -n1.x;
+	this.rows[0].jacobian[1] = -n1.y;
+	this.rows[0].jacobian[2] = -n1.z;
+	//this.rows[0].jacobian[3] = -cx[0];
+	//this.rows[0].jacobian[4] = -cx[1];
+	//this.rows[0].jacobian[5] = -cx[2];
+
+	this.rows[0].jacobian[6] = n1.x;
+	this.rows[0].jacobian[7] = n1.y;
+	this.rows[0].jacobian[8] = n1.z;
+	this.rows[0].jacobian[9] = 0;
+	this.rows[0].jacobian[10] = 0;
+	this.rows[0].jacobian[11] = 0;
+
+	// second linear constraint
+	cx.crossVectors( c, n2 );
+	this.rows[1].jacobian[0] = -n2.x;
+	this.rows[1].jacobian[1] = -n2.y;
+	this.rows[1].jacobian[2] = -n2.z;
+	//this.rows[1].jacobian[3] = -cx[0];
+	//this.rows[1].jacobian[4] = -cx[1];
+	//this.rows[1].jacobian[5] = -cx[2];
+
+	this.rows[1].jacobian[6] = n2.x;
+	this.rows[1].jacobian[7] = n2.y;
+	this.rows[1].jacobian[8] = n2.z;
+	this.rows[1].jacobian[9] = 0;
+	this.rows[1].jacobian[10] = 0;
+	this.rows[1].jacobian[11] = 0;
+
+	// linear constraint error
+	//c.scale( 2  );
+	this.object_a.rotation.transformVector3Into( this.position_error, _tmp_vec3_1 );
+	_tmp_vec3_2.subtractVectors( c, _tmp_vec3_1 );
+	_tmp_vec3_2.scale( this.erp / time_delta  );
+	this.rows[0].bias = -n1.dot( _tmp_vec3_2 );
+	this.rows[1].bias = -n2.dot( _tmp_vec3_2 );
+};
+
+Goblin.SliderConstraint.prototype._updateAngularConstraints = function( time_delta, n1, n2, axis ) {
+	this.rows[2].jacobian[3] = this.rows[3].jacobian[4] = this.rows[4].jacobian[5] = -1;
+	this.rows[2].jacobian[9] = this.rows[3].jacobian[10] = this.rows[4].jacobian[11] = 1;
+
+	_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
+	_tmp_quat4_1.multiply( this.object_a.rotation );
+
+	_tmp_quat4_2.invertQuaternion( this.rotation_difference );
+	_tmp_quat4_2.multiply( _tmp_quat4_1 );
+	// _tmp_quat4_2 is now the rotational error that needs to be corrected
+
+	var error = new Goblin.Vector3();
+	error.x = _tmp_quat4_2.x;
+	error.y = _tmp_quat4_2.y;
+	error.z = _tmp_quat4_2.z;
+	error.scale( this.erp / time_delta  );
+
+	//this.rows[2].bias = error[0];
+	//this.rows[3].bias = error[1];
+	//this.rows[4].bias = error[2];
+};
+Goblin.WeldConstraint = function( object_a, point_a, object_b, point_b ) {
+	Goblin.Constraint.call( this );
+
+	this.object_a = object_a;
+	this.point_a = point_a;
+
+	this.object_b = object_b || null;
+	this.point_b = point_b || null;
+
+	this.rotation_difference = new Goblin.Quaternion();
+	if ( this.object_b != null ) {
+		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
+		this.rotation_difference.multiplyQuaternions( _tmp_quat4_1, this.object_a.rotation );
+	}
+
+	this.erp = 0.1;
+
+	// Create translation constraint rows
+	for ( var i = 0; i < 3; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		if ( this.object_b == null ) {
+			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
+				this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = this.rows[i].jacobian[6] =
+				this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = this.rows[i].jacobian[9] =
+				this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = this.rows[i].jacobian[12] = 0;
+			this.rows[i].jacobian[i] = 1;
+		}
+	}
+
+	// Create rotation constraint rows
+	for ( i = 3; i < 6; i++ ) {
+		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
+		this.rows[i].lower_limit = -Infinity;
+		this.rows[i].upper_limit = Infinity;
+		this.rows[i].bias = 0;
+
+		if ( this.object_b == null ) {
+			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
+				this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = this.rows[i].jacobian[6] =
+				this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = this.rows[i].jacobian[9] =
+				this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = this.rows[i].jacobian[12] = 0;
+			this.rows[i].jacobian[i] = 1;
+		} else {
+			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] = 0;
+			this.rows[i].jacobian[3] = this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = 0;
+			this.rows[i].jacobian[ i ] = -1;
+
+			this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = 0;
+			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
+			this.rows[i].jacobian[ i + 6 ] = 1;
+		}
+	}
+};
+Goblin.WeldConstraint.prototype = Object.create( Goblin.Constraint.prototype );
+
+Goblin.WeldConstraint.prototype.update = (function(){
+	var r1 = new Goblin.Vector3(),
+		r2 = new Goblin.Vector3();
+
+	return function( time_delta ) {
+		if ( this.object_b == null ) {
+			// No need to update the constraint, all motion is already constrained
+			return;
+		}
+
+		this.object_a.transform.transformVector3Into( this.point_a, _tmp_vec3_1 );
+		r1.subtractVectors( _tmp_vec3_1, this.object_a.position );
+
+		this.rows[0].jacobian[0] = -1;
+		this.rows[0].jacobian[1] = 0;
+		this.rows[0].jacobian[2] = 0;
+		this.rows[0].jacobian[3] = 0;
+		this.rows[0].jacobian[4] = -r1.z;
+		this.rows[0].jacobian[5] = r1.y;
+
+		this.rows[1].jacobian[0] = 0;
+		this.rows[1].jacobian[1] = -1;
+		this.rows[1].jacobian[2] = 0;
+		this.rows[1].jacobian[3] = r1.z;
+		this.rows[1].jacobian[4] = 0;
+		this.rows[1].jacobian[5] = -r1.x;
+
+		this.rows[2].jacobian[0] = 0;
+		this.rows[2].jacobian[1] = 0;
+		this.rows[2].jacobian[2] = -1;
+		this.rows[2].jacobian[3] = -r1.y;
+		this.rows[2].jacobian[4] = r1.x;
+		this.rows[2].jacobian[5] = 0;
+
+		if ( this.object_b != null ) {
+			this.object_b.transform.transformVector3Into( this.point_b, _tmp_vec3_2 );
+			r2.subtractVectors( _tmp_vec3_2, this.object_b.position );
+
+			this.rows[0].jacobian[6] = 1;
+			this.rows[0].jacobian[7] = 0;
+			this.rows[0].jacobian[8] = 0;
+			this.rows[0].jacobian[9] = 0;
+			this.rows[0].jacobian[10] = r2.z;
+			this.rows[0].jacobian[11] = -r2.y;
+
+			this.rows[1].jacobian[6] = 0;
+			this.rows[1].jacobian[7] = 1;
+			this.rows[1].jacobian[8] = 0;
+			this.rows[1].jacobian[9] = -r2.z;
+			this.rows[1].jacobian[10] = 0;
+			this.rows[1].jacobian[11] = r2.x;
+
+			this.rows[2].jacobian[6] = 0;
+			this.rows[2].jacobian[7] = 0;
+			this.rows[2].jacobian[8] = 1;
+			this.rows[2].jacobian[9] = r2.y;
+			this.rows[2].jacobian[10] = -r2.x;
+			this.rows[2].jacobian[11] = 0;
+		} else {
+			_tmp_vec3_2.copy( this.point_b );
+		}
+
+		var error = new Goblin.Vector3();
+
+		// Linear correction
+		error.subtractVectors( _tmp_vec3_1, _tmp_vec3_2 );
+		error.scale( this.erp / time_delta  );
+		this.rows[0].bias = error.x;
+		this.rows[1].bias = error.y;
+		this.rows[2].bias = error.z;
+
+		// Rotation correction
+		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
+		_tmp_quat4_1.multiply( this.object_a.rotation );
+
+		_tmp_quat4_2.invertQuaternion( this.rotation_difference );
+		_tmp_quat4_2.multiply( _tmp_quat4_1 );
+		// _tmp_quat4_2 is now the rotational error that needs to be corrected
+
+		error.x = _tmp_quat4_2.x;
+		error.y = _tmp_quat4_2.y;
+		error.z = _tmp_quat4_2.z;
+		error.scale( this.erp / time_delta );
+
+		this.rows[3].bias = error.x;
+		this.rows[4].bias = error.y;
+		this.rows[5].bias = error.z;
+	};
+})( );
 Goblin.BoxSphere = function( object_a, object_b ) {
 	var sphere = object_a.shape instanceof Goblin.SphereShape ? object_a : object_b,
 		box = object_a.shape instanceof Goblin.SphereShape ? object_b : object_a,
@@ -2079,8 +2345,8 @@ Goblin.GjkEpa = {
 	margins: 0.03,
 	result: null,
 
-    max_iterations: 20,
-    epa_condition: 0.001,
+    max_iterations: 5,
+    epa_condition: 0.01,
 
     /**
      * Holds a point on the edge of a Minkowski difference along with that point's witnesses and the direction used to find the point
@@ -3155,864 +3421,6 @@ Goblin.TriangleTriangle = function( tri_a, tri_b ) {
 	return null;
 };
 
-Goblin.Constraint = function() {
-	this.active = true;
-
-	this.object_a = null;
-
-	this.object_b = null;
-
-	this.rows = [];
-
-	this.factor = 1;
-
-	this.last_impulse = new Goblin.Vector3();
-
-	this.breaking_threshold = 0;
-
-	this.listeners = {};
-};
-Goblin.EventEmitter.apply( Goblin.Constraint );
-
-Goblin.Constraint.prototype.deactivate = function() {
-	this.active = false;
-	this.emit( 'deactivate' );
-};
-
-Goblin.Constraint.prototype.update = function(){};
-Goblin.ConstraintRow = function() {
-	this.jacobian = new Float64Array( 12 );
-	this.B = new Float64Array( 12 ); // `B` is the jacobian multiplied by the objects' inverted mass & inertia tensors
-	this.D = 0; // Length of the jacobian
-
-	this.lower_limit = -Infinity;
-	this.upper_limit = Infinity;
-
-	this.bias = 0;
-	this.multiplier = 0;
-	this.multiplier_cached = 0;
-	this.eta = 0;
-	this.eta_row = new Float64Array( 12 );
-};
-
-Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
-	var invmass;
-
-	if ( constraint.object_a != null && constraint.object_a._mass !== Infinity ) {
-		invmass = constraint.object_a._mass_inverted;
-
-		this.B[0] = invmass * this.jacobian[0] * constraint.object_a.linear_factor.x;
-		this.B[1] = invmass * this.jacobian[1] * constraint.object_a.linear_factor.y;
-		this.B[2] = invmass * this.jacobian[2] * constraint.object_a.linear_factor.z;
-
-		_tmp_vec3_1.x = this.jacobian[3];
-		_tmp_vec3_1.y = this.jacobian[4];
-		_tmp_vec3_1.z = this.jacobian[5];
-		constraint.object_a.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
-		this.B[3] = _tmp_vec3_1.x * constraint.object_a.angular_factor.x;
-		this.B[4] = _tmp_vec3_1.y * constraint.object_a.angular_factor.y;
-		this.B[5] = _tmp_vec3_1.z * constraint.object_a.angular_factor.z;
-	} else {
-		this.B[0] = this.B[1] = this.B[2] = 0;
-		this.B[3] = this.B[4] = this.B[5] = 0;
-	}
-
-	if ( constraint.object_b != null && constraint.object_b._mass !== Infinity ) {
-		invmass = constraint.object_b._mass_inverted;
-		this.B[6] = invmass * this.jacobian[6] * constraint.object_b.linear_factor.x;
-		this.B[7] = invmass * this.jacobian[7] * constraint.object_b.linear_factor.y;
-		this.B[8] = invmass * this.jacobian[8] * constraint.object_b.linear_factor.z;
-
-		_tmp_vec3_1.x = this.jacobian[9];
-		_tmp_vec3_1.y = this.jacobian[10];
-		_tmp_vec3_1.z = this.jacobian[11];
-		constraint.object_b.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
-		this.B[9] = _tmp_vec3_1.x * constraint.object_b.linear_factor.x;
-		this.B[10] = _tmp_vec3_1.y * constraint.object_b.linear_factor.y;
-		this.B[11] = _tmp_vec3_1.z * constraint.object_b.linear_factor.z;
-	} else {
-		this.B[6] = this.B[7] = this.B[8] = 0;
-		this.B[9] = this.B[10] = this.B[11] = 0;
-	}
-};
-
-Goblin.ConstraintRow.prototype.computeD = function() {
-	this.D = (
-		this.jacobian[0] * this.B[0] +
-		this.jacobian[1] * this.B[1] +
-		this.jacobian[2] * this.B[2] +
-		this.jacobian[3] * this.B[3] +
-		this.jacobian[4] * this.B[4] +
-		this.jacobian[5] * this.B[5] +
-		this.jacobian[6] * this.B[6] +
-		this.jacobian[7] * this.B[7] +
-		this.jacobian[8] * this.B[8] +
-		this.jacobian[9] * this.B[9] +
-		this.jacobian[10] * this.B[10] +
-		this.jacobian[11] * this.B[11]
-	);
-};
-
-Goblin.ConstraintRow.prototype.computeEta = function( constraint, time_delta ) {
-	var invmass,
-		inverse_time_delta = 1 / time_delta;
-
-	if ( constraint.object_a == null || constraint.object_a._mass === Infinity ) {
-		this.eta_row[0] = this.eta_row[1] = this.eta_row[2] = this.eta_row[3] = this.eta_row[4] = this.eta_row[5] = 0;
-	} else {
-		invmass = constraint.object_a._mass_inverted;
-
-		this.eta_row[0] = ( constraint.object_a.linear_velocity.x + ( invmass * constraint.object_a.accumulated_force.x ) ) * inverse_time_delta;
-		this.eta_row[1] = ( constraint.object_a.linear_velocity.y + ( invmass * constraint.object_a.accumulated_force.y ) ) * inverse_time_delta;
-		this.eta_row[2] = ( constraint.object_a.linear_velocity.z + ( invmass * constraint.object_a.accumulated_force.z ) ) * inverse_time_delta;
-
-		_tmp_vec3_1.copy( constraint.object_a.accumulated_torque );
-		constraint.object_a.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
-		this.eta_row[3] = ( constraint.object_a.angular_velocity.x + _tmp_vec3_1.x ) * inverse_time_delta;
-		this.eta_row[4] = ( constraint.object_a.angular_velocity.y + _tmp_vec3_1.y ) * inverse_time_delta;
-		this.eta_row[5] = ( constraint.object_a.angular_velocity.z + _tmp_vec3_1.z ) * inverse_time_delta;
-	}
-
-	if ( constraint.object_b == null || constraint.object_b._mass === Infinity ) {
-		this.eta_row[6] = this.eta_row[7] = this.eta_row[8] = this.eta_row[9] = this.eta_row[10] = this.eta_row[11] = 0;
-	} else {
-		invmass = constraint.object_b._mass_inverted;
-
-		this.eta_row[6] = ( constraint.object_b.linear_velocity.x + ( invmass * constraint.object_b.accumulated_force.x ) ) * inverse_time_delta;
-		this.eta_row[7] = ( constraint.object_b.linear_velocity.y + ( invmass * constraint.object_b.accumulated_force.y ) ) * inverse_time_delta;
-		this.eta_row[8] = ( constraint.object_b.linear_velocity.z + ( invmass * constraint.object_b.accumulated_force.z ) ) * inverse_time_delta;
-
-		_tmp_vec3_1.copy( constraint.object_b.accumulated_torque );
-		constraint.object_b.inverseInertiaTensorWorldFrame.transformVector3( _tmp_vec3_1 );
-		this.eta_row[9] = ( constraint.object_b.angular_velocity.x + _tmp_vec3_1.x ) * inverse_time_delta;
-		this.eta_row[10] = ( constraint.object_b.angular_velocity.y + _tmp_vec3_1.y ) * inverse_time_delta;
-		this.eta_row[11] = ( constraint.object_b.angular_velocity.z + _tmp_vec3_1.z ) * inverse_time_delta;
-	}
-
-	var jdotv = this.jacobian[0] * this.eta_row[0] +
-		this.jacobian[1] * this.eta_row[1] +
-		this.jacobian[2] * this.eta_row[2] +
-		this.jacobian[3] * this.eta_row[3] +
-		this.jacobian[4] * this.eta_row[4] +
-		this.jacobian[5] * this.eta_row[5] +
-		this.jacobian[6] * this.eta_row[6] +
-		this.jacobian[7] * this.eta_row[7] +
-		this.jacobian[8] * this.eta_row[8] +
-		this.jacobian[9] * this.eta_row[9] +
-		this.jacobian[10] * this.eta_row[10] +
-		this.jacobian[11] * this.eta_row[11];
-
-	this.eta = ( this.bias * inverse_time_delta ) - jdotv;
-};
-Goblin.ContactConstraint = function() {
-	Goblin.Constraint.call( this );
-
-	this.contact = null;
-};
-Goblin.ContactConstraint.prototype = Object.create( Goblin.Constraint.prototype );
-
-Goblin.ContactConstraint.prototype.buildFromContact = function( contact ) {
-	this.object_a = contact.object_a;
-	this.object_b = contact.object_b;
-	this.contact = contact;
-
-	var self = this;
-	var onDestroy = function() {
-		this.removeListener( 'destroy', onDestroy );
-		self.deactivate();
-	};
-	this.contact.addListener( 'destroy', onDestroy );
-
-	var row = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
-	row.lower_limit = 0;
-	row.upper_limit = Infinity;
-	this.rows[0] = row;
-
-	this.update();
-};
-
-Goblin.ContactConstraint.prototype.update = function() {
-	var row = this.rows[0];
-
-	if ( this.object_a == null || this.object_a._mass === Infinity ) {
-		row.jacobian[0] = row.jacobian[1] = row.jacobian[2] = 0;
-		row.jacobian[3] = row.jacobian[4] = row.jacobian[5] = 0;
-	} else {
-		row.jacobian[0] = -this.contact.contact_normal.x;
-		row.jacobian[1] = -this.contact.contact_normal.y;
-		row.jacobian[2] = -this.contact.contact_normal.z;
-
-		_tmp_vec3_1.subtractVectors( this.contact.contact_point, this.contact.object_a.position );
-		_tmp_vec3_1.cross( this.contact.contact_normal );
-		row.jacobian[3] = -_tmp_vec3_1.x;
-		row.jacobian[4] = -_tmp_vec3_1.y;
-		row.jacobian[5] = -_tmp_vec3_1.z;
-	}
-
-	if ( this.object_b == null || this.object_b._mass === Infinity ) {
-		row.jacobian[6] = row.jacobian[7] = row.jacobian[8] = 0;
-		row.jacobian[9] = row.jacobian[10] = row.jacobian[11] = 0;
-	} else {
-		row.jacobian[6] = this.contact.contact_normal.x;
-		row.jacobian[7] = this.contact.contact_normal.y;
-		row.jacobian[8] = this.contact.contact_normal.z;
-
-		_tmp_vec3_1.subtractVectors( this.contact.contact_point, this.contact.object_b.position );
-		_tmp_vec3_1.cross( this.contact.contact_normal );
-		row.jacobian[9] = _tmp_vec3_1.x;
-		row.jacobian[10] = _tmp_vec3_1.y;
-		row.jacobian[11] = _tmp_vec3_1.z;
-	}
-
-	// Pre-calc error
-	row.bias = 0;
-
-	// Apply restitution
-	var velocity_along_normal = 0;
-	if ( this.object_a._mass !== Infinity ) {
-		this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
-		velocity_along_normal += _tmp_vec3_1.dot( this.contact.contact_normal );
-	}
-	if ( this.object_b._mass !== Infinity ) {
-		this.object_b.getVelocityInLocalPoint( this.contact.contact_point_in_b, _tmp_vec3_1 );
-		velocity_along_normal -= _tmp_vec3_1.dot( this.contact.contact_normal );
-	}
-
-	// Add restitution to bias
-	row.bias += velocity_along_normal * this.contact.restitution;
-};
-Goblin.FrictionConstraint = function() {
-	Goblin.Constraint.call( this );
-
-	this.contact = null;
-};
-Goblin.FrictionConstraint.prototype = Object.create( Goblin.Constraint.prototype );
-
-Goblin.FrictionConstraint.prototype.buildFromContact = function( contact ) {
-	this.rows[0] = this.rows[0] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
-	this.rows[1] = this.rows[1] || Goblin.ObjectPool.getObject( 'ConstraintRow' );
-
-	this.object_a = contact.object_a;
-	this.object_b = contact.object_b;
-	this.contact = contact;
-
-	var self = this;
-	var onDestroy = function() {
-		this.removeListener( 'destroy', onDestroy );
-		self.deactivate();
-	};
-	this.contact.addListener( 'destroy', onDestroy );
-
-	this.update();
-};
-
-Goblin.FrictionConstraint.prototype.update = (function(){
-	var rel_a = new Goblin.Vector3(),
-		rel_b = new Goblin.Vector3(),
-		u1 = new Goblin.Vector3(),
-		u2 = new Goblin.Vector3();
-
-	return function updateFrictionConstraint() {
-		var row_1 = this.rows[0],
-			row_2 = this.rows[1];
-
-		// Find the contact point relative to object_a and object_b
-		rel_a.subtractVectors( this.contact.contact_point, this.object_a.position );
-		rel_b.subtractVectors( this.contact.contact_point, this.object_b.position );
-
-		this.contact.contact_normal.findOrthogonal( u1, u2 );
-
-		if ( this.object_a == null || this.object_a._mass === Infinity ) {
-			row_1.jacobian[0] = row_1.jacobian[1] = row_1.jacobian[2] = 0;
-			row_1.jacobian[3] = row_1.jacobian[4] = row_1.jacobian[5] = 0;
-			row_2.jacobian[0] = row_2.jacobian[1] = row_2.jacobian[2] = 0;
-			row_2.jacobian[3] = row_2.jacobian[4] = row_2.jacobian[5] = 0;
-		} else {
-			row_1.jacobian[0] = -u1.x;
-			row_1.jacobian[1] = -u1.y;
-			row_1.jacobian[2] = -u1.z;
-
-			_tmp_vec3_1.crossVectors( rel_a, u1 );
-			row_1.jacobian[3] = -_tmp_vec3_1.x;
-			row_1.jacobian[4] = -_tmp_vec3_1.y;
-			row_1.jacobian[5] = -_tmp_vec3_1.z;
-
-			row_2.jacobian[0] = -u2.x;
-			row_2.jacobian[1] = -u2.y;
-			row_2.jacobian[2] = -u2.z;
-
-			_tmp_vec3_1.crossVectors( rel_a, u2 );
-			row_2.jacobian[3] = -_tmp_vec3_1.x;
-			row_2.jacobian[4] = -_tmp_vec3_1.y;
-			row_2.jacobian[5] = -_tmp_vec3_1.z;
-		}
-
-		if ( this.object_b == null || this.object_b._mass === Infinity ) {
-			row_1.jacobian[6] = row_1.jacobian[7] = row_1.jacobian[8] = 0;
-			row_1.jacobian[9] = row_1.jacobian[10] = row_1.jacobian[11] = 0;
-			row_2.jacobian[6] = row_2.jacobian[7] = row_2.jacobian[8] = 0;
-			row_2.jacobian[9] = row_2.jacobian[10] = row_2.jacobian[11] = 0;
-		} else {
-			row_1.jacobian[6] = u1.x;
-			row_1.jacobian[7] = u1.y;
-			row_1.jacobian[8] = u1.z;
-
-			_tmp_vec3_1.crossVectors( rel_b, u1 );
-			row_1.jacobian[9] = _tmp_vec3_1.x;
-			row_1.jacobian[10] = _tmp_vec3_1.y;
-			row_1.jacobian[11] = _tmp_vec3_1.z;
-
-			row_2.jacobian[6] = u2.x;
-			row_2.jacobian[7] = u2.y;
-			row_2.jacobian[8] = u2.z;
-
-			_tmp_vec3_1.crossVectors( rel_b, u2 );
-			row_2.jacobian[9] = _tmp_vec3_1.x;
-			row_2.jacobian[10] = _tmp_vec3_1.y;
-			row_2.jacobian[11] = _tmp_vec3_1.z;
-		}
-
-		// Find total velocity between the two bodies along the contact normal
-		this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
-
-		// Include accumulated forces
-		if ( this.object_a._mass !== Infinity ) {
-			// accumulated linear velocity
-			_tmp_vec3_1.scaleVector( this.object_a.accumulated_force, 1 / this.object_a._mass );
-			_tmp_vec3_1.add( this.object_a.linear_velocity );
-
-			// accumulated angular velocity
-			this.object_a.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_a.accumulated_torque, _tmp_vec3_3 );
-			_tmp_vec3_3.add( this.object_a.angular_velocity );
-
-			_tmp_vec3_3.cross( this.contact.contact_point_in_a );
-			_tmp_vec3_1.add( _tmp_vec3_3 );
-			_tmp_vec3_1.scale( this.object_a._mass );
-		} else {
-			_tmp_vec3_1.set( 0, 0, 0 );
-		}
-
-		var limit = this.contact.friction * 25;
-		if ( limit < 0 ) {
-			limit = 0;
-		}
-		row_1.lower_limit = row_2.lower_limit = -limit;
-		row_1.upper_limit = row_2.upper_limit = limit;
-
-		row_1.bias = row_2.bias = 0;
-
-		this.rows[0] = row_1;
-		this.rows[1] = row_2;
-	};
-})();
-Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b ) {
-	Goblin.Constraint.call( this );
-
-	this.object_a = object_a;
-	this.hinge_a = hinge_a;
-	this.point_a = point_a;
-
-	this.object_b = object_b || null;
-	this.point_b = new Goblin.Vector3();
-	this.hinge_b = new Goblin.Vector3();
-	if ( this.object_b != null ) {
-		this.object_a.rotation.transformVector3Into( this.hinge_a, this.hinge_b );
-		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
-		_tmp_quat4_1.transformVector3( this.hinge_b );
-
-		this.point_b = point_b;
-	} else {
-		this.object_a.updateDerived(); // Ensure the body's transform is correct
-		this.object_a.rotation.transformVector3Into( this.hinge_a, this.hinge_b );
-		this.object_a.transform.transformVector3Into( this.point_a, this.point_b );
-	}
-
-	this.erp = 0.1;
-
-	// Create rows
-	// rows 0,1,2 are the same as point constraint and constrain the objects' positions
-	// rows 3,4 introduce the rotational constraints which constrains angular velocity orthogonal to the hinge axis
-	for ( var i = 0; i < 5; i++ ) {
-		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
-		this.rows[i].lower_limit = -Infinity;
-		this.rows[i].upper_limit = Infinity;
-		this.rows[i].bias = 0;
-
-		this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
-			this.rows[i].jacobian[3] = this.rows[i].jacobian[4] = this.rows[i].jacobian[5] =
-			this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] =
-			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
-	}
-};
-Goblin.HingeConstraint.prototype = Object.create( Goblin.Constraint.prototype );
-
-Goblin.HingeConstraint.prototype.update = (function(){
-	var r1 = new Goblin.Vector3(),
-		r2 = new Goblin.Vector3(),
-		t1 = new Goblin.Vector3(),
-		t2 = new Goblin.Vector3(),
-		world_axis = new Goblin.Vector3();
-
-	return function( time_delta ) {
-		this.object_a.rotation.transformVector3Into( this.hinge_a, world_axis );
-
-		this.object_a.transform.transformVector3Into( this.point_a, _tmp_vec3_1 );
-		r1.subtractVectors( _tmp_vec3_1, this.object_a.position );
-
-		// 0,1,2 are positional, same as PointConstraint
-		this.rows[0].jacobian[0] = -1;
-		this.rows[0].jacobian[1] = 0;
-		this.rows[0].jacobian[2] = 0;
-		this.rows[0].jacobian[3] = 0;
-		this.rows[0].jacobian[4] = -r1.z;
-		this.rows[0].jacobian[5] = r1.y;
-
-		this.rows[1].jacobian[0] = 0;
-		this.rows[1].jacobian[1] = -1;
-		this.rows[1].jacobian[2] = 0;
-		this.rows[1].jacobian[3] = r1.z;
-		this.rows[1].jacobian[4] = 0;
-		this.rows[1].jacobian[5] = -r1.x;
-
-		this.rows[2].jacobian[0] = 0;
-		this.rows[2].jacobian[1] = 0;
-		this.rows[2].jacobian[2] = -1;
-		this.rows[2].jacobian[3] = -r1.y;
-		this.rows[2].jacobian[4] = r1.x;
-		this.rows[2].jacobian[5] = 0;
-
-		// 3,4 are rotational, constraining motion orthogonal to axis
-		world_axis.findOrthogonal( t1, t2 );
-		this.rows[3].jacobian[3] = -t1.x;
-		this.rows[3].jacobian[4] = -t1.y;
-		this.rows[3].jacobian[5] = -t1.z;
-
-		this.rows[4].jacobian[3] = -t2.x;
-		this.rows[4].jacobian[4] = -t2.y;
-		this.rows[4].jacobian[5] = -t2.z;
-
-		if ( this.object_b != null ) {
-			this.object_b.transform.transformVector3Into( this.point_b, _tmp_vec3_2 );
-			r2.subtractVectors( _tmp_vec3_2, this.object_b.position );
-
-			// 0,1,2 are positional, same as PointConstraint
-			this.rows[0].jacobian[6] = 1;
-			this.rows[0].jacobian[7] = 0;
-			this.rows[0].jacobian[8] = 0;
-			this.rows[0].jacobian[9] = 0;
-			this.rows[0].jacobian[10] = r2.z;
-			this.rows[0].jacobian[11] = -r2.y;
-
-			this.rows[1].jacobian[6] = 0;
-			this.rows[1].jacobian[7] = 1;
-			this.rows[1].jacobian[8] = 0;
-			this.rows[1].jacobian[9] = -r2.z;
-			this.rows[1].jacobian[10] = 0;
-			this.rows[1].jacobian[11] = r2.x;
-
-			this.rows[2].jacobian[6] = 0;
-			this.rows[2].jacobian[7] = 0;
-			this.rows[2].jacobian[8] = 1;
-			this.rows[2].jacobian[9] = r2.y;
-			this.rows[2].jacobian[10] = -r2.z;
-			this.rows[2].jacobian[11] = 0;
-
-			// 3,4 are rotational, constraining motion orthogonal to axis
-			this.rows[3].jacobian[9] = t1.x;
-			this.rows[3].jacobian[10] = t1.y;
-			this.rows[3].jacobian[11] = t1.z;
-
-			this.rows[4].jacobian[9] = t2.x;
-			this.rows[4].jacobian[10] = t2.y;
-			this.rows[4].jacobian[11] = t2.z;
-		} else {
-			_tmp_vec3_2.copy( this.point_b );
-		}
-
-		// Linear error correction
-		_tmp_vec3_3.subtractVectors( _tmp_vec3_1, _tmp_vec3_2 );
-		_tmp_vec3_3.scale( this.erp / time_delta );
-		this.rows[0].bias = _tmp_vec3_3.x;
-		this.rows[1].bias = _tmp_vec3_3.y;
-		this.rows[2].bias = _tmp_vec3_3.z;
-
-		// Angular error correction
-		if (this.object_b != null) {
-			this.object_a.rotation.transformVector3Into(this.hinge_a, _tmp_vec3_1);
-			this.object_b.rotation.transformVector3Into(this.hinge_b, _tmp_vec3_2);
-			_tmp_vec3_1.cross(_tmp_vec3_2);
-			this.rows[3].bias = -_tmp_vec3_1.dot(t1);
-			this.rows[4].bias = -_tmp_vec3_1.dot(t2);
-		} else {
-			this.rows[3].bias = this.rows[4].bias = 0;
-		}
-	};
-})( );
-Goblin.PointConstraint = function( object_a, point_a, object_b, point_b ) {
-	Goblin.Constraint.call( this );
-
-	this.object_a = object_a;
-	this.point_a = point_a;
-
-	this.object_b = object_b || null;
-	if ( this.object_b != null ) {
-		this.point_b = point_b;
-	} else {
-		this.point_b = new Goblin.Vector3();
-		this.object_a.updateDerived(); // Ensure the body's transform is correct
-		this.object_a.transform.transformVector3Into( this.point_a, this.point_b );
-	}
-
-	this.erp = 0.1;
-
-	// Create rows
-	for ( var i = 0; i < 3; i++ ) {
-		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
-		this.rows[i].lower_limit = -Infinity;
-		this.rows[i].upper_limit = Infinity;
-		this.rows[i].bias = 0;
-
-		this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] =
-			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
-	}
-};
-Goblin.PointConstraint.prototype = Object.create( Goblin.Constraint.prototype );
-
-Goblin.PointConstraint.prototype.update = (function(){
-	var r1 = new Goblin.Vector3(),
-		r2 = new Goblin.Vector3();
-
-	return function( time_delta ) {
-		this.object_a.transform.transformVector3Into( this.point_a, _tmp_vec3_1 );
-		r1.subtractVectors( _tmp_vec3_1, this.object_a.position );
-
-		this.rows[0].jacobian[0] = -1;
-		this.rows[0].jacobian[1] = 0;
-		this.rows[0].jacobian[2] = 0;
-		this.rows[0].jacobian[3] = 0;
-		this.rows[0].jacobian[4] = -r1.z;
-		this.rows[0].jacobian[5] = r1.y;
-
-		this.rows[1].jacobian[0] = 0;
-		this.rows[1].jacobian[1] = -1;
-		this.rows[1].jacobian[2] = 0;
-		this.rows[1].jacobian[3] = r1.z;
-		this.rows[1].jacobian[4] = 0;
-		this.rows[1].jacobian[5] = -r1.x;
-
-		this.rows[2].jacobian[0] = 0;
-		this.rows[2].jacobian[1] = 0;
-		this.rows[2].jacobian[2] = -1;
-		this.rows[2].jacobian[3] = -r1.y;
-		this.rows[2].jacobian[4] = r1.x;
-		this.rows[2].jacobian[5] = 0;
-
-		if ( this.object_b != null ) {
-			this.object_b.transform.transformVector3Into( this.point_b, _tmp_vec3_2 );
-			r2.subtractVectors( _tmp_vec3_2, this.object_b.position );
-
-			this.rows[0].jacobian[6] = 1;
-			this.rows[0].jacobian[7] = 0;
-			this.rows[0].jacobian[8] = 0;
-			this.rows[0].jacobian[9] = 0;
-			this.rows[0].jacobian[10] = r2.z;
-			this.rows[0].jacobian[11] = -r2.y;
-
-			this.rows[1].jacobian[6] = 0;
-			this.rows[1].jacobian[7] = 1;
-			this.rows[1].jacobian[8] = 0;
-			this.rows[1].jacobian[9] = -r2.z;
-			this.rows[1].jacobian[10] = 0;
-			this.rows[1].jacobian[11] = r2.x;
-
-			this.rows[2].jacobian[6] = 0;
-			this.rows[2].jacobian[7] = 0;
-			this.rows[2].jacobian[8] = 1;
-			this.rows[2].jacobian[9] = r2.y;
-			this.rows[2].jacobian[10] = -r2.z;
-			this.rows[2].jacobian[11] = 0;
-		} else {
-			_tmp_vec3_2.copy( this.point_b );
-		}
-
-		_tmp_vec3_3.subtractVectors( _tmp_vec3_1, _tmp_vec3_2 );
-		_tmp_vec3_3.scale( this.erp / time_delta );
-		this.rows[0].bias = _tmp_vec3_3.x;
-		this.rows[1].bias = _tmp_vec3_3.y;
-		this.rows[2].bias = _tmp_vec3_3.z;
-	};
-})( );
-Goblin.SliderConstraint = function( object_a, axis, object_b ) {
-	Goblin.Constraint.call( this );
-
-	this.object_a = object_a;
-	this.axis = axis;
-	this.object_b = object_b;
-
-	// Find the initial distance between the two objects in object_a's local frame
-	this.position_error = new Goblin.Vector3();
-	this.position_error.subtractVectors( this.object_b.position, this.object_a.position );
-	_tmp_quat4_1.invertQuaternion( this.object_a.rotation );
-	_tmp_quat4_1.transformVector3( this.position_error );
-
-	this.rotation_difference = new Goblin.Quaternion();
-	if ( this.object_b != null ) {
-		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
-		this.rotation_difference.multiplyQuaternions( _tmp_quat4_1, this.object_a.rotation );
-	}
-
-	this.erp = 0.1;
-
-	// First two rows constrain the linear velocities orthogonal to `axis`
-	// Rows three through five constrain angular velocities
-	for ( var i = 0; i < 5; i++ ) {
-		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
-		this.rows[i].lower_limit = -Infinity;
-		this.rows[i].upper_limit = Infinity;
-		this.rows[i].bias = 0;
-
-		this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
-			this.rows[i].jacobian[3] = this.rows[i].jacobian[4] = this.rows[i].jacobian[5] =
-			this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] =
-			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
-	}
-};
-Goblin.SliderConstraint.prototype = Object.create( Goblin.Constraint.prototype );
-
-Goblin.SliderConstraint.prototype.update = (function(){
-	var _axis = new Goblin.Vector3(),
-		n1 = new Goblin.Vector3(),
-		n2 = new Goblin.Vector3();
-
-	return function( time_delta ) {
-		// `axis` is in object_a's local frame, convert to world
-		this.object_a.rotation.transformVector3Into( this.axis, _axis );
-
-		// Find two vectors that are orthogonal to `axis`
-		_axis.findOrthogonal( n1, n2 );
-
-		this._updateLinearConstraints( time_delta, n1, n2 );
-		this._updateAngularConstraints( time_delta, n1, n2 );
-	};
-})();
-
-Goblin.SliderConstraint.prototype._updateLinearConstraints = function( time_delta, n1, n2 ) {
-	var c = new Goblin.Vector3();
-	c.subtractVectors( this.object_b.position, this.object_a.position );
-	//c.scale( 0.5 );
-
-	var cx = new Goblin.Vector3( );
-
-	// first linear constraint
-	cx.crossVectors( c, n1 );
-	this.rows[0].jacobian[0] = -n1.x;
-	this.rows[0].jacobian[1] = -n1.y;
-	this.rows[0].jacobian[2] = -n1.z;
-	//this.rows[0].jacobian[3] = -cx[0];
-	//this.rows[0].jacobian[4] = -cx[1];
-	//this.rows[0].jacobian[5] = -cx[2];
-
-	this.rows[0].jacobian[6] = n1.x;
-	this.rows[0].jacobian[7] = n1.y;
-	this.rows[0].jacobian[8] = n1.z;
-	this.rows[0].jacobian[9] = 0;
-	this.rows[0].jacobian[10] = 0;
-	this.rows[0].jacobian[11] = 0;
-
-	// second linear constraint
-	cx.crossVectors( c, n2 );
-	this.rows[1].jacobian[0] = -n2.x;
-	this.rows[1].jacobian[1] = -n2.y;
-	this.rows[1].jacobian[2] = -n2.z;
-	//this.rows[1].jacobian[3] = -cx[0];
-	//this.rows[1].jacobian[4] = -cx[1];
-	//this.rows[1].jacobian[5] = -cx[2];
-
-	this.rows[1].jacobian[6] = n2.x;
-	this.rows[1].jacobian[7] = n2.y;
-	this.rows[1].jacobian[8] = n2.z;
-	this.rows[1].jacobian[9] = 0;
-	this.rows[1].jacobian[10] = 0;
-	this.rows[1].jacobian[11] = 0;
-
-	// linear constraint error
-	//c.scale( 2  );
-	this.object_a.rotation.transformVector3Into( this.position_error, _tmp_vec3_1 );
-	_tmp_vec3_2.subtractVectors( c, _tmp_vec3_1 );
-	_tmp_vec3_2.scale( this.erp / time_delta  );
-	this.rows[0].bias = -n1.dot( _tmp_vec3_2 );
-	this.rows[1].bias = -n2.dot( _tmp_vec3_2 );
-};
-
-Goblin.SliderConstraint.prototype._updateAngularConstraints = function( time_delta, n1, n2, axis ) {
-	this.rows[2].jacobian[3] = this.rows[3].jacobian[4] = this.rows[4].jacobian[5] = -1;
-	this.rows[2].jacobian[9] = this.rows[3].jacobian[10] = this.rows[4].jacobian[11] = 1;
-
-	_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
-	_tmp_quat4_1.multiply( this.object_a.rotation );
-
-	_tmp_quat4_2.invertQuaternion( this.rotation_difference );
-	_tmp_quat4_2.multiply( _tmp_quat4_1 );
-	// _tmp_quat4_2 is now the rotational error that needs to be corrected
-
-	var error = new Goblin.Vector3();
-	error.x = _tmp_quat4_2.x;
-	error.y = _tmp_quat4_2.y;
-	error.z = _tmp_quat4_2.z;
-	error.scale( this.erp / time_delta  );
-
-	//this.rows[2].bias = error[0];
-	//this.rows[3].bias = error[1];
-	//this.rows[4].bias = error[2];
-};
-Goblin.WeldConstraint = function( object_a, point_a, object_b, point_b ) {
-	Goblin.Constraint.call( this );
-
-	this.object_a = object_a;
-	this.point_a = point_a;
-
-	this.object_b = object_b || null;
-	this.point_b = point_b || null;
-
-	this.rotation_difference = new Goblin.Quaternion();
-	if ( this.object_b != null ) {
-		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
-		this.rotation_difference.multiplyQuaternions( _tmp_quat4_1, this.object_a.rotation );
-	}
-
-	this.erp = 0.1;
-
-	// Create translation constraint rows
-	for ( var i = 0; i < 3; i++ ) {
-		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
-		this.rows[i].lower_limit = -Infinity;
-		this.rows[i].upper_limit = Infinity;
-		this.rows[i].bias = 0;
-
-		if ( this.object_b == null ) {
-			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
-				this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = this.rows[i].jacobian[6] =
-				this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = this.rows[i].jacobian[9] =
-				this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = this.rows[i].jacobian[12] = 0;
-			this.rows[i].jacobian[i] = 1;
-		}
-	}
-
-	// Create rotation constraint rows
-	for ( i = 3; i < 6; i++ ) {
-		this.rows[i] = Goblin.ObjectPool.getObject( 'ConstraintRow' );
-		this.rows[i].lower_limit = -Infinity;
-		this.rows[i].upper_limit = Infinity;
-		this.rows[i].bias = 0;
-
-		if ( this.object_b == null ) {
-			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] =
-				this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = this.rows[i].jacobian[6] =
-				this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = this.rows[i].jacobian[9] =
-				this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = this.rows[i].jacobian[12] = 0;
-			this.rows[i].jacobian[i] = 1;
-		} else {
-			this.rows[i].jacobian[0] = this.rows[i].jacobian[1] = this.rows[i].jacobian[2] = 0;
-			this.rows[i].jacobian[3] = this.rows[i].jacobian[4] = this.rows[i].jacobian[5] = 0;
-			this.rows[i].jacobian[ i ] = -1;
-
-			this.rows[i].jacobian[6] = this.rows[i].jacobian[7] = this.rows[i].jacobian[8] = 0;
-			this.rows[i].jacobian[9] = this.rows[i].jacobian[10] = this.rows[i].jacobian[11] = 0;
-			this.rows[i].jacobian[ i + 6 ] = 1;
-		}
-	}
-};
-Goblin.WeldConstraint.prototype = Object.create( Goblin.Constraint.prototype );
-
-Goblin.WeldConstraint.prototype.update = (function(){
-	var r1 = new Goblin.Vector3(),
-		r2 = new Goblin.Vector3();
-
-	return function( time_delta ) {
-		if ( this.object_b == null ) {
-			// No need to update the constraint, all motion is already constrained
-			return;
-		}
-
-		this.object_a.transform.transformVector3Into( this.point_a, _tmp_vec3_1 );
-		r1.subtractVectors( _tmp_vec3_1, this.object_a.position );
-
-		this.rows[0].jacobian[0] = -1;
-		this.rows[0].jacobian[1] = 0;
-		this.rows[0].jacobian[2] = 0;
-		this.rows[0].jacobian[3] = 0;
-		this.rows[0].jacobian[4] = -r1.z;
-		this.rows[0].jacobian[5] = r1.y;
-
-		this.rows[1].jacobian[0] = 0;
-		this.rows[1].jacobian[1] = -1;
-		this.rows[1].jacobian[2] = 0;
-		this.rows[1].jacobian[3] = r1.z;
-		this.rows[1].jacobian[4] = 0;
-		this.rows[1].jacobian[5] = -r1.x;
-
-		this.rows[2].jacobian[0] = 0;
-		this.rows[2].jacobian[1] = 0;
-		this.rows[2].jacobian[2] = -1;
-		this.rows[2].jacobian[3] = -r1.y;
-		this.rows[2].jacobian[4] = r1.x;
-		this.rows[2].jacobian[5] = 0;
-
-		if ( this.object_b != null ) {
-			this.object_b.transform.transformVector3Into( this.point_b, _tmp_vec3_2 );
-			r2.subtractVectors( _tmp_vec3_2, this.object_b.position );
-
-			this.rows[0].jacobian[6] = 1;
-			this.rows[0].jacobian[7] = 0;
-			this.rows[0].jacobian[8] = 0;
-			this.rows[0].jacobian[9] = 0;
-			this.rows[0].jacobian[10] = r2.z;
-			this.rows[0].jacobian[11] = -r2.y;
-
-			this.rows[1].jacobian[6] = 0;
-			this.rows[1].jacobian[7] = 1;
-			this.rows[1].jacobian[8] = 0;
-			this.rows[1].jacobian[9] = -r2.z;
-			this.rows[1].jacobian[10] = 0;
-			this.rows[1].jacobian[11] = r2.x;
-
-			this.rows[2].jacobian[6] = 0;
-			this.rows[2].jacobian[7] = 0;
-			this.rows[2].jacobian[8] = 1;
-			this.rows[2].jacobian[9] = r2.y;
-			this.rows[2].jacobian[10] = -r2.x;
-			this.rows[2].jacobian[11] = 0;
-		} else {
-			_tmp_vec3_2.copy( this.point_b );
-		}
-
-		var error = new Goblin.Vector3();
-
-		// Linear correction
-		error.subtractVectors( _tmp_vec3_1, _tmp_vec3_2 );
-		error.scale( this.erp / time_delta  );
-		this.rows[0].bias = error.x;
-		this.rows[1].bias = error.y;
-		this.rows[2].bias = error.z;
-
-		// Rotation correction
-		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
-		_tmp_quat4_1.multiply( this.object_a.rotation );
-
-		_tmp_quat4_2.invertQuaternion( this.rotation_difference );
-		_tmp_quat4_2.multiply( _tmp_quat4_1 );
-		// _tmp_quat4_2 is now the rotational error that needs to be corrected
-
-		error.x = _tmp_quat4_2.x;
-		error.y = _tmp_quat4_2.y;
-		error.z = _tmp_quat4_2.z;
-		error.scale( this.erp / time_delta );
-
-		this.rows[3].bias = error.x;
-		this.rows[4].bias = error.y;
-		this.rows[5].bias = error.z;
-	};
-})( );
 /**
 * adds a drag force to associated objects
 *
@@ -4090,6 +3498,598 @@ Goblin.DragForce.prototype.applyForce = function() {
 		object.applyForce( force  );
 	}
 };
+/**
+ * Performs a n^2 check of all collision objects to see if any could be in contact
+ *
+ * @class BasicBroadphase
+ * @constructor
+ */
+Goblin.BasicBroadphase = function() {
+	/**
+	 * Holds all of the collision objects that the broadphase is responsible for
+	 *
+	 * @property bodies
+	 * @type {Array}
+	 */
+	this.bodies = [];
+
+	/**
+	 * Array of all (current) collision pairs between the broadphases' bodies
+	 *
+	 * @property collision_pairs
+	 * @type {Array}
+	 */
+	this.collision_pairs = [];
+};
+
+/**
+ * Adds a body to the broadphase for contact checking
+ *
+ * @method addBody
+ * @param body {RigidBody} body to add to the broadphase contact checking
+ */
+Goblin.BasicBroadphase.prototype.addBody = function( body ) {
+	this.bodies.push( body );
+};
+
+/**
+ * Removes a body from the broadphase contact checking
+ *
+ * @method removeBody
+ * @param body {RigidBody} body to remove from the broadphase contact checking
+ */
+Goblin.BasicBroadphase.prototype.removeBody = function( body ) {
+	var i,
+		body_count = this.bodies.length;
+
+	for ( i = 0; i < body_count; i++ ) {
+		if ( this.bodies[i] === body ) {
+			this.bodies.splice( i, 1 );
+			break;
+		}
+	}
+};
+
+/**
+ * Checks all collision objects to find any which are possibly in contact
+ *  resulting contact pairs are held in the object's `collision_pairs` property
+ *
+ * @method update
+ */
+Goblin.BasicBroadphase.prototype.update = function() {
+	var i, j,
+		object_a, object_b,
+		bodies_count = this.bodies.length;
+
+	// Clear any old contact pairs
+	this.collision_pairs.length = 0;
+
+	// Loop over all collision objects and check for overlapping boundary spheres
+	for ( i = 0; i < bodies_count; i++ ) {
+		object_a = this.bodies[i];
+
+		for ( j = 0; j < bodies_count; j++ ) {
+			if ( i <= j ) {
+				// if i < j then we have already performed this check
+				// if i === j then the two objects are the same and can't be in contact
+				continue;
+			}
+
+			object_b = this.bodies[j];
+
+			if( Goblin.CollisionUtils.canBodiesCollide( object_a, object_b ) ) {
+				if ( object_a.aabb.intersects( object_b.aabb ) ) {
+					this.collision_pairs.push( [ object_b, object_a ] );
+				}
+			}
+		}
+	}
+};
+
+/**
+ * Returns an array of objects the given body may be colliding with
+ *
+ * @method intersectsWith
+ * @param object_a {RigidBody}
+ * @return Array<RigidBody>
+ */
+Goblin.BasicBroadphase.prototype.intersectsWith = function( object_a ) {
+	var i, object_b,
+		bodies_count = this.bodies.length,
+		intersections = [];
+
+	// Loop over all collision objects and check for overlapping boundary spheres
+	for ( i = 0; i < bodies_count; i++ ) {
+		object_b = this.bodies[i];
+
+		if ( object_a === object_b ) {
+			continue;
+		}
+
+		if ( object_a.aabb.intersects( object_b.aabb ) ) {
+			intersections.push( object_b );
+		}
+	}
+
+	return intersections;
+};
+
+/**
+ * Checks if a ray segment intersects with objects in the world
+ *
+ * @method rayIntersect
+ * @property start {vec3} start point of the segment
+ * @property end {vec3{ end point of the segment
+ * @return {Array<RayIntersection>} an unsorted array of intersections
+ */
+Goblin.BasicBroadphase.prototype.rayIntersect = function( start, end ) {
+	var bodies_count = this.bodies.length,
+		i, body,
+		intersections = [];
+	for ( i = 0; i < bodies_count; i++ ) {
+		body = this.bodies[i];
+		if ( body.aabb.testRayIntersect( start, end ) ) {
+			body.rayIntersect( start, end, intersections );
+		}
+	}
+
+	return intersections;
+};
+(function(){
+	/**
+	 * @class SAPMarker
+	 * @private
+	 * @param {SAPMarker.TYPES} marker_type
+	 * @param {RigidBody} body
+	 * @param {Number} position
+	 * @constructor
+	 */
+	var SAPMarker = function( marker_type, body, position ) {
+		this.type = marker_type;
+		this.body = body;
+		this.position = position;
+		
+		this.prev = null;
+		this.next = null;
+	};
+	SAPMarker.TYPES = {
+		START: 0,
+		END: 1
+	};
+
+	var LinkedList = function() {
+		this.first = null;
+		this.last = null;
+	};
+
+	/**
+	 * Sweep and Prune broadphase
+	 *
+	 * @class SAPBroadphase
+	 * @constructor
+	 */
+	Goblin.SAPBroadphase = function() {
+		/**
+		 * linked list of the start/end markers along the X axis
+		 *
+		 * @property bodies
+		 * @type {SAPMarker<SAPMarker>}
+		 */
+		this.markers_x = new LinkedList();
+
+		/**
+		 * linked list of the start/end markers along the Y axis
+		 *
+		 * @property bodies
+		 * @type {SAPMarker<SAPMarker>}
+		 */
+		this.markers_y = new LinkedList();
+
+		/**
+		 * linked list of the start/end markers along the Z axis
+		 *
+		 * @property bodies
+		 * @type {SAPMarker<SAPMarker>}
+		 */
+		this.markers_z = new LinkedList();
+
+		/**
+		 * maintains count of axis over which two bodies overlap; if count is three, their AABBs touch/penetrate
+		 *
+		 * @type {Object}
+		 */
+		this.overlap_counter = {};
+
+		/**
+		 * array of all (current) collision pairs between the broadphases' bodies
+		 *
+		 * @property collision_pairs
+		 * @type {Array}
+		 */
+		this.collision_pairs = [];
+
+		/**
+		 * array of bodies which have been added to the broadphase since the last update
+		 *
+		 * @type {Array<RigidBody>}
+		 */
+		this.pending_bodies = [];
+	};
+
+	Goblin.SAPBroadphase.prototype = {
+		incrementOverlaps: function( body_a, body_b ) {
+			if( !Goblin.CollisionUtils.canBodiesCollide( body_a, body_b ) ) {
+				return;
+			}
+
+			var key = body_a.id < body_b.id ? body_a.id + '-' + body_b.id : body_b.id + '-' + body_a.id;
+
+			if ( !this.overlap_counter.hasOwnProperty( key ) ) {
+				this.overlap_counter[key] = 0;
+			}
+
+			this.overlap_counter[key]++;
+
+			if ( this.overlap_counter[key] === 3 ) {
+				// The AABBs are touching, add to potential contacts
+				this.collision_pairs.push([ body_a.id < body_b.id ? body_a : body_b, body_a.id < body_b.id ? body_b : body_a ]);
+			}
+		},
+
+		decrementOverlaps: function( body_a, body_b ) {
+			var key = body_a.id < body_b.id ? body_a.id + '-' + body_b.id : body_b.id + '-' + body_a.id;
+
+			if ( !this.overlap_counter.hasOwnProperty( key ) ) {
+				this.overlap_counter[key] = 0;
+			}
+
+			this.overlap_counter[key]--;
+
+			if ( this.overlap_counter[key] === 0 ) {
+				delete this.overlap_counter[key];
+			} else if ( this.overlap_counter[key] === 2 ) {
+				// These are no longer touching, remove from potential contacts
+				this.collision_pairs = this.collision_pairs.filter(function( pair ){
+					if ( pair[0] === body_a && pair[1] === body_b ) {
+						return false;
+					}
+					if ( pair[0] === body_b && pair[1] === body_a ) {
+						return false;
+					}
+					return true;
+				});
+			}
+		},
+
+		/**
+		 * Adds a body to the broadphase for contact checking
+		 *
+		 * @method addBody
+		 * @param body {RigidBody} body to add to the broadphase contact checking
+		 */
+		addBody: function( body ) {
+			this.pending_bodies.push( body );
+		},
+
+		removeBody: function( body ) {
+			// first, check if the body is pending
+			var pending_index = this.pending_bodies.indexOf( body );
+			if ( pending_index !== -1 ) {
+				this.pending_bodies.splice( pending_index, 1 );
+				return;
+			}
+
+			// body was already added, find & remove
+			var next, prev;
+			var marker = this.markers_x.first;
+			while ( marker ) {
+				if ( marker.body === body ) {
+					next = marker.next;
+					prev = marker.prev;
+					if ( next != null ) {
+						next.prev = prev;
+						if ( prev != null ) {
+							prev.next = next;
+						}
+					} else {
+						this.markers_x.last = prev;
+					}
+					if ( prev != null ) {
+						prev.next = next;
+						if ( next != null ) {
+							next.prev = prev;
+						}
+					} else {
+						this.markers_x.first = next;
+					}
+				}
+				marker = marker.next;
+			}
+
+			marker = this.markers_y.first;
+			while ( marker ) {
+				if ( marker.body === body ) {
+					next = marker.next;
+					prev = marker.prev;
+					if ( next != null ) {
+						next.prev = prev;
+						if ( prev != null ) {
+							prev.next = next;
+						}
+					} else {
+						this.markers_y.last = prev;
+					}
+					if ( prev != null ) {
+						prev.next = next;
+						if ( next != null ) {
+							next.prev = prev;
+						}
+					} else {
+						this.markers_y.first = next;
+					}
+				}
+				marker = marker.next;
+			}
+
+			marker = this.markers_z.first;
+			while ( marker ) {
+				if ( marker.body === body ) {
+					next = marker.next;
+					prev = marker.prev;
+					if ( next != null ) {
+						next.prev = prev;
+						if ( prev != null ) {
+							prev.next = next;
+						}
+					} else {
+						this.markers_z.last = prev;
+					}
+					if ( prev != null ) {
+						prev.next = next;
+						if ( next != null ) {
+							next.prev = prev;
+						}
+					} else {
+						this.markers_z.first = next;
+					}
+				}
+				marker = marker.next;
+			}
+
+			// remove any collisions
+			this.collision_pairs = this.collision_pairs.filter(function( pair ){
+				if ( pair[0] === body || pair[1] === body ) {
+					return false;
+				}
+				return true;
+			});
+		},
+
+		insertPending: function() {
+			var body;
+			while ( ( body = this.pending_bodies.pop() ) ) {
+				body.updateDerived();
+				var start_marker_x = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.x ),
+					start_marker_y = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.y ),
+					start_marker_z = new SAPMarker( SAPMarker.TYPES.START, body, body.aabb.min.z ),
+					end_marker_x = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.x ),
+					end_marker_y = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.y ),
+					end_marker_z = new SAPMarker( SAPMarker.TYPES.END, body, body.aabb.max.z );
+
+				// Insert these markers, incrementing overlap counter
+				this.insert( this.markers_x, start_marker_x );
+				this.insert( this.markers_x, end_marker_x );
+				this.insert( this.markers_y, start_marker_y );
+				this.insert( this.markers_y, end_marker_y );
+				this.insert( this.markers_z, start_marker_z );
+				this.insert( this.markers_z, end_marker_z );
+			}
+		},
+
+		insert: function( list, marker ) {
+			if ( list.first == null ) {
+				list.first = list.last = marker;
+			} else {
+				// Insert at the end of the list & sort
+				marker.prev = list.last;
+				list.last.next = marker;
+				list.last = marker;
+				this.sort( list, marker );
+			}
+		},
+
+		sort: function( list, marker ) {
+			var prev;
+			while (
+				marker.prev != null &&
+				(
+					marker.position < marker.prev.position ||
+					( marker.position === marker.prev.position && marker.type === SAPMarker.TYPES.START && marker.prev.type === SAPMarker.TYPES.END )
+				)
+			) {
+				prev = marker.prev;
+
+				// check if this swap changes overlap counters
+				if ( marker.type !== prev.type ) {
+					if ( marker.type === SAPMarker.TYPES.START ) {
+						// marker is START, moving into an overlap
+						this.incrementOverlaps( marker.body, prev.body );
+					} else {
+						// marker is END, leaving an overlap
+						this.decrementOverlaps( marker.body, prev.body );
+					}
+				}
+
+				marker.prev = prev.prev;
+				prev.next = marker.next;
+
+				marker.next = prev;
+				prev.prev = marker;
+
+				if ( marker.prev == null ) {
+					list.first = marker;
+				} else {
+					marker.prev.next = marker;
+				}
+				if ( prev.next == null ) {
+					list.last = prev;
+				} else {
+					prev.next.prev = prev;
+				}
+			}
+		},
+
+		/**
+		 * Updates the broadphase's internal representation and current predicted contacts
+		 *
+		 * @method update
+		 */
+		update: function() {
+			this.insertPending();
+
+			var marker = this.markers_x.first;
+			while ( marker ) {
+				if ( marker.type === SAPMarker.TYPES.START ) {
+					marker.position = marker.body.aabb.min.x;
+				} else {
+					marker.position = marker.body.aabb.max.x;
+				}
+				this.sort( this.markers_x, marker );
+				marker = marker.next;
+			}
+
+			marker = this.markers_y.first;
+			while ( marker ) {
+				if ( marker.type === SAPMarker.TYPES.START ) {
+					marker.position = marker.body.aabb.min.y;
+				} else {
+					marker.position = marker.body.aabb.max.y;
+				}
+				this.sort( this.markers_y, marker );
+				marker = marker.next;
+			}
+
+			marker = this.markers_z.first;
+			while ( marker ) {
+				if ( marker.type === SAPMarker.TYPES.START ) {
+					marker.position = marker.body.aabb.min.z;
+				} else {
+					marker.position = marker.body.aabb.max.z;
+				}
+				this.sort( this.markers_z, marker );
+				marker = marker.next;
+			}
+		},
+
+		/**
+		 * Returns an array of objects the given body may be colliding with
+		 *
+		 * @method intersectsWith
+		 * @param body {RigidBody}
+		 * @return Array<RigidBody>
+		 */
+		intersectsWith: function( body ) {
+			this.addBody( body );
+			this.update();
+
+			var possibilities = this.collision_pairs.filter(function( pair ){
+				if ( pair[0] === body || pair[1] === body ) {
+					return true;
+				}
+				return false;
+			}).map(function( pair ){
+				return pair[0] === body ? pair[1] : pair[0];
+			});
+
+			this.removeBody( body );
+			return possibilities;
+		},
+
+		/**
+		 * Checks if a ray segment intersects with objects in the world
+		 *
+		 * @method rayIntersect
+		 * @property start {vec3} start point of the segment
+		 * @property end {vec3{ end point of the segment
+         * @return {Array<RayIntersection>} an unsorted array of intersections
+		 */
+		rayIntersect: function( start, end ) {
+			// It's assumed that raytracing will be performed through a proxy like Goblin.World,
+			// thus that the only time this broadphase cares about updating itself is if an object was added
+			if ( this.pending_bodies.length > 0 ) {
+				this.update();
+			}
+
+			// This implementation only scans the X axis because the overall process gets slower the more axes you add
+			// thanks JavaScript
+
+			var active_bodies = {},
+				intersections = [],
+				id_body_map = {},
+				id_intersection_count = {},
+				ordered_start, ordered_end,
+				marker, has_encountered_start,
+				i, body, key, keys;
+
+			// X axis
+			marker = this.markers_x.first;
+			has_encountered_start = false;
+			active_bodies = {};
+			ordered_start = start.x < end.x ? start.x : end.x;
+			ordered_end = start.x < end.x ? end.x : start.x;
+			while ( marker ) {
+				if ( marker.type === SAPMarker.TYPES.START ) {
+					active_bodies[marker.body.id] = marker.body;
+				}
+
+				if ( marker.position >= ordered_start ) {
+					if ( has_encountered_start === false ) {
+						has_encountered_start = true;
+						keys = Object.keys( active_bodies );
+						for ( i = 0; i < keys.length; i++ ) {
+							key = keys[i];
+							body = active_bodies[key];
+							if ( body == null ) { // needed because we don't delete but set to null, see below comment
+								continue;
+							}
+							// The next two lines are piss-slow
+							id_body_map[body.id] = body;
+							id_intersection_count[body.id] = id_intersection_count[body.id] ? id_intersection_count[body.id] + 1 : 1;
+						}
+					} else if ( marker.type === SAPMarker.TYPES.START ) {
+						// The next two lines are piss-slow
+						id_body_map[marker.body.id] = marker.body;
+						id_intersection_count[marker.body.id] = id_intersection_count[marker.body.id] ? id_intersection_count[marker.body.id] + 1 : 1;
+					}
+				}
+
+				if ( marker.type === SAPMarker.TYPES.END ) {
+					active_bodies[marker.body.id] = null; // this is massively faster than deleting the association
+					//delete active_bodies[marker.body.id];
+				}
+
+				if ( marker.position > ordered_end ) {
+					// no more intersections to find on this axis
+					break;
+				}
+
+				marker = marker.next;
+			}
+
+			keys = Object.keys( id_intersection_count );
+			for ( i = 0; i < keys.length; i++ ) {
+				var body_id = keys[i];
+				if ( id_intersection_count[body_id] === 1 ) {
+					if ( id_body_map[body_id].aabb.testRayIntersect( start, end ) ) {
+						id_body_map[body_id].rayIntersect( start, end, intersections );
+					}
+				}
+			}
+
+			return intersections;
+		}
+	};
+})();
 Goblin.RayIntersection = function() {
 	this.object = null;
 	this.point = new Goblin.Vector3();

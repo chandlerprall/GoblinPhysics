@@ -1,6 +1,6 @@
 zlib License
 
-Copyright © 2014 Chandler Prall
+Copyright © 2015 Chandler Prall
 https://github.com/chandlerprall/GoblinPhysics
 
 This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable for any damages arising from the use of this software.
@@ -18,4 +18,3 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 
 Three.js (https://github.com/mrdoob/three.js/) and Stats.js (https://github.com/mrdoob/stats.js), used in examples and tests, is licensed under the MIT license.
-gl-matrix (https://github.com/toji/gl-matrix), the math library used, is licensed under the zlib license.
