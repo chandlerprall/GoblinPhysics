@@ -5,7 +5,7 @@
  * @static
  */
 Goblin.GjkEpa = {
-	margins: 0.03,
+	margins: 0.01,
 	result: null,
 
     max_iterations: 20,

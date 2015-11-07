@@ -58,9 +58,9 @@ Goblin.IterativeSolver = function() {
 	 *
 	 * @property relaxation
 	 * @type {number}
-	 * @default 0.1
+	 * @default 0.9
 	 */
-	this.relaxation = 0.1;
+	this.relaxation = 0.9;
 
 	/**
 	 * weighting used in the Gauss-Seidel successive over-relaxation solver
