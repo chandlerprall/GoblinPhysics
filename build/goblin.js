@@ -7431,20 +7431,12 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 
 	manifold = contact_manifolds.first;
 
-	// @TODO this seems like it should be very optimizable
 	while( manifold ) {
 		contacts_length = manifold.points.length;
 
 		for ( i = 0; i < contacts_length; i++ ) {
 			contact = manifold.points[i];
 
-			/*var existing_constraint = null;
-			for ( j = 0; j < this.contact_constraints.length; j++ ) {
-				if ( this.contact_constraints[j].contact === contact ) {
-					existing_constraint = this.contact_constraints[j];
-					break;
-				}
-			}*/
 			var existing_constraint = this.existing_contact_ids.hasOwnProperty( contact.uid );
 
 			if ( !existing_constraint ) {
@@ -8152,6 +8144,21 @@ Goblin.NarrowPhase.prototype.generateContacts = function( possible_contacts ) {
 		}
 	}
 };
+
+Goblin.NarrowPhase.prototype.removeBody = function( body ) {
+	var manifold = this.contact_manifolds.first;
+
+	while ( manifold != null ) {
+		if ( manifold.object_a === body || manifold.object_b === body ) {
+			for ( var i = 0; i < manifold.points.length; i++ ) {
+				manifold.points[i].destroy();
+			}
+			manifold.points.length = 0;
+		}
+
+		manifold = manifold.next;
+	}
+};
 /**
  * Manages pools for various types of objects, provides methods for creating and freeing pooled objects
  *
@@ -8474,16 +8481,20 @@ Goblin.World.prototype.addRigidBody = function( rigid_body ) {
  * @param rigid_body {Goblin.RigidBody} rigid body to remove from the world
  */
 Goblin.World.prototype.removeRigidBody = function( rigid_body ) {
-	var i,
-		rigid_body_count = this.rigid_bodies.length;
+	var i;
 
-	for ( i = 0; i < rigid_body_count; i++ ) {
+	for ( i = 0; i < this.rigid_bodies.length; i++ ) {
 		if ( this.rigid_bodies[i] === rigid_body ) {
 			this.rigid_bodies.splice( i, 1 );
 			this.broadphase.removeBody( rigid_body );
 			break;
 		}
 	}
+
+	// remove any contact & friction constraints associated with this body
+	// this calls contact.destroy() for all relevant contacts
+	// which in turn cleans up the iterative solver
+	this.narrowphase.removeBody( rigid_body );
 };
 
 /**

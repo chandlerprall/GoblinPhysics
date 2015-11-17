@@ -328,3 +328,18 @@ Goblin.NarrowPhase.prototype.generateContacts = function( possible_contacts ) {
 		}
 	}
 };
+
+Goblin.NarrowPhase.prototype.removeBody = function( body ) {
+	var manifold = this.contact_manifolds.first;
+
+	while ( manifold != null ) {
+		if ( manifold.object_a === body || manifold.object_b === body ) {
+			for ( var i = 0; i < manifold.points.length; i++ ) {
+				manifold.points[i].destroy();
+			}
+			manifold.points.length = 0;
+		}
+
+		manifold = manifold.next;
+	}
+};

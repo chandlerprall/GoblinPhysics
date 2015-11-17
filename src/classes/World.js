@@ -180,16 +180,20 @@ Goblin.World.prototype.addRigidBody = function( rigid_body ) {
  * @param rigid_body {Goblin.RigidBody} rigid body to remove from the world
  */
 Goblin.World.prototype.removeRigidBody = function( rigid_body ) {
-	var i,
-		rigid_body_count = this.rigid_bodies.length;
+	var i;
 
-	for ( i = 0; i < rigid_body_count; i++ ) {
+	for ( i = 0; i < this.rigid_bodies.length; i++ ) {
 		if ( this.rigid_bodies[i] === rigid_body ) {
 			this.rigid_bodies.splice( i, 1 );
 			this.broadphase.removeBody( rigid_body );
 			break;
 		}
 	}
+
+	// remove any contact & friction constraints associated with this body
+	// this calls contact.destroy() for all relevant contacts
+	// which in turn cleans up the iterative solver
+	this.narrowphase.removeBody( rigid_body );
 };
 
 /**

@@ -150,7 +150,6 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 
 	manifold = contact_manifolds.first;
 
-	// @TODO this seems like it should be very optimizable
 	while( manifold ) {
 		contacts_length = manifold.points.length;
 
