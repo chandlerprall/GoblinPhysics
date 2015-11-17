@@ -5,6 +5,8 @@
  * @constructor
  */
 Goblin.ContactDetails = function() {
+	this.uid = Goblin.Utility.getUid();
+
 	/**
 	 * first body in the  contact
 	 *

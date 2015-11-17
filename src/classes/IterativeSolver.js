@@ -5,6 +5,8 @@
  * @constructor
  */
 Goblin.IterativeSolver = function() {
+	this.existing_contact_ids = {};
+
 	/**
 	 * Holds contact constraints generated from contact manifolds
 	 *
@@ -91,6 +93,8 @@ Goblin.IterativeSolver = function() {
 
 		var idx = solver.contact_constraints.indexOf( this );
 		solver.contact_constraints.splice( idx, 1 );
+
+		delete solver.existing_contact_ids[ this.contact.uid ];
 	};
 	/**
 	 * used to remove friction constraints from the system when their contacts are destroyed
@@ -153,15 +157,11 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 		for ( i = 0; i < contacts_length; i++ ) {
 			contact = manifold.points[i];
 
-			var existing_constraint = null;
-			for ( j = 0; j < this.contact_constraints.length; j++ ) {
-				if ( this.contact_constraints[j].contact === contact ) {
-					existing_constraint = this.contact_constraints[j];
-					break;
-				}
-			}
+			var existing_constraint = this.existing_contact_ids.hasOwnProperty( contact.uid );
 
 			if ( !existing_constraint ) {
+				this.existing_contact_ids[contact.uid] = true;
+
 				// Build contact constraint
 				constraint = Goblin.ObjectPool.getObject( 'ContactConstraint' );
 				constraint.buildFromContact( contact );

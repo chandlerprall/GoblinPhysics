@@ -12,6 +12,7 @@
 	<script type="text/javascript">
 		window.onload = function() {
 			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
+			exampleUtils.world.solver.relaxation = 0.1; // relax penetrations solving to avoid jitter
 
 			// Making ground a MeshShape as well because Mesh-Mesh collision is MUCH faster than Mesh-Convex
 			var ground_geometry = new THREE.PlaneGeometry( 50, 50 );
