@@ -53,7 +53,6 @@ Goblin.CompoundShape.prototype.getInertiaTensor = function( mass ) {
 		i,
 		child,
 		child_tensor;
-	tensor.identity();
 
 	mass /= this.child_shapes.length;
 

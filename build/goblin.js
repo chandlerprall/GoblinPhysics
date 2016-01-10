@@ -4322,7 +4322,6 @@ Goblin.CompoundShape.prototype.getInertiaTensor = function( mass ) {
 		i,
 		child,
 		child_tensor;
-	tensor.identity();
 
 	mass /= this.child_shapes.length;
 
@@ -4418,6 +4417,7 @@ Goblin.CompoundShapeChild = function( shape, position, rotation ) {
 
 	this.position = new Goblin.Vector3( position.x, position.y, position.z );
 	this.rotation = new Goblin.Quaternion( rotation.x, rotation.y, rotation.z, rotation.w );
+	//this.rotation.normalize();
 
 	this.transform = new Goblin.Matrix4();
 	this.transform_inverse = new Goblin.Matrix4();
