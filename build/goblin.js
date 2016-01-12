@@ -7161,6 +7161,8 @@ Goblin.ContactManifold.prototype.update = function() {
 				this.points[j] = this.points[j + 1];
 			}
 			this.points.length = this.points.length - 1;
+			this.object_a.emit( 'endContact', this.object_b );
+			this.object_b.emit( 'endContact', this.object_a );
 		} else {
 			// Check if points are too far away orthogonally
 			_tmp_vec3_1.scaleVector( point.contact_normal, point.penetration_depth );
@@ -7175,13 +7177,10 @@ Goblin.ContactManifold.prototype.update = function() {
 					this.points[j] = this.points[j + 1];
 				}
 				this.points.length = this.points.length - 1;
+				this.object_a.emit( 'endContact', this.object_b );
+				this.object_b.emit( 'endContact', this.object_a );
 			}
 		}
-	}
-
-	if ( this.points.length === 0 ) {
-		this.object_a.emit( 'endContact', this.object_b );
-		this.object_b.emit( 'endContact', this.object_a );
 	}
 };
 /**
