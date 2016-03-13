@@ -14,6 +14,22 @@
 			exampleUtils.initialize(); // Creates Three.js renderer & GoblinPhysics world
 
 			var plank_material = exampleUtils.createMaterial( 'wood', 1, 1 );
+
+			var plank = exampleUtils.createBox( 5, 0.3, 2, 1, plank_material );
+			plank.goblin.rotation = new Goblin.Quaternion( 0, 0, 0, 1 );
+
+			constraint = new Goblin.HingeConstraint(
+					plank.goblin, // object_a
+					new Goblin.Vector3( 0, 0, 1 ), // vector of allowed rotation in plank's reference frame
+					new Goblin.Vector3( -5, 0, 0 ) // point on plank that is the hinge
+			);
+			constraint.limit_min = -Math.PI / 4;
+			constraint.limit_max = Math.PI / 16;
+			exampleUtils.world.addConstraint( constraint );
+
+			exampleUtils.run();
+
+			/*var plank_material = exampleUtils.createMaterial( 'wood', 1, 1 );
 			var ball_material = exampleUtils.createMaterial( 'rusted_metal', 1, 1 );
 
 			var ground = exampleUtils.createPlane( 1, 20, 20, 0, exampleUtils.createMaterial( 'pebbles', 5, 5 ) );
@@ -59,7 +75,7 @@
 				}
 			);
 
-			exampleUtils.run();
+			exampleUtils.run();*/
 		};
 	</script>
 </head>

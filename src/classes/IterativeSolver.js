@@ -187,7 +187,6 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 
 Goblin.IterativeSolver.prototype.prepareConstraints = function( time_delta ) {
 	var num_constraints = this.all_constraints.length,
-		num_rows,
 		constraint,
 		row,
 		i, j;
@@ -197,10 +196,9 @@ Goblin.IterativeSolver.prototype.prepareConstraints = function( time_delta ) {
 		if ( constraint.active === false ) {
 			continue;
 		}
-		num_rows = constraint.rows.length;
 
 		constraint.update( time_delta );
-		for ( j = 0; j < num_rows; j++ ) {
+		for ( j = 0; j < constraint.rows.length; j++ ) {
 			row = constraint.rows[j];
 			row.multiplier = 0;
 			row.computeB( constraint ); // Objects' inverted mass & inertia tensors & Jacobian

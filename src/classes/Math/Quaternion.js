@@ -91,5 +91,26 @@ Goblin.Quaternion.prototype = {
 		dest.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
 		dest.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
 		dest.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+	},
+
+	angleBetween: function( q ) {
+		/*_tmp_quat4_1.invertQuaternion( this );
+		_tmp_quat4_1.multiply( q );
+		_tmp_vec3_1.set( _tmp_quat4_1.x, _tmp_quat4_1.y, _tmp_quat4_1.z );
+		return 2 * Math.atan2( _tmp_vec3_1.length(), Math.abs( _tmp_quat4_1.w ) );*/
+
+		return 2 * Math.acos( this.x * q.x + this.y * q.y + this.z * q.z + this.w * q.w );
+	},
+
+	signedAngleBetween: function( q, normal ) {
+		_tmp_vec3_1.set( 1, 0, 0 );
+		this.transformVector3Into( _tmp_vec3_1, _tmp_vec3_2 );
+		q.transformVector3Into( _tmp_vec3_1, _tmp_vec3_3 );
+
+		_tmp_vec3_1.crossVectors( _tmp_vec3_2, _tmp_vec3_3 );
+		return Math.atan2(
+			normal.dot( _tmp_vec3_1 ),
+			_tmp_vec3_2.dot( _tmp_vec3_3 )
+		);
 	}
 };
