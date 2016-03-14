@@ -2097,7 +2097,7 @@ Goblin.BoxSphere.spherePenetration = function( box, sphere_center, box_point, co
  * @static
  */
 Goblin.GjkEpa = {
-	margins: 0.01,
+	margins: 0.03,
 	result: null,
 
     max_iterations: 20,
@@ -3862,7 +3862,7 @@ Goblin.PointConstraint.prototype.update = (function(){
 			this.rows[2].jacobian[7] = 0;
 			this.rows[2].jacobian[8] = 1;
 			this.rows[2].jacobian[9] = r2.y;
-			this.rows[2].jacobian[10] = -r2.z;
+			this.rows[2].jacobian[10] = -r2.x;
 			this.rows[2].jacobian[11] = 0;
 		} else {
 			_tmp_vec3_2.copy( this.point_b );
@@ -3875,6 +3875,7 @@ Goblin.PointConstraint.prototype.update = (function(){
 		this.rows[2].bias = _tmp_vec3_3.z;
 	};
 })( );
+
 Goblin.SliderConstraint = function( object_a, axis, object_b ) {
 	Goblin.Constraint.call( this );
 
@@ -4455,6 +4456,7 @@ Goblin.CompoundShape.prototype.getInertiaTensor = function( mass ) {
 		i,
 		child,
 		child_tensor;
+	tensor.identity();
 
 	mass /= this.child_shapes.length;
 
@@ -6459,14 +6461,6 @@ Goblin.GeometryMethods = {
 		}
 	};
 })();
-Goblin.Utility = {
-	getUid: (function() {
-		var uid = 0;
-		return function() {
-			return uid++;
-		};
-	})()
-};
 /**
  * Extends a given shape by sweeping a line around it
  *
@@ -6801,6 +6795,46 @@ Goblin.AABB.prototype.testRayIntersect = (function(){
 	}
 
 	/**
+	 * Tree node for a BVH
+	 *
+	 * @class BVHNode
+	 * @param [object] {Object} leaf object in the BVH tree
+	 * @constructor
+	 * @private
+	 */
+	var BVHNode = function( object ) {
+		this.aabb = new Goblin.AABB();
+		this.area = 0;
+
+		this.parent = null;
+		this.left = null;
+		this.right = null;
+
+		this.morton = null;
+
+		this.object = object || null;
+	};
+	BVHNode.prototype = {
+		isLeaf: function() {
+			return this.object != null;
+		},
+
+		computeBounds: function( global_aabb ) {
+			if ( this.isLeaf() ) {
+				this.aabb.copy( this.object.aabb );
+			} else {
+				this.aabb.combineAABBs( this.left.aabb, this.right.aabb );
+			}
+
+			this.area = getSurfaceArea( this.aabb );
+		},
+
+		valueOf: function() {
+			return this.area;
+		}
+	};
+
+	/**
 	 * Bottom-up BVH construction based on "Efficient BVH Construction via Approximate Agglomerative Clustering", Yan Gu 2013
 	 *
 	 * @Class AAC
@@ -6957,46 +6991,6 @@ Goblin.AABB.prototype.testRayIntersect = (function(){
 	})();
 
 	/**
-	 * Tree node for a BVH
-	 *
-	 * @class BVHNode
-	 * @param [object] {Object} leaf object in the BVH tree
-	 * @constructor
-	 * @private
-	 */
-	var BVHNode = function( object ) {
-		this.aabb = new Goblin.AABB();
-		this.area = 0;
-
-		this.parent = null;
-		this.left = null;
-		this.right = null;
-
-		this.morton = null;
-
-		this.object = object || null;
-	};
-	BVHNode.prototype = {
-		isLeaf: function() {
-			return this.object != null;
-		},
-
-		computeBounds: function( global_aabb ) {
-			if ( this.isLeaf() ) {
-				this.aabb.copy( this.object.aabb );
-			} else {
-				this.aabb.combineAABBs( this.left.aabb, this.right.aabb );
-			}
-
-			this.area = getSurfaceArea( this.aabb );
-		},
-
-		valueOf: function() {
-			return this.area;
-		}
-	};
-
-	/**
 	 * Creates a bounding volume hierarchy around a group of objects which have AABBs
 	 *
 	 * @class BVH
@@ -7027,8 +7021,6 @@ Goblin.AABB.prototype.testRayIntersect = (function(){
  * @constructor
  */
 Goblin.ContactDetails = function() {
-	this.uid = Goblin.Utility.getUid();
-
 	/**
 	 * first body in the  contact
 	 *
@@ -7294,8 +7286,6 @@ Goblin.ContactManifold.prototype.update = function() {
 				this.points[j] = this.points[j + 1];
 			}
 			this.points.length = this.points.length - 1;
-			this.object_a.emit( 'endContact', this.object_b );
-			this.object_b.emit( 'endContact', this.object_a );
 		} else {
 			// Check if points are too far away orthogonally
 			_tmp_vec3_1.scaleVector( point.contact_normal, point.penetration_depth );
@@ -7310,10 +7300,13 @@ Goblin.ContactManifold.prototype.update = function() {
 					this.points[j] = this.points[j + 1];
 				}
 				this.points.length = this.points.length - 1;
-				this.object_a.emit( 'endContact', this.object_b );
-				this.object_b.emit( 'endContact', this.object_a );
 			}
 		}
+	}
+
+	if ( this.points.length === 0 ) {
+		this.object_a.emit( 'endContact', this.object_b );
+		this.object_b.emit( 'endContact', this.object_a );
 	}
 };
 /**
@@ -7417,8 +7410,6 @@ Goblin.GhostBody.prototype.checkForEndedContacts = function() {
  * @constructor
  */
 Goblin.IterativeSolver = function() {
-	this.existing_contact_ids = {};
-
 	/**
 	 * Holds contact constraints generated from contact manifolds
 	 *
@@ -7472,9 +7463,9 @@ Goblin.IterativeSolver = function() {
 	 *
 	 * @property relaxation
 	 * @type {number}
-	 * @default 0.9
+	 * @default 0.1
 	 */
-	this.relaxation = 0.9;
+	this.relaxation = 0.1;
 
 	/**
 	 * weighting used in the Gauss-Seidel successive over-relaxation solver
@@ -7505,8 +7496,6 @@ Goblin.IterativeSolver = function() {
 
 		var idx = solver.contact_constraints.indexOf( this );
 		solver.contact_constraints.splice( idx, 1 );
-
-		delete solver.existing_contact_ids[ this.contact.uid ];
 	};
 	/**
 	 * used to remove friction constraints from the system when their contacts are destroyed
@@ -7562,17 +7551,22 @@ Goblin.IterativeSolver.prototype.processContactManifolds = function( contact_man
 
 	manifold = contact_manifolds.first;
 
+	// @TODO this seems like it should be very optimizable
 	while( manifold ) {
 		contacts_length = manifold.points.length;
 
 		for ( i = 0; i < contacts_length; i++ ) {
 			contact = manifold.points[i];
 
-			var existing_constraint = this.existing_contact_ids.hasOwnProperty( contact.uid );
+			var existing_constraint = null;
+			for ( j = 0; j < this.contact_constraints.length; j++ ) {
+				if ( this.contact_constraints[j].contact === contact ) {
+					existing_constraint = this.contact_constraints[j];
+					break;
+				}
+			}
 
 			if ( !existing_constraint ) {
-				this.existing_contact_ids[contact.uid] = true;
-
 				// Build contact constraint
 				constraint = Goblin.ObjectPool.getObject( 'ContactConstraint' );
 				constraint.buildFromContact( contact );
@@ -8273,21 +8267,6 @@ Goblin.NarrowPhase.prototype.generateContacts = function( possible_contacts ) {
 		}
 	}
 };
-
-Goblin.NarrowPhase.prototype.removeBody = function( body ) {
-	var manifold = this.contact_manifolds.first;
-
-	while ( manifold != null ) {
-		if ( manifold.object_a === body || manifold.object_b === body ) {
-			for ( var i = 0; i < manifold.points.length; i++ ) {
-				manifold.points[i].destroy();
-			}
-			manifold.points.length = 0;
-		}
-
-		manifold = manifold.next;
-	}
-};
 /**
  * Manages pools for various types of objects, provides methods for creating and freeing pooled objects
  *
@@ -8610,20 +8589,16 @@ Goblin.World.prototype.addRigidBody = function( rigid_body ) {
  * @param rigid_body {Goblin.RigidBody} rigid body to remove from the world
  */
 Goblin.World.prototype.removeRigidBody = function( rigid_body ) {
-	var i;
+	var i,
+		rigid_body_count = this.rigid_bodies.length;
 
-	for ( i = 0; i < this.rigid_bodies.length; i++ ) {
+	for ( i = 0; i < rigid_body_count; i++ ) {
 		if ( this.rigid_bodies[i] === rigid_body ) {
 			this.rigid_bodies.splice( i, 1 );
 			this.broadphase.removeBody( rigid_body );
 			break;
 		}
 	}
-
-	// remove any contact & friction constraints associated with this body
-	// this calls contact.destroy() for all relevant contacts
-	// which in turn cleans up the iterative solver
-	this.narrowphase.removeBody( rigid_body );
 };
 
 /**
