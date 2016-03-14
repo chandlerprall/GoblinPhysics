@@ -7,6 +7,46 @@
 	}
 
 	/**
+	 * Tree node for a BVH
+	 *
+	 * @class BVHNode
+	 * @param [object] {Object} leaf object in the BVH tree
+	 * @constructor
+	 * @private
+	 */
+	var BVHNode = function( object ) {
+		this.aabb = new Goblin.AABB();
+		this.area = 0;
+
+		this.parent = null;
+		this.left = null;
+		this.right = null;
+
+		this.morton = null;
+
+		this.object = object || null;
+	};
+	BVHNode.prototype = {
+		isLeaf: function() {
+			return this.object != null;
+		},
+
+		computeBounds: function( global_aabb ) {
+			if ( this.isLeaf() ) {
+				this.aabb.copy( this.object.aabb );
+			} else {
+				this.aabb.combineAABBs( this.left.aabb, this.right.aabb );
+			}
+
+			this.area = getSurfaceArea( this.aabb );
+		},
+
+		valueOf: function() {
+			return this.area;
+		}
+	};
+
+	/**
 	 * Bottom-up BVH construction based on "Efficient BVH Construction via Approximate Agglomerative Clustering", Yan Gu 2013
 	 *
 	 * @Class AAC
@@ -161,46 +201,6 @@
 		AAC.max_bucket_size = 20;
 		return AAC;
 	})();
-
-	/**
-	 * Tree node for a BVH
-	 *
-	 * @class BVHNode
-	 * @param [object] {Object} leaf object in the BVH tree
-	 * @constructor
-	 * @private
-	 */
-	var BVHNode = function( object ) {
-		this.aabb = new Goblin.AABB();
-		this.area = 0;
-
-		this.parent = null;
-		this.left = null;
-		this.right = null;
-
-		this.morton = null;
-
-		this.object = object || null;
-	};
-	BVHNode.prototype = {
-		isLeaf: function() {
-			return this.object != null;
-		},
-
-		computeBounds: function( global_aabb ) {
-			if ( this.isLeaf() ) {
-				this.aabb.copy( this.object.aabb );
-			} else {
-				this.aabb.combineAABBs( this.left.aabb, this.right.aabb );
-			}
-
-			this.area = getSurfaceArea( this.aabb );
-		},
-
-		valueOf: function() {
-			return this.area;
-		}
-	};
 
 	/**
 	 * Creates a bounding volume hierarchy around a group of objects which have AABBs

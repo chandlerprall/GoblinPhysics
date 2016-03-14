@@ -79,7 +79,7 @@ Goblin.PointConstraint.prototype.update = (function(){
 			this.rows[2].jacobian[7] = 0;
 			this.rows[2].jacobian[8] = 1;
 			this.rows[2].jacobian[9] = r2.y;
-			this.rows[2].jacobian[10] = -r2.z;
+			this.rows[2].jacobian[10] = -r2.x;
 			this.rows[2].jacobian[11] = 0;
 		} else {
 			_tmp_vec3_2.copy( this.point_b );
