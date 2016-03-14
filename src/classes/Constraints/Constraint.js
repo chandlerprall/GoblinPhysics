@@ -5,6 +5,8 @@ Goblin.Constraint = function() {
 
 	this.object_b = null;
 
+	this.limit = new Goblin.ConstraintLimit();
+
 	this.rows = [];
 
 	this.factor = 1;

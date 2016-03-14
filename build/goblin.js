@@ -3183,6 +3183,8 @@ Goblin.Constraint = function() {
 
 	this.object_b = null;
 
+	this.limit = new Goblin.ConstraintLimit();
+
 	this.rows = [];
 
 	this.factor = 1;
@@ -3201,6 +3203,23 @@ Goblin.Constraint.prototype.deactivate = function() {
 };
 
 Goblin.Constraint.prototype.update = function(){};
+Goblin.ConstraintLimit = function( limit_lower, limit_upper ) {
+	this.erp = 0.3;
+	this.constraint_row = null;
+
+	this.set( limit_lower, limit_upper );
+};
+
+Goblin.ConstraintLimit.prototype.set = function( limit_lower, limit_upper ) {
+	this.limit_lower = limit_lower || null;
+	this.limit_upper = limit_upper || null;
+
+	this.enabled = this.limit_lower != null || this.limit_upper != null;
+};
+
+Goblin.ConstraintLimit.prototype.createConstraintRow = function() {
+	return this.constraint_row = Goblin.ConstraintRow.createConstraintRow();
+};
 Goblin.ConstraintRow = function() {
 	this.jacobian = new Float64Array( 12 );
 	this.B = new Float64Array( 12 ); // `B` is the jacobian multiplied by the objects' inverted mass & inertia tensors
@@ -3214,6 +3233,20 @@ Goblin.ConstraintRow = function() {
 	this.multiplier_cached = 0;
 	this.eta = 0;
 	this.eta_row = new Float64Array( 12 );
+};
+
+Goblin.ConstraintRow.createConstraintRow = function() {
+	var row =  Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	row.lower_limit = -Infinity;
+	row.upper_limit = Infinity;
+	row.bias = 0;
+
+	row.jacobian[0] = row.jacobian[1] = row.jacobian[2] =
+	row.jacobian[3] = row.jacobian[4] = row.jacobian[5] =
+	row.jacobian[6] = row.jacobian[7] = row.jacobian[8] =
+	row.jacobian[9] = row.jacobian[10] = row.jacobian[11] = 0;
+
+	return row;
 };
 
 Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
@@ -3526,20 +3559,6 @@ Goblin.FrictionConstraint.prototype.update = (function(){
 		this.rows[1] = row_2;
 	};
 })();
-function getConstraintRow() {
-	var row =  Goblin.ObjectPool.getObject( 'ConstraintRow' );
-	row.lower_limit = -Infinity;
-	row.upper_limit = Infinity;
-	row.bias = 0;
-
-	row.jacobian[0] = row.jacobian[1] = row.jacobian[2] =
-	row.jacobian[3] = row.jacobian[4] = row.jacobian[5] =
-	row.jacobian[6] = row.jacobian[7] = row.jacobian[8] =
-	row.jacobian[9] = row.jacobian[10] = row.jacobian[11] = 0;
-
-	return row;
-}
-
 Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b ) {
 	Goblin.Constraint.call( this );
 
@@ -3562,8 +3581,7 @@ Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b
 
 		this.point_b = point_b;
 
-		this.initial_quaternion.set( this.object_b.rotation.x, this.object_b.rotation.y, this.object_b.rotation.z, this.object_b.rotation.w );
-		this.initial_quaternion.multiply( this.object_a.rotation );
+		this.initial_quaternion.multiplyQuaternions( _tmp_quat4_1, this.object_a.rotation );
 	} else {
 		this.object_a.updateDerived(); // Ensure the body's transform is correct
 		this.object_a.rotation.transformVector3Into( this.hinge_a, this.hinge_b );
@@ -3572,52 +3590,89 @@ Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b
 	}
 
 	this.erp = 0.1;
+	this.limit_erp = 0.1;
 
 	// Create rows
 	// rows 0,1,2 are the same as point constraint and constrain the objects' positions
 	// rows 3,4 introduce the rotational constraints which constrains angular velocity orthogonal to the hinge axis
 	for ( var i = 0; i < 5; i++ ) {
-		this.rows[i] = getConstraintRow();
+		this.rows[i] = Goblin.ConstraintRow.createConstraintRow();
 	}
 };
 Goblin.HingeConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
+function removeConstraintRow( constraint ) {
+	if ( constraint.limit.constraint_row != null ) {
+		var row_idx = constraint.rows.indexOf(constraint.limit.constraint_row);
+		constraint.rows.splice(row_idx, 1);
+		constraint.limit.constraint_row = null;
+	}
+}
 Goblin.HingeConstraint.prototype.updateLimits = function( time_delta, world_axis ) {
+	if ( this.limit.enabled === false ) {
+		// remove existing `constraint_row` if it was previously set
+		removeConstraintRow( this );
+		return;
+	}
+
+	var separating_angle, correction;
+
 	if ( this.object_b == null ) {
 		// this.initial_quaternion is the original rotation of object_a
-		var separating_angle = this.initial_quaternion.signedAngleBetween( this.object_a.rotation, world_axis );
-
-		if ( this.limit_min != null && separating_angle <= this.limit_min ) {
-			if ( this.limit_row == null ) {
-				this.limit_row = getConstraintRow();
-				this.limit_row.upper_limit = 0;
-				this.rows.push( this.limit_row );
-			}
-			this.limit_row.jacobian[3] = -world_axis.x;
-			this.limit_row.jacobian[4] = -world_axis.y;
-			this.limit_row.jacobian[5] = -world_axis.z;
-
-			var correction = separating_angle - this.limit_min;
-			this.limit_row.bias = correction * this.erp / time_delta;
-		} else if ( this.limit_max != null && separating_angle >= this.limit_max ) {
-			if ( this.limit_row == null ) {
-				this.limit_row = getConstraintRow();
-				this.limit_row.lower_limit = 0;
-				this.rows.push( this.limit_row );
-			}
-			this.limit_row.jacobian[3] = -world_axis.x;
-			this.limit_row.jacobian[4] = -world_axis.y;
-			this.limit_row.jacobian[5] = -world_axis.z;
-
-			var correction = separating_angle - this.limit_max;
-			this.limit_row.bias = correction * this.erp / time_delta;
-		} else if ( this.limit_row != null ) {
-			var row_idx = this.rows.indexOf( this.limit_row );
-			this.rows.splice( row_idx, 1 );
-			this.limit_row = null;
-		}
+		separating_angle = this.initial_quaternion.signedAngleBetween( this.object_a.rotation, world_axis );
 	} else {
-		// this.initial_quaternion is the original difference in rotation between object_a and object_b
+		// this.initial_quaternion is the original difference in rotation between object_a and object_b (A - B)
+		_tmp_quat4_1.invertQuaternion( this.object_b.rotation );
+		_tmp_quat4_1.multiply( this.object_a.rotation );
+
+		separating_angle = this.initial_quaternion.signedAngleBetween( _tmp_quat4_1, world_axis );
+	}
+
+	if (
+		( this.limit.limit_lower == null || this.limit.limit_lower < separating_angle ) &&
+		( this.limit.limit_upper == null || this.limit.limit_upper > separating_angle )
+	) {
+		// there limit is not violated, ignore
+		removeConstraintRow( this );
+		return;
+	}
+
+	if ( this.limit.limit_lower != null && separating_angle <= this.limit.limit_lower ) {
+		if ( this.limit.constraint_row == null ) {
+			this.limit.createConstraintRow();
+			this.limit.constraint_row.upper_limit = 0;
+			this.rows.push( this.limit.constraint_row );
+		}
+		this.limit.constraint_row.jacobian[3] = -world_axis.x;
+		this.limit.constraint_row.jacobian[4] = -world_axis.y;
+		this.limit.constraint_row.jacobian[5] = -world_axis.z;
+
+		if ( this.object_b != null ) {
+			this.limit.constraint_row.jacobian[9] = world_axis.x;
+			this.limit.constraint_row.jacobian[10] = world_axis.y;
+			this.limit.constraint_row.jacobian[11] = world_axis.z;
+		}
+
+		correction = separating_angle - this.limit.limit_lower;
+		this.limit.constraint_row.bias = correction * this.limit.erp / time_delta;
+	} else if ( this.limit.limit_upper != null && separating_angle >= this.limit.limit_upper ) {
+		if ( this.limit.constraint_row == null ) {
+			this.limit.createConstraintRow();
+			this.limit.constraint_row.lower_limit = 0;
+			this.rows.push( this.limit.constraint_row );
+		}
+		this.limit.constraint_row.jacobian[3] = -world_axis.x;
+		this.limit.constraint_row.jacobian[4] = -world_axis.y;
+		this.limit.constraint_row.jacobian[5] = -world_axis.z;
+
+		if ( this.object_b != null ) {
+			this.limit.constraint_row.jacobian[9] = world_axis.x;
+			this.limit.constraint_row.jacobian[10] = world_axis.y;
+			this.limit.constraint_row.jacobian[11] = world_axis.z;
+		}
+
+		correction = separating_angle - this.limit.limit_upper;
+		this.limit.constraint_row.bias = correction * this.limit.erp / time_delta;
 	}
 };
 

@@ -13,6 +13,20 @@ Goblin.ConstraintRow = function() {
 	this.eta_row = new Float64Array( 12 );
 };
 
+Goblin.ConstraintRow.createConstraintRow = function() {
+	var row =  Goblin.ObjectPool.getObject( 'ConstraintRow' );
+	row.lower_limit = -Infinity;
+	row.upper_limit = Infinity;
+	row.bias = 0;
+
+	row.jacobian[0] = row.jacobian[1] = row.jacobian[2] =
+	row.jacobian[3] = row.jacobian[4] = row.jacobian[5] =
+	row.jacobian[6] = row.jacobian[7] = row.jacobian[8] =
+	row.jacobian[9] = row.jacobian[10] = row.jacobian[11] = 0;
+
+	return row;
+};
+
 Goblin.ConstraintRow.prototype.computeB = function( constraint ) {
 	var invmass;
 
