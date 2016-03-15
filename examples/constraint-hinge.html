@@ -17,24 +17,34 @@
 			ground.goblin.position.y = -10;
 			ground.castShadow = false;
 
-			var plank_material = exampleUtils.createMaterial( 'wood', 1, 1 );
+			var sphere_material = exampleUtils.createMaterial( 'scratched_metal', 1, 1 ),
+				plank_material = exampleUtils.createMaterial( 'wood', 1, 1 );
 
-			var plank = exampleUtils.createBox( 3, 0.3, 2, 5, plank_material );
-			plank.goblin.rotation = new Goblin.Quaternion( 0, 0, 0, 1 );
-
-			var plank2 = exampleUtils.createBox( 5, 0.3, 2, 10, plank_material );
-			plank2.goblin.position.set( 4, -5, 0 );
-			plank2.goblin.rotation = new Goblin.Quaternion( 0, 0, 1, 1 );
+			var plank = exampleUtils.createBox( 5, 0.3, 2, 1, plank_material );
 
 			constraint = new Goblin.HingeConstraint(
 					plank.goblin, // object_a
 					new Goblin.Vector3( 0, 0, 1 ), // vector of allowed rotation in plank's reference frame
-					new Goblin.Vector3( 4, 0, 0 ), // point on plank that is the hinge
-					plank2.goblin,
-					new Goblin.Vector3( 5, 0, 0 )
+					new Goblin.Vector3( -4, 0, 0 ) // point on plank that is the hinge
 			);
-			constraint.limit.set( -Math.PI / 8, Math.PI / 8 );
+			constraint.limit.set( -Math.PI / 8, 0 );
+			constraint.motor.set( 40, 1 );
+
 			exampleUtils.world.addConstraint( constraint );
+
+			function spawnSphere() {
+				var sphere = exampleUtils.createSphere( 1, 1, sphere_material );
+				sphere.goblin.position.set( -3, 5, 0 );
+			}
+
+			exampleUtils.world.addListener(
+				'stepStart',
+				function( tick ) {
+					if ( tick % 240 === 0 ) {
+						spawnSphere();
+					}
+				}
+			);
 
 			exampleUtils.run();
 		};

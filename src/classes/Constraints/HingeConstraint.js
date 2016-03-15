@@ -6,9 +6,6 @@ Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b
 	this.point_a = point_a;
 
 	this.initial_quaternion = new Goblin.Quaternion();
-	this.limit_min = null;
-	this.limit_max = null;
-	this.limit_row = null;
 
 	this.object_b = object_b || null;
 	this.point_b = new Goblin.Vector3();
@@ -29,7 +26,6 @@ Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b
 	}
 
 	this.erp = 0.1;
-	this.limit_erp = 0.1;
 
 	// Create rows
 	// rows 0,1,2 are the same as point constraint and constrain the objects' positions
@@ -40,17 +36,26 @@ Goblin.HingeConstraint = function( object_a, hinge_a, point_a, object_b, point_b
 };
 Goblin.HingeConstraint.prototype = Object.create( Goblin.Constraint.prototype );
 
-function removeConstraintRow( constraint ) {
+function removeConstraintLimitRow( constraint ) {
 	if ( constraint.limit.constraint_row != null ) {
 		var row_idx = constraint.rows.indexOf(constraint.limit.constraint_row);
 		constraint.rows.splice(row_idx, 1);
 		constraint.limit.constraint_row = null;
 	}
 }
-Goblin.HingeConstraint.prototype.updateLimits = function( time_delta, world_axis ) {
+
+function removeConstraintMotorRow( constraint ) {
+	if ( constraint.motor.constraint_row != null ) {
+		var row_idx = constraint.rows.indexOf(constraint.motor.constraint_row);
+		constraint.rows.splice(row_idx, 1);
+		constraint.motor.constraint_row = null;
+	}
+}
+
+Goblin.HingeConstraint.prototype.updateLimits = function( world_axis, time_delta ) {
 	if ( this.limit.enabled === false ) {
 		// remove existing `constraint_row` if it was previously set
-		removeConstraintRow( this );
+		removeConstraintLimitRow( this );
 		return;
 	}
 
@@ -72,7 +77,7 @@ Goblin.HingeConstraint.prototype.updateLimits = function( time_delta, world_axis
 		( this.limit.limit_upper == null || this.limit.limit_upper > separating_angle )
 	) {
 		// there limit is not violated, ignore
-		removeConstraintRow( this );
+		removeConstraintLimitRow( this );
 		return;
 	}
 
@@ -112,6 +117,36 @@ Goblin.HingeConstraint.prototype.updateLimits = function( time_delta, world_axis
 
 		correction = separating_angle - this.limit.limit_upper;
 		this.limit.constraint_row.bias = correction * this.limit.erp / time_delta;
+	}
+};
+
+Goblin.HingeConstraint.prototype.updateMotor = function( world_axis ) {
+	if ( this.motor.enabled === false ) {
+		removeConstraintMotorRow( this );
+		return;
+	}
+
+	if ( this.motor.constraint_row == null ) {
+		this.motor.createConstraintRow();
+		this.rows.push( this.motor.constraint_row );
+		this.motor.constraint_row.jacobian[3] = world_axis.x;
+		this.motor.constraint_row.jacobian[4] = world_axis.y;
+		this.motor.constraint_row.jacobian[5] = world_axis.z;
+
+		if ( this.object_b != null ) {
+			this.motor.constraint_row.jacobian[9] = -world_axis.x;
+			this.motor.constraint_row.jacobian[10] = -world_axis.y;
+			this.motor.constraint_row.jacobian[11] = -world_axis.z;
+		}
+	}
+
+	this.motor.constraint_row.bias = this.motor.max_speed;
+	if ( this.motor.max_speed >= 0 ) {
+		this.motor.constraint_row.lower_limit = 0;
+		this.motor.constraint_row.upper_limit = this.motor.torque;
+	} else {
+		this.motor.constraint_row.lower_limit = -this.motor.torque;
+		this.motor.constraint_row.upper_limit = 0;
 	}
 };
 
@@ -210,13 +245,14 @@ Goblin.HingeConstraint.prototype.update = (function(){
 			this.object_a.rotation.transformVector3Into(this.hinge_a, _tmp_vec3_1);
 			this.object_b.rotation.transformVector3Into(this.hinge_b, _tmp_vec3_2);
 			_tmp_vec3_1.cross(_tmp_vec3_2);
-			this.rows[3].bias = -_tmp_vec3_1.dot(t1);
-			this.rows[4].bias = -_tmp_vec3_1.dot(t2);
+			this.rows[3].bias = -_tmp_vec3_1.dot(t1) * this.erp / time_delta;
+			this.rows[4].bias = -_tmp_vec3_1.dot(t2) * this.erp / time_delta;
 		} else {
 			this.rows[3].bias = this.rows[4].bias = 0;
 		}
 
 		// limits & motor
-		this.updateLimits( time_delta, world_axis );
+		this.updateLimits( world_axis, time_delta );
+		this.updateMotor( world_axis );
 	};
 })( );

@@ -7,6 +7,8 @@ Goblin.Constraint = function() {
 
 	this.limit = new Goblin.ConstraintLimit();
 
+	this.motor = new Goblin.ConstraintMotor();
+
 	this.rows = [];
 
 	this.factor = 1;
