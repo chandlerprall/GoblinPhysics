@@ -14,8 +14,10 @@ Goblin.GhostBody.prototype.onSpeculativeContact = function( object_b, contact ) 
     if ( this.contacts.indexOf( object_b ) === -1 ) {
         this.contacts.push( object_b );
         this.emit( 'contactStart', object_b, contact );
+        object_b.emit( 'contactStart', this, contact );
     } else {
         this.emit( 'contactContinue', object_b, contact );
+        object_b.emit( 'contactContinue', this, contact );
     }
 
     return false;

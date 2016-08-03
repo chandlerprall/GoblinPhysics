@@ -7322,7 +7322,8 @@ Goblin.ContactManifold.prototype.update = function() {
 		point,
 		object_a_world_coords = new Goblin.Vector3(),
 		object_b_world_coords = new Goblin.Vector3(),
-		vector_difference = new Goblin.Vector3();
+		vector_difference = new Goblin.Vector3(),
+		starting_points_length = this.points.length;
 
 	for ( i = 0; i < this.points.length; i++ ) {
 		point = this.points[i];
@@ -7367,6 +7368,12 @@ Goblin.ContactManifold.prototype.update = function() {
 				this.object_b.emit( 'endContact', this.object_a );
 			}
 		}
+	}
+
+	if (starting_points_length > 0 && this.points.length === 0) {
+		// this update removed all contact points
+		this.object_a.emit( 'endAllContact', this.object_b );
+		this.object_b.emit( 'endAllContact', this.object_a );
 	}
 };
 /**
@@ -7446,8 +7453,10 @@ Goblin.GhostBody.prototype.onSpeculativeContact = function( object_b, contact ) 
     if ( this.contacts.indexOf( object_b ) === -1 ) {
         this.contacts.push( object_b );
         this.emit( 'contactStart', object_b, contact );
+        object_b.emit( 'contactStart', this, contact );
     } else {
         this.emit( 'contactContinue', object_b, contact );
+        object_b.emit( 'contactContinue', this, contact );
     }
 
     return false;
@@ -8586,6 +8595,12 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
 
 		this.emit( 'stepStart', this.ticks, delta );
 
+		// Integrate rigid bodies
+		for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
+			body = this.rigid_bodies[i];
+			body.integrate( delta );
+		}
+
         for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
             this.rigid_bodies[i].updateDerived();
         }
@@ -8626,12 +8641,6 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
 
         // Apply the constraints
         this.solver.applyConstraints( delta );
-
-        // Integrate rigid bodies
-        for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
-            body = this.rigid_bodies[i];
-            body.integrate( delta );
-        }
 
 		// Uppdate ghost bodies
 		for ( i = 0; i < this.ghost_bodies.length; i++ ) {

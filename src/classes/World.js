@@ -103,6 +103,12 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
 
 		this.emit( 'stepStart', this.ticks, delta );
 
+		// Integrate rigid bodies
+		for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
+			body = this.rigid_bodies[i];
+			body.integrate( delta );
+		}
+
         for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
             this.rigid_bodies[i].updateDerived();
         }
@@ -143,12 +149,6 @@ Goblin.World.prototype.step = function( time_delta, max_step ) {
 
         // Apply the constraints
         this.solver.applyConstraints( delta );
-
-        // Integrate rigid bodies
-        for ( i = 0, loop_count = this.rigid_bodies.length; i < loop_count; i++ ) {
-            body = this.rigid_bodies[i];
-            body.integrate( delta );
-        }
 
 		// Uppdate ghost bodies
 		for ( i = 0; i < this.ghost_bodies.length; i++ ) {

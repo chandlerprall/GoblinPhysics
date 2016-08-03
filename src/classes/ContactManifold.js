@@ -158,7 +158,8 @@ Goblin.ContactManifold.prototype.update = function() {
 		point,
 		object_a_world_coords = new Goblin.Vector3(),
 		object_b_world_coords = new Goblin.Vector3(),
-		vector_difference = new Goblin.Vector3();
+		vector_difference = new Goblin.Vector3(),
+		starting_points_length = this.points.length;
 
 	for ( i = 0; i < this.points.length; i++ ) {
 		point = this.points[i];
@@ -203,5 +204,11 @@ Goblin.ContactManifold.prototype.update = function() {
 				this.object_b.emit( 'endContact', this.object_a );
 			}
 		}
+	}
+
+	if (starting_points_length > 0 && this.points.length === 0) {
+		// this update removed all contact points
+		this.object_a.emit( 'endAllContact', this.object_b );
+		this.object_b.emit( 'endAllContact', this.object_a );
 	}
 };
