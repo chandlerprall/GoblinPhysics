@@ -103,7 +103,11 @@ Goblin.Quaternion.prototype = {
 	},
 
 	signedAngleBetween: function( q, normal ) {
-		_tmp_vec3_1.set( 1, 0, 0 );
+		if ( Math.abs(x_axis.dot( normal )) < 0.5 ) {
+			_tmp_vec3_1.set( 1, 0, 0 );
+		} else {
+			_tmp_vec3_1.set( 0, 0, 1 );
+		}
 		this.transformVector3Into( _tmp_vec3_1, _tmp_vec3_2 );
 		q.transformVector3Into( _tmp_vec3_1, _tmp_vec3_3 );
 

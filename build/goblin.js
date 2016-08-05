@@ -584,7 +584,11 @@ Goblin.Quaternion.prototype = {
 	},
 
 	signedAngleBetween: function( q, normal ) {
-		_tmp_vec3_1.set( 1, 0, 0 );
+		if ( Math.abs(x_axis.dot( normal )) < 0.5 ) {
+			_tmp_vec3_1.set( 1, 0, 0 );
+		} else {
+			_tmp_vec3_1.set( 0, 0, 1 );
+		}
 		this.transformVector3Into( _tmp_vec3_1, _tmp_vec3_2 );
 		q.transformVector3Into( _tmp_vec3_1, _tmp_vec3_3 );
 
@@ -734,6 +738,10 @@ Goblin.EPSILON = 0.00001;
 var _tmp_vec3_1 = new Goblin.Vector3(),
 	_tmp_vec3_2 = new Goblin.Vector3(),
 	_tmp_vec3_3 = new Goblin.Vector3(),
+
+	x_axis = new Goblin.Vector3( 1, 0, 0 ),
+	y_axis = new Goblin.Vector3( 0, 1, 0 ),
+	z_axis = new Goblin.Vector3( 0, 0, 1 ),
 
 	_tmp_quat4_1 = new Goblin.Quaternion(),
 	_tmp_quat4_2 = new Goblin.Quaternion(),
