@@ -3,7 +3,8 @@ window.exampleUtils = (function(){
 		camera,
 		controls,
 		world,
-		stats;
+		stats,
+		texture_loader = new THREE.TextureLoader();
 	
 	var objects = [];
 
@@ -11,7 +12,7 @@ window.exampleUtils = (function(){
 		// Setup Three.js
 		renderer = new THREE.WebGLRenderer({ antialias: true });
 		renderer.setSize( window.innerWidth, window.innerHeight );
-		renderer.shadowMapEnabled = true;
+		renderer.shadowMap.enabled = true;
 		document.body.appendChild( renderer.domElement );
 		exampleUtils.renderer = renderer;
 
@@ -28,14 +29,12 @@ window.exampleUtils = (function(){
 
 		var directional_light = new THREE.DirectionalLight( new THREE.Color( 0xFFFFFF ) );
 		directional_light.position.set( 10, 30, 20 );
-		//directional_light.shadowMapWidth = directional_light.shadowMapHeight = 2048;
-		directional_light.shadowCameraLeft = directional_light.shadowCameraBottom = -50;
-		directional_light.shadowCameraRight = directional_light.shadowCameraTop = 50;
+		directional_light.shadow.camera.left = directional_light.shadow.camera.bottom = -50;
+		directional_light.shadow.camera.right = directional_light.shadow.camera.top = 50;
 		directional_light.castShadow = true;
-		directional_light.shadowCameraNear = 1;
-		directional_light.shadowCameraFar = 50;
-		directional_light.shadowCameraFov = 50;
-		directional_light.shadowDarkness = 0.5;
+		directional_light.shadow.camera.near = 1;
+		directional_light.shadow.camera.far = 75;
+		directional_light.shadow.camera.fov = 50;
 		exampleUtils.scene.add( directional_light );
 	};
 
@@ -124,16 +123,14 @@ window.exampleUtils = (function(){
 				normal: '210_normal.png',
 				specular: '210_specular.png',
 				shininess: 200,
-				normal_scale: 4,
-				metal: true
+				normal_scale: 4
 			},
 			scratched_metal: {
 				diffuse: '213_diffuse.png',
 				normal: '213_normal.png',
 				specular: '213_specular.png',
 				shininess: 300,
-				normal_scale: 3,
-				metal: true
+				normal_scale: 3
 			},
 			cement: {
 				diffuse: '173_diffuse.png',
@@ -147,8 +144,7 @@ window.exampleUtils = (function(){
 				normal: '214_normal.png',
 				specular: '214_specular.png',
 				shininess: 200,
-				normal_scale: 10,
-				metal: true
+				normal_scale: 10
 			}
 		},
 
@@ -317,7 +313,7 @@ window.exampleUtils = (function(){
 
 		createMaterial: function( name, repeat_x, repeat_y ) {
 			var def = exampleUtils.materials[name],
-				map = THREE.ImageUtils.loadTexture( 'textures/' + def.diffuse ),
+				map = texture_loader.load( 'textures/' + def.diffuse ),
 				normalMap, specularMap,
 				material_def = {
 					shininess: 0
@@ -330,7 +326,8 @@ window.exampleUtils = (function(){
 			material_def.map = map;
 
 			if ( def.normal ) {
-				normalMap = THREE.ImageUtils.loadTexture( 'textures/' + def.normal, THREE.RepeatWrapping );
+				normalMap = texture_loader.load( 'textures/' + def.normal );
+				normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapper;
 				normalMap.repeat.x = repeat_x;
 				normalMap.repeat.y = repeat_y;
 				normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
@@ -339,7 +336,8 @@ window.exampleUtils = (function(){
 			}
 
 			if ( def.specular ) {
-				specularMap = THREE.ImageUtils.loadTexture( 'textures/' + def.specular, THREE.RepeatWrapping );
+				specularMap = texture_loader.load( 'textures/' + def.specular );
+				specularMap.wrapS = normalMap.wrapT = THREE.RepeatWrapper;
 				specularMap.repeat.x = repeat_x;
 				specularMap.repeat.y = repeat_y;
 				specularMap.wrapS = specularMap.wrapT = THREE.RepeatWrapping;
@@ -352,10 +350,6 @@ window.exampleUtils = (function(){
 
 			if ( def.normal_scale ) {
 				material.normalScale.set( def.normal_scale, def.normal_scale );
-			}
-
-			if ( def.metal ) {
-				material.metal = true;
 			}
 
 			return material;
