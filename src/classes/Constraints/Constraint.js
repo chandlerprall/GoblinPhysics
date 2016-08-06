@@ -1,24 +1,30 @@
-Goblin.Constraint = function() {
-	this.active = true;
+Goblin.Constraint = (function() {
+	var constraint_count = 0;
 
-	this.object_a = null;
+	return function() {
+		this.id = constraint_count++;
 
-	this.object_b = null;
+		this.active = true;
 
-	this.limit = new Goblin.ConstraintLimit();
+		this.object_a = null;
 
-	this.motor = new Goblin.ConstraintMotor();
+		this.object_b = null;
 
-	this.rows = [];
+		this.limit = new Goblin.ConstraintLimit();
 
-	this.factor = 1;
+		this.motor = new Goblin.ConstraintMotor();
 
-	this.last_impulse = new Goblin.Vector3();
+		this.rows = [];
 
-	this.breaking_threshold = 0;
+		this.factor = 1;
 
-	this.listeners = {};
-};
+		this.last_impulse = new Goblin.Vector3();
+
+		this.breaking_threshold = 0;
+
+		this.listeners = {};
+	};
+})();
 Goblin.EventEmitter.apply( Goblin.Constraint );
 
 Goblin.Constraint.prototype.deactivate = function() {
