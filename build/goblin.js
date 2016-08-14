@@ -3556,27 +3556,13 @@ Goblin.FrictionConstraint.prototype.update = (function(){
 			row_2.jacobian[11] = _tmp_vec3_1.z;
 		}
 
-		// Find total velocity between the two bodies along the contact normal
-		this.object_a.getVelocityInLocalPoint( this.contact.contact_point_in_a, _tmp_vec3_1 );
-
-		// Include accumulated forces
-		if ( this.object_a._mass !== Infinity ) {
-			// accumulated linear velocity
-			_tmp_vec3_1.scaleVector( this.object_a.accumulated_force, 1 / this.object_a._mass );
-			_tmp_vec3_1.add( this.object_a.linear_velocity );
-
-			// accumulated angular velocity
-			this.object_a.inverseInertiaTensorWorldFrame.transformVector3Into( this.object_a.accumulated_torque, _tmp_vec3_3 );
-			_tmp_vec3_3.add( this.object_a.angular_velocity );
-
-			_tmp_vec3_3.cross( this.contact.contact_point_in_a );
-			_tmp_vec3_1.add( _tmp_vec3_3 );
-			_tmp_vec3_1.scale( this.object_a._mass );
-		} else {
-			_tmp_vec3_1.set( 0, 0, 0 );
+		var limit = this.contact.friction;
+		if (this.object_a != null && this.object_a._mass !== Infinity) {
+			limit *= this.object_a._mass;
 		}
-
-		var limit = this.contact.friction * 25;
+		if (this.object_b != null && this.object_b._mass !== Infinity) {
+			limit *= this.object_b._mass;
+		}
 		if ( limit < 0 ) {
 			limit = 0;
 		}
