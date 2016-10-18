@@ -3,7 +3,9 @@ window.exampleUtils = (function(){
 		camera,
 		controls,
 		world,
-		stats;
+		stats,
+	        lastTime = 0,
+	        deltaTime = 0;
 	
 	var objects = [];
 
@@ -173,12 +175,14 @@ window.exampleUtils = (function(){
             renderer.render( exampleUtils.scene, camera );
         },
 
-		run: function() {
+		run: function(time) {
 			requestAnimationFrame( exampleUtils.run );
-
+			
+			if (!lastTime) lastTime = 16.6667 // account for the first frame
+			deltaTime = time - lastTime // milliseconds
 			controls.update();
 			stats.begin();
-			world.step( 1 / 60 );
+			world.step( deltaTime / 1000 ); // seconds
 			stats.end();
 			exampleUtils.render();
 
